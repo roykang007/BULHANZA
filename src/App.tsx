@@ -3,11 +3,20 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Menu, X, Globe, ChevronDown } from 'lucide-react';
 
 type Language = 'KR' | 'TC' | 'EN';
-type Page = 'home' | 'tea' | 'archive' | 'contact';
+type Page = 'home' | 'tea' | 'archive' | 'contact' | 'philosophy';
 
 interface Content {
   hero: { title: string; subtitle: string };
   philosophy: { title: string; text: string };
+  philosophyDetail: {
+    title: string;
+    subtitle: string;
+    intro: string;
+    sections: {
+      title: string;
+      content: string;
+    }[];
+  };
   art: { title: string; text: string };
   tea: { title: string; text: string };
   teaDetail: {
@@ -52,6 +61,29 @@ const translations: Record<Language, Content> = {
     philosophy: {
       title: "心物哲學",
       text: "심물은 둘이 아니다. 보이는 것과 보이지 않는 것은 서로를 낳고, 그 사이에서 세계가 드러난다. 알고자 하면 멀어지고 고요하면 드러난다."
+    },
+    philosophyDetail: {
+      title: "심물철학(心物哲學)과 물파미학(物波美學)",
+      subtitle: "심물지파(心物之波)와 21세기 예술철학",
+      intro: "예술은 인간이 세계와 만나는 가장 깊은 형식 가운데 하나이다. 인간은 사물을 보고, 소리를 듣고, 만물을 만지며 살아가지만, 단순한 감각적 접촉만으로 세계를 온전히 산다고 할 수는 없다. 우리는 언제나 보이는 것 너머를 함께 느낀다.\n\n심물철학은 마음과 사물을 둘로 갈라 놓지 않는다. 마음은 홀로 세계를 만들지 못하며, 사물도 홀로 의미를 갖지 못한다. 존재는 언제나 마음과 사물이 만나고 비추고 스며드는 관계 속에서만 현실성을 가진다.",
+      sections: [
+        {
+          title: "제1장 왜 지금 새로운 미학이 필요한가",
+          content: "새로운 미학이 필요하다고 할 때, 그것은 새로운 양식이나 새로운 기법을 하나 더 보태야 한다는 뜻이 아니다. 오늘의 예술은 이미 충분히 새롭다. 문제는 새로움이 부족한 데 있지 않고, 그 새로움을 떠받치는 근본 원리가 점점 약해지고 있다는 데 있다.\n\n현대 예술은 감각, 내면, 형식, 개념을 각각 깊이 있게 탐구하였으나, 그것들을 하나의 살아 있는 구조로 통합하는 원리를 충분히 마련하지는 못하였다. 그 결과 예술은 풍부해졌으나 동시에 파편화되었다."
+        },
+        {
+          title: "제2장 심물철학과 물파미학의 근본 관계",
+          content: "심물철학의 핵심은 단순하다. 마음과 사물은 둘로 갈라져 각각 독립적으로 존재하는 것이 아니라, 서로를 통해서만 현실성을 가진다는 것이다. 마음만으로는 세계가 없다. 마음이 아무리 풍부하더라도 그것이 만날 사물과 형상과 장이 없다면 스스로를 드러낼 길이 없다.\n\n예술은 마음과 사물 가운데 어느 하나의 독점물이 아니다. 창작은 마음이 사물을 통과하며 형상을 얻는 과정이며, 감상은 사물이 담고 있는 형상이 다시 마음을 움직이며 새로운 의미와 여운을 낳는 과정이다."
+        },
+        {
+          title: "제3장 심물지파(心物之波)란 무엇인가",
+          content: "물파미학의 중심 개념은 심물지파(心物之波), 곧 마음과 사물의 파동이다. 여기서 말하는 파동은 단순한 물리적 진동이나 막연한 감성의 떨림과 같지 않다. 그것은 마음과 사물이 서로를 감응시키고 형상을 낳으며, 다시 울림으로 돌아가는 존재의 운동 형식이다.\n\n예술에서 파동은 크게 세 차원으로 이해될 수 있다. 첫째는 생성의 파동이다. 작가와 재료와 세계가 만나 작품이 생겨나는 차원이다. 둘째는 응축의 파동이다. 셋째는 감응의 파동이다."
+        },
+        {
+          title: "제4장 심물영사론(心物映寫論)",
+          content: "“심물지철 여영사진(心物之哲 如映寫眞)”이라는 비유는 심물철학과 물파미학을 잇는 핵심 열쇠이다. 영사기의 빛, 필름, 스크린은 각각 따로 존재할 수 있지만, 영상이라는 사건은 셋의 상호작용 속에서만 성립한다.\n\n예술작품은 이미 완결되어 놓인 물체가 아니라, 어떤 드러남의 사건이다. 작가의 마음은 빛처럼 작품 전체를 관통하며 형상을 가능하게 하고, 재료와 형식은 필름처럼 그 빛을 머금고 구체적 모습을 지닌다."
+        }
+      ]
     },
     art: {
       title: "物波藝術",
@@ -105,6 +137,21 @@ const translations: Record<Language, Content> = {
       title: "心物哲學",
       text: "心物非二。 有形與無形，相生相成， 而世界於其中顯現。 求之則遠， 靜之則明。"
     },
+    philosophyDetail: {
+      title: "心物哲學與物波美學",
+      subtitle: "心物之波與21世紀藝術哲學",
+      intro: "藝術是人類與世界相遇的最深層形式之一。 人類觀察事物， 聆聽聲音， 觸摸萬物， 但僅憑感官接觸無法完整地生活在世界上。 我們總是能感受到可見物之外的存在。\n\n心物哲學不將心與物分開。 心不能獨自創造世界， 物也不能獨自擁有意義。 存在始終只在心與物相遇， 映照， 滲透的關係中具有現實性。",
+      sections: [
+        {
+          title: "第一章 為什麼現在需要新的美學",
+          content: "當我們說需要新的美學時， 並不是指要增加一種新的風格或技巧。 今天的藝術已經足夠新穎. 問題不在於缺乏新穎性， 而在於支撐這種新穎性的根本原理正變得越來越薄弱。"
+        },
+        {
+          title: "第二章 心物哲學與物波美學的根本關係",
+          content: "心物哲學的核心很簡單. 心與物並非各自獨立存在， 而是只有通過彼此才能獲得現實性. 只有心， 沒有世界. 無論心多麼豐富， 如果沒有可遇的事物, 形象和場域， 就無法展現自己。"
+        }
+      ]
+    },
     art: {
       title: "物波藝術",
       text: "藝術，非形也，乃波也。 波動入心，則生共鳴。 作品，非造也， 乃顯也。"
@@ -156,6 +203,21 @@ const translations: Record<Language, Content> = {
     philosophy: {
       title: "Philosophy",
       text: "Mind and matter are not two. The visible and invisible give rise to each other, and the world emerges between them. To seek is to lose it. To stillness is to see it."
+    },
+    philosophyDetail: {
+      title: "Mind-Matter Philosophy & Mulpa Aesthetics",
+      subtitle: "The Wave of Mind-Matter and 21st Century Art Philosophy",
+      intro: "Art is one of the deepest forms through which humans encounter the world. We see things, hear sounds, and touch all things, but we cannot say we live fully in the world through simple sensory contact alone. We always feel something beyond what is visible.\n\nMind-Matter philosophy does not separate the mind from the object. The mind alone cannot create a world, and the object alone cannot hold meaning. Existence only gains reality in the relationship where mind and matter meet, reflect, and permeate each other.",
+      sections: [
+        {
+          title: "Chapter 1: Why a New Aesthetics is Needed Now",
+          content: "When we say a new aesthetics is needed, it doesn't mean adding another style or technique. Today's art is already new enough. The problem is not a lack of novelty, but that the fundamental principles supporting that novelty are weakening."
+        },
+        {
+          title: "Chapter 2: The Fundamental Relationship",
+          content: "The core of Mind-Matter philosophy is simple. Mind and matter do not exist independently, but only gain reality through each other. Without the object, there is no world for the mind to manifest."
+        }
+      ]
     },
     art: {
       title: "Mulpa Art",
@@ -256,6 +318,98 @@ export default function App() {
         </p>
       </motion.div>
     </section>
+  );
+
+  const PhilosophyPage = () => (
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="bg-[#fdfdfd]"
+    >
+      {/* Hero Section */}
+      <header className="relative min-h-[70vh] flex flex-col items-center justify-center text-center px-6 overflow-hidden">
+        <div className="absolute inset-0 z-0">
+          <img 
+            src="/assets/mountains.jpg" 
+            alt="Philosophy Hero"
+            referrerPolicy="no-referrer"
+            className="w-full h-full object-cover grayscale opacity-30"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#fdfdfd]" />
+        </div>
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1.5 }}
+          className="z-10 max-w-5xl"
+        >
+          <h1 className="text-4xl md:text-7xl font-serif mb-6 tracking-[0.2em] leading-tight">
+            {t.philosophyDetail.title}
+          </h1>
+          <p className="text-xl md:text-2xl font-serif tracking-[0.3em] opacity-60">
+            {t.philosophyDetail.subtitle}
+          </p>
+        </motion.div>
+      </header>
+
+      {/* Intro Section */}
+      <section className="py-32 px-6 md:px-24 max-w-4xl mx-auto">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="relative"
+        >
+          <div className="absolute -left-12 top-0 text-8xl font-serif opacity-[0.05] select-none">“</div>
+          <p className="text-2xl md:text-3xl font-serif leading-relaxed tracking-wide whitespace-pre-line opacity-80 italic">
+            {t.philosophyDetail.intro}
+          </p>
+        </motion.div>
+      </section>
+
+      {/* Chapters */}
+      <section className="py-24 px-6 md:px-24 space-y-48 pb-64">
+        {t.philosophyDetail.sections.map((section, i) => (
+          <motion.div 
+            key={i}
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 1 }}
+            className={`flex flex-col ${i % 2 === 0 ? 'md:flex-row' : 'md:flex-row-reverse'} gap-16 items-center max-w-6xl mx-auto`}
+          >
+            <div className="flex-1 space-y-8">
+              <h3 className="text-3xl md:text-4xl font-serif tracking-widest border-b border-black/10 pb-4 inline-block">
+                {section.title}
+              </h3>
+              <p className="text-lg md:text-xl font-serif leading-relaxed tracking-wide opacity-70 whitespace-pre-line">
+                {section.content}
+              </p>
+            </div>
+            <div className="flex-1 w-full aspect-[4/5] overflow-hidden relative group">
+              <img 
+                src={`https://picsum.photos/seed/philosophy-${i}/800/1000?grayscale`} 
+                alt={section.title}
+                referrerPolicy="no-referrer"
+                className="w-full h-full object-cover transition-transform duration-[2s] group-hover:scale-110"
+              />
+              <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors duration-1000" />
+            </div>
+          </motion.div>
+        ))}
+      </section>
+
+      {/* Back Button */}
+      <div className="pb-24 text-center">
+        <button 
+          onClick={() => setPage('home')}
+          className="text-sm tracking-[0.5em] uppercase opacity-40 hover:opacity-100 transition-opacity border-b border-black/20 pb-2"
+        >
+          Back to Main
+        </button>
+      </div>
+    </motion.div>
   );
 
   const TeaDetailPage = () => (
@@ -463,7 +617,7 @@ export default function App() {
           <button onClick={() => setPage('home')} className="text-3xl font-serif tracking-[0.2em] font-bold">弗寒子</button>
           <div className="hidden md:flex gap-8 text-lg tracking-widest uppercase opacity-70 font-medium">
             <a href={page === 'home' ? "#about" : "#"} onClick={(e) => { if (page !== 'home') { e.preventDefault(); setPage('home'); setTimeout(() => { const el = document.getElementById('about'); if (el) el.scrollIntoView({ behavior: 'smooth' }); }, 100); } }} className="hover:opacity-100 transition-opacity">{t.nav.about}</a>
-            <a href={page === 'home' ? "#philosophy" : "#"} onClick={(e) => { if (page !== 'home') { e.preventDefault(); setPage('home'); setTimeout(() => { const el = document.getElementById('philosophy'); if (el) el.scrollIntoView({ behavior: 'smooth' }); }, 100); } }} className="hover:opacity-100 transition-opacity">{t.nav.philosophy}</a>
+            <button onClick={() => setPage('philosophy')} className={`hover:opacity-100 transition-opacity ${page === 'philosophy' ? 'opacity-100 font-bold' : ''}`}>{t.nav.philosophy}</button>
             <a href={page === 'home' ? "#art" : "#"} onClick={(e) => { if (page !== 'home') { e.preventDefault(); setPage('home'); setTimeout(() => { const el = document.getElementById('art'); if (el) el.scrollIntoView({ behavior: 'smooth' }); }, 100); } }} className="hover:opacity-100 transition-opacity">{t.nav.art}</a>
             <button onClick={() => setPage('tea')} className={`hover:opacity-100 transition-opacity ${page === 'tea' ? 'opacity-100 font-bold' : ''}`}>{t.nav.tea}</button>
             <button onClick={() => setPage('archive')} className={`hover:opacity-100 transition-opacity ${page === 'archive' ? 'opacity-100 font-bold' : ''}`}>{t.nav.archive}</button>
@@ -518,7 +672,7 @@ export default function App() {
             className="fixed inset-0 bg-white z-40 flex flex-col items-center justify-center gap-10 text-3xl font-serif tracking-widest"
           >
             <a href="#about" onClick={() => { setIsMenuOpen(false); setPage('home'); setTimeout(() => { const el = document.getElementById('about'); if (el) el.scrollIntoView({ behavior: 'smooth' }); }, 100); }}>{t.nav.about}</a>
-            <a href="#philosophy" onClick={() => { setIsMenuOpen(false); setPage('home'); setTimeout(() => { const el = document.getElementById('philosophy'); if (el) el.scrollIntoView({ behavior: 'smooth' }); }, 100); }}>{t.nav.philosophy}</a>
+            <button onClick={() => { setIsMenuOpen(false); setPage('philosophy'); }}>{t.nav.philosophy}</button>
             <a href="#art" onClick={() => { setIsMenuOpen(false); setPage('home'); setTimeout(() => { const el = document.getElementById('art'); if (el) el.scrollIntoView({ behavior: 'smooth' }); }, 100); }}>{t.nav.art}</a>
             <button onClick={() => { setIsMenuOpen(false); setPage('tea'); }}>{t.nav.tea}</button>
             <button onClick={() => { setIsMenuOpen(false); setPage('archive'); }}>{t.nav.archive}</button>
@@ -624,6 +778,8 @@ export default function App() {
               </motion.div>
             </section>
           </motion.div>
+        ) : page === 'philosophy' ? (
+          <PhilosophyPage key="philosophy" />
         ) : page === 'tea' ? (
           <TeaDetailPage key="tea" />
         ) : page === 'archive' ? (
