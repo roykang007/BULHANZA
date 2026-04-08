@@ -331,15 +331,6 @@ export default function App() {
     >
       {/* Hero Section */}
       <header className="relative min-h-[70vh] flex flex-col items-center justify-center text-center px-6 overflow-hidden">
-        <div className="absolute inset-0 z-0">
-          <img 
-            src={mountainsImg} 
-            alt="Philosophy Hero"
-            referrerPolicy="no-referrer"
-            className="w-full h-full object-cover grayscale opacity-30"
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#fdfdfd]" />
-        </div>
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -423,15 +414,6 @@ export default function App() {
     >
       {/* Hero Section */}
       <header className="relative h-[80vh] flex flex-col items-center justify-center text-center px-6 overflow-hidden">
-        <div className="absolute inset-0 z-0">
-          <img 
-            src={bulhansunchaImg} 
-            alt="Bulhan Immortal Tea"
-            referrerPolicy="no-referrer"
-            className="w-full h-full object-cover grayscale opacity-60"
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#fdfdfd]" />
-        </div>
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -699,17 +681,6 @@ export default function App() {
           <motion.div key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             {/* Hero Section */}
             <header className="relative h-screen flex flex-col items-center justify-center text-center px-6 overflow-hidden group/hero">
-              {/* Oriental Watercolor Background */}
-              <div className="absolute inset-0 z-0 overflow-hidden">
-                <img 
-                  src={mountainsImg} 
-                  alt="Oriental Mountains"
-                  referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover grayscale transition-all duration-1000 ease-in-out group-hover/hero:grayscale-0 group-hover/hero:scale-105 opacity-60 group-hover/hero:opacity-80"
-                />
-                <div className="absolute inset-0 bg-gradient-to-b from-[#fdfdfd]/40 via-transparent to-[#fdfdfd]" />
-              </div>
-
               <div className="absolute inset-0 opacity-[0.03] pointer-events-none z-10">
                 <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
                   <motion.path
@@ -762,7 +733,7 @@ export default function App() {
 
             <div className="h-px bg-black/5 mx-24" />
 
-            <Section id="tea" title={t.tea.title} text={t.tea.text} bgImage={bulhansunchaImg} />
+            <Section id="tea" title={t.tea.title} text={t.tea.text} />
 
             {/* About Section */}
             <section id="about" className="min-h-screen bg-[#1a1a1a] text-white flex flex-col justify-center px-6 md:px-24 py-24">
