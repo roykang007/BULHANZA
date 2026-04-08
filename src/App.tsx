@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Menu, X, Globe, ChevronDown } from 'lucide-react';
+import bulhansunchaImg from './assets/bulhansuncha.jpg';
+import mountainsImg from './assets/mountains.jpg';
 
 type Language = 'KR' | 'TC' | 'EN';
 type Page = 'home' | 'tea' | 'archive' | 'contact' | 'philosophy';
@@ -331,7 +333,7 @@ export default function App() {
       <header className="relative min-h-[70vh] flex flex-col items-center justify-center text-center px-6 overflow-hidden">
         <div className="absolute inset-0 z-0">
           <img 
-            src="/assets/mountains.jpg" 
+            src={mountainsImg} 
             alt="Philosophy Hero"
             referrerPolicy="no-referrer"
             className="w-full h-full object-cover grayscale opacity-30"
@@ -423,7 +425,7 @@ export default function App() {
       <header className="relative h-[80vh] flex flex-col items-center justify-center text-center px-6 overflow-hidden">
         <div className="absolute inset-0 z-0">
           <img 
-            src="/assets/bulhansuncha.jpg" 
+            src={bulhansunchaImg} 
             alt="Bulhan Immortal Tea"
             referrerPolicy="no-referrer"
             className="w-full h-full object-cover grayscale opacity-60"
@@ -456,7 +458,7 @@ export default function App() {
         </div>
         <div className="flex-1 w-full h-[500px] overflow-hidden">
           <img 
-            src="/assets/bulhansuncha.jpg" 
+            src={bulhansunchaImg} 
             alt="Tea Leaves"
             referrerPolicy="no-referrer"
             className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-1000"
@@ -700,7 +702,7 @@ export default function App() {
               {/* Oriental Watercolor Background */}
               <div className="absolute inset-0 z-0 overflow-hidden">
                 <img 
-                  src="/assets/mountains.jpg" 
+                  src={mountainsImg} 
                   alt="Oriental Mountains"
                   referrerPolicy="no-referrer"
                   className="w-full h-full object-cover grayscale transition-all duration-1000 ease-in-out group-hover/hero:grayscale-0 group-hover/hero:scale-105 opacity-60 group-hover/hero:opacity-80"
@@ -760,7 +762,7 @@ export default function App() {
 
             <div className="h-px bg-black/5 mx-24" />
 
-            <Section id="tea" title={t.tea.title} text={t.tea.text} bgImage="/assets/bulhansuncha.jpg" />
+            <Section id="tea" title={t.tea.title} text={t.tea.text} bgImage={bulhansunchaImg} />
 
             {/* About Section */}
             <section id="about" className="min-h-screen bg-[#1a1a1a] text-white flex flex-col justify-center px-6 md:px-24 py-24">
