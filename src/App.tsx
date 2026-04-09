@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Menu, X, Globe, ChevronDown, Plus, Trash2, Edit2, ArrowLeft, Newspaper, Image as ImageIcon, Upload } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import remarkBreaks from 'remark-breaks';
 import { supabase } from './lib/supabase';
 import bulhansunchaImg from './assets/bulhansuncha.jpg';
 import mountainsImg from './assets/mountains.jpg';
@@ -554,8 +555,25 @@ const ArchivePage = ({ t, setPage, archiveItems, selectedArchiveItem, setSelecte
               />
             </div>
 
-            <div className="newspaper-columns justified-text font-serif leading-relaxed tracking-wide opacity-90 text-lg md:text-xl drop-cap prose prose-neutral max-w-none">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            <div className="font-serif leading-relaxed tracking-wide opacity-90 text-lg md:text-xl whitespace-pre-wrap max-w-none">
+              <ReactMarkdown 
+                remarkPlugins={[remarkGfm, remarkBreaks]}
+                components={{
+                  img: ({ node, ...props }) => (
+                    <img 
+                      {...props} 
+                      className="max-w-full h-auto my-12 mx-auto block shadow-xl border border-black/5" 
+                      referrerPolicy="no-referrer" 
+                    />
+                  ),
+                  p: ({ children }) => <p className="mb-4">{children}</p>,
+                  h1: ({ children }) => <h1 className="text-3xl font-bold my-6">{children}</h1>,
+                  h2: ({ children }) => <h2 className="text-2xl font-bold my-4">{children}</h2>,
+                  ul: ({ children }) => <ul className="list-disc ml-6 my-4">{children}</ul>,
+                  ol: ({ children }) => <ol className="list-decimal ml-6 my-4">{children}</ol>,
+                  li: ({ children }) => <li className="mb-2">{children}</li>
+                }}
+              >
                 {selectedArchiveItem.content}
               </ReactMarkdown>
             </div>
