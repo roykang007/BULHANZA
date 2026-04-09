@@ -1,11 +1,25 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Menu, X, Globe, ChevronDown } from 'lucide-react';
+import { Menu, X, Globe, ChevronDown, Plus, Trash2, Edit2, ArrowLeft, Newspaper, Image as ImageIcon, Upload } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { supabase } from './lib/supabase';
 import bulhansunchaImg from './assets/bulhansuncha.jpg';
 import mountainsImg from './assets/mountains.jpg';
 
 type Language = 'KR' | 'TC' | 'EN';
-type Page = 'home' | 'tea' | 'archive' | 'contact' | 'philosophy';
+type Page = 'home' | 'tea' | 'archive' | 'contact' | 'philosophy' | 'admin';
+type Category = 'poetry' | 'calligraphy' | 'painting' | 'carving';
+
+interface ArchiveItem {
+  id: string;
+  title: string;
+  content: string;
+  summary: string;
+  category: Category;
+  image_url: string;
+  created_at: string;
+}
 
 interface Content {
   hero: { title: string; subtitle: string };
@@ -266,9 +280,812 @@ const translations: Record<Language, Content> = {
   }
 };
 
+const DEFAULT_IMAGE = "https://images.unsplash.com/photo-1514483127413-f72f273478c3?q=80&w=2070&auto=format&fit=crop";
+
+const compressImage = (file: File): Promise<string> => {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 1200;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > MAX_WIDTH) {
+          height *= MAX_WIDTH / width;
+          width = MAX_WIDTH;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', 0.7));
+      };
+    };
+  });
+};
+
+const Section = ({ id, title, text, dark = false, bgImage }: { id: string; title: string; text: string; dark?: boolean; bgImage?: string }) => (
+  <section id={id} className={`relative min-h-screen flex flex-col justify-center px-6 md:px-24 py-24 ${dark ? 'bg-[#1a1a1a] text-white' : 'bg-white text-[#1a1a1a]'} overflow-hidden group`}>
+    {bgImage && (
+      <div className="absolute inset-0 z-0">
+        <img 
+          src={bgImage} 
+          alt={title}
+          referrerPolicy="no-referrer"
+          className="w-full h-full object-cover grayscale opacity-25 group-hover:opacity-40 transition-opacity duration-1000"
+        />
+        <div className={`absolute inset-0 ${dark ? 'bg-gradient-to-b from-transparent to-[#1a1a1a]' : 'bg-gradient-to-b from-transparent to-white'}`} />
+      </div>
+    )}
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 1, ease: "easeOut" }}
+      className="max-w-4xl z-10"
+    >
+      <h2 className="text-3xl md:text-5xl font-serif mb-12 tracking-widest opacity-80">{title}</h2>
+      <p className="text-xl md:text-2xl font-serif leading-relaxed tracking-wide opacity-90 whitespace-pre-line">
+        {text}
+      </p>
+    </motion.div>
+  </section>
+);
+
+const PhilosophyPage = ({ t, setPage }: { t: any; setPage: (p: Page) => void }) => (
+  <motion.div 
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    exit={{ opacity: 0 }}
+    className="bg-[#fdfdfd]"
+  >
+    {/* Hero Section */}
+    <header className="relative min-h-[70vh] flex flex-col items-center justify-center text-center px-6 overflow-hidden">
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 1.5 }}
+        className="z-10 max-w-5xl"
+      >
+        <h1 className="text-4xl md:text-7xl font-serif mb-6 tracking-[0.2em] leading-tight">
+          {t.philosophyDetail.title}
+        </h1>
+        <p className="text-xl md:text-2xl font-serif tracking-[0.3em] opacity-60">
+          {t.philosophyDetail.subtitle}
+        </p>
+      </motion.div>
+    </header>
+
+    {/* Intro Section */}
+    <section className="py-32 px-6 md:px-24 max-w-4xl mx-auto">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        className="relative"
+      >
+        <div className="absolute -left-12 top-0 text-8xl font-serif opacity-[0.05] select-none">“</div>
+        <p className="text-2xl md:text-3xl font-serif leading-relaxed tracking-wide whitespace-pre-line opacity-80 italic">
+          {t.philosophyDetail.intro}
+        </p>
+      </motion.div>
+    </section>
+
+    {/* Chapters */}
+    <section className="py-24 px-6 md:px-24 space-y-48 pb-64">
+      {t.philosophyDetail.sections.map((section: any, i: number) => (
+        <motion.div 
+          key={i}
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 1 }}
+          className={`flex flex-col ${i % 2 === 0 ? 'md:flex-row' : 'md:flex-row-reverse'} gap-16 items-center max-w-6xl mx-auto`}
+        >
+          <div className="flex-1 space-y-8">
+            <h3 className="text-3xl md:text-4xl font-serif tracking-widest border-b border-black/10 pb-4 inline-block">
+              {section.title}
+            </h3>
+            <p className="text-lg md:text-xl font-serif leading-relaxed tracking-wide opacity-70 whitespace-pre-line">
+              {section.content}
+            </p>
+          </div>
+          <div className="flex-1 w-full aspect-[4/5] overflow-hidden relative group">
+            <img 
+              src={`https://picsum.photos/seed/philosophy-${i}/800/1000?grayscale`} 
+              alt={section.title}
+              referrerPolicy="no-referrer"
+              className="w-full h-full object-cover transition-transform duration-[2s] group-hover:scale-110"
+            />
+            <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors duration-1000" />
+          </div>
+        </motion.div>
+      ))}
+    </section>
+
+    {/* Back Button */}
+    <div className="pb-24 text-center">
+      <button 
+        onClick={() => setPage('home')}
+        className="text-sm tracking-[0.5em] uppercase opacity-40 hover:opacity-100 transition-opacity border-b border-black/20 pb-2"
+      >
+        Back to Main
+      </button>
+    </div>
+  </motion.div>
+);
+
+const TeaDetailPage = ({ t, setPage }: { t: any; setPage: (p: Page) => void }) => (
+  <motion.div 
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    exit={{ opacity: 0 }}
+    className="bg-[#fdfdfd]"
+  >
+    {/* Hero Section */}
+    <header className="relative h-[80vh] flex flex-col items-center justify-center text-center px-6 overflow-hidden">
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 1.5 }}
+        className="z-10"
+      >
+        <h1 className="text-4xl md:text-6xl font-serif mb-6 tracking-[0.2em] leading-tight whitespace-pre-line">
+          {t.teaDetail.headline}
+        </h1>
+      </motion.div>
+    </header>
+
+    {/* Core Description */}
+    <section className="py-32 px-6 md:px-24 flex flex-col md:flex-row items-center gap-16">
+      <div className="flex-1">
+        <motion.p 
+          initial={{ opacity: 0, x: -20 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          viewport={{ once: true }}
+          className="text-2xl md:text-3xl font-serif leading-relaxed tracking-widest whitespace-pre-line opacity-80"
+        >
+          {t.teaDetail.core}
+        </motion.p>
+      </div>
+      <div className="flex-1 w-full h-[500px] overflow-hidden">
+        <img 
+          src={bulhansunchaImg} 
+          alt="Tea Leaves"
+          referrerPolicy="no-referrer"
+          className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-1000"
+        />
+      </div>
+    </section>
+
+    {/* Experience Description */}
+    <section className="py-32 px-6 md:px-24 bg-[#1a1a1a] text-white text-center">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        whileInView={{ opacity: 1, scale: 1 }}
+        viewport={{ once: true }}
+        className="max-w-3xl mx-auto"
+      >
+        <p className="text-2xl md:text-4xl font-serif leading-loose tracking-[0.2em] whitespace-pre-line opacity-90">
+          {t.teaDetail.experience}
+        </p>
+      </motion.div>
+    </section>
+
+    {/* Closing & Final */}
+    <section className="py-48 px-6 text-center">
+      <motion.div
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        viewport={{ once: true }}
+        className="max-w-2xl mx-auto"
+      >
+        <h3 className="text-3xl md:text-5xl font-serif tracking-[0.3em] mb-24 opacity-80 whitespace-nowrap">
+          {t.teaDetail.closing}
+        </h3>
+        <div className="w-16 h-px bg-black/20 mx-auto mb-24" />
+        <p className="text-xl md:text-3xl font-serif tracking-widest leading-relaxed opacity-60">
+          {t.teaDetail.final}
+        </p>
+      </motion.div>
+    </section>
+
+    {/* Back Button */}
+    <div className="pb-24 text-center">
+      <button 
+        onClick={() => setPage('home')}
+        className="text-sm tracking-[0.5em] uppercase opacity-40 hover:opacity-100 transition-opacity border-b border-black/20 pb-2"
+      >
+        Back to Main
+      </button>
+    </div>
+  </motion.div>
+);
+
+const ArchivePage = ({ t, setPage, archiveItems, selectedArchiveItem, setSelectedArchiveItem, onEdit }: { t: any; setPage: (p: Page) => void; archiveItems: ArchiveItem[]; selectedArchiveItem: ArchiveItem | null; setSelectedArchiveItem: (i: ArchiveItem | null) => void; onEdit?: (item: ArchiveItem) => void }) => {
+  const [filter, setFilter] = useState<Category | 'all'>('all');
+  const filteredItems = filter === 'all' ? archiveItems : archiveItems.filter(item => item.category === filter);
+
+  if (selectedArchiveItem) {
+    return (
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="min-h-screen pt-32 px-6 md:px-24 bg-[#fdfdfd] pb-32"
+      >
+        <div className="max-w-5xl mx-auto">
+          <button 
+            onClick={() => setSelectedArchiveItem(null)}
+            className="flex items-center gap-2 text-sm tracking-widest opacity-40 hover:opacity-100 transition-opacity mb-16 group"
+          >
+            <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" /> BACK TO ARCHIVE
+          </button>
+          
+          <article className="space-y-16">
+            {/* Newspaper Masthead Style Header */}
+            <div className="border-y-2 border-black py-12 space-y-8 text-center">
+              <div className="flex justify-between items-center text-[10px] tracking-[0.5em] uppercase opacity-50 px-4">
+                <span>Vol. {new Date(selectedArchiveItem.created_at).getFullYear()}</span>
+                <span className="font-bold">{selectedArchiveItem.category}</span>
+                <span>{new Date(selectedArchiveItem.created_at).toLocaleDateString()}</span>
+              </div>
+              <h1 className="text-5xl md:text-8xl font-serif leading-none tracking-tight px-4">
+                {selectedArchiveItem.title}
+              </h1>
+              <div className="w-24 h-px bg-black mx-auto" />
+              <p className="max-w-2xl mx-auto text-xl font-serif italic opacity-60 px-4">
+                {selectedArchiveItem.summary}
+              </p>
+            </div>
+
+            <div className="aspect-[21/9] overflow-hidden bg-gray-100">
+              <img 
+                src={selectedArchiveItem.image_url || DEFAULT_IMAGE} 
+                alt={selectedArchiveItem.title}
+                referrerPolicy="no-referrer"
+                className="w-full h-full object-cover grayscale contrast-125"
+              />
+            </div>
+
+            <div className="newspaper-columns justified-text font-serif leading-relaxed tracking-wide opacity-90 text-lg md:text-xl drop-cap prose prose-neutral max-w-none">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {selectedArchiveItem.content}
+              </ReactMarkdown>
+            </div>
+
+            <div className="border-t border-black/10 pt-12 flex justify-between items-center">
+              <div className="text-[10px] tracking-[0.5em] uppercase opacity-30">End of Article</div>
+              {onEdit && (
+                <button 
+                  onClick={() => onEdit(selectedArchiveItem)}
+                  className="text-[10px] tracking-[0.3em] uppercase opacity-40 hover:opacity-100 transition-opacity flex items-center gap-2 border border-black/10 px-4 py-2 rounded"
+                >
+                  <Edit2 size={12} /> EDIT THIS ARTICLE
+                </button>
+              )}
+            </div>
+          </article>
+        </div>
+      </motion.div>
+    );
+  }
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="min-h-screen pt-32 px-6 md:px-24 bg-[#fdfdfd]"
+    >
+      <div className="max-w-6xl mx-auto">
+        <div className="text-center mb-32">
+          <h2 className="text-5xl md:text-8xl font-serif mb-12 tracking-[0.1em]">{t.archive.title}</h2>
+          <div className="flex flex-wrap justify-center gap-8 text-[10px] tracking-[0.4em] uppercase opacity-40">
+            {(['all', 'poetry', 'calligraphy', 'painting', 'carving'] as const).map((cat) => (
+              <button 
+                key={cat}
+                onClick={() => setFilter(cat)}
+                className={`hover:opacity-100 transition-all duration-500 relative py-2 ${filter === cat ? 'opacity-100 font-bold' : ''}`}
+              >
+                {cat === 'all' ? 'All Collections' : t.archive[cat as keyof typeof t.archive]}
+                {filter === cat && (
+                  <motion.div 
+                    layoutId="activeFilter"
+                    className="absolute bottom-0 left-0 right-0 h-px bg-black"
+                  />
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {filteredItems.length === 0 ? (
+          <div className="text-center py-48 opacity-20 font-serif tracking-[0.5em] text-sm uppercase">
+            No records found in this category
+          </div>
+        ) : (
+          <div className="flex flex-col gap-12 pb-32">
+            {filteredItems.map((item) => (
+              <motion.div 
+                key={item.id}
+                layoutId={item.id}
+                className="group flex flex-col md:flex-row gap-8 pb-12 border-b border-black/5 items-start"
+              >
+                <div 
+                  onClick={() => setSelectedArchiveItem(item)}
+                  className="w-full md:w-48 aspect-[4/3] overflow-hidden bg-gray-100 cursor-pointer relative shrink-0"
+                >
+                  <img 
+                    src={item.image_url || DEFAULT_IMAGE} 
+                    alt={item.title}
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-1000 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-500" />
+                </div>
+                <div className="flex-1 space-y-3">
+                  <div className="flex justify-between items-start">
+                    <h3 
+                      onClick={() => setSelectedArchiveItem(item)}
+                      className="text-xl md:text-3xl font-serif tracking-tight leading-tight cursor-pointer hover:text-gray-600 transition-colors"
+                    >
+                      {item.title}
+                    </h3>
+                    {onEdit && (
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); onEdit(item); }}
+                        className="text-[10px] tracking-[0.3em] uppercase opacity-20 hover:opacity-100 transition-opacity p-2"
+                        title="Edit Article"
+                      >
+                        <Edit2 size={16} />
+                      </button>
+                    )}
+                  </div>
+                  <div className="text-blue-600 font-serif text-xs tracking-widest font-medium">
+                    [{t.archive[item.category as keyof typeof t.archive] || item.category}]
+                  </div>
+                  <p className="text-base font-serif opacity-60 line-clamp-2 leading-relaxed text-justify">
+                    {item.summary}
+                  </p>
+                  <div className="pt-1">
+                    <span className="text-[10px] tracking-[0.2em] uppercase opacity-30 font-mono">
+                      {new Date(item.created_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
+      </div>
+      <div className="pb-24 text-center">
+        <button 
+          onClick={() => setPage('home')}
+          className="text-sm tracking-[0.5em] uppercase opacity-40 hover:opacity-100 transition-opacity border-b border-black/20 pb-2"
+        >
+          Back to Main
+        </button>
+      </div>
+    </motion.div>
+  );
+};
+
+const AdminDashboard = ({ archiveItems, setArchiveItems, initialEditingItem, onClearEdit }: { archiveItems: ArchiveItem[]; setArchiveItems: React.Dispatch<React.SetStateAction<ArchiveItem[]>>; initialEditingItem?: ArchiveItem | null; onClearEdit?: () => void }) => {
+  const [isAdding, setIsAdding] = useState(false);
+  const [editingItem, setEditingItem] = useState<ArchiveItem | null>(initialEditingItem || null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
+  const contentImageInputRef = useRef<HTMLInputElement>(null);
+  
+  const [formData, setFormData] = useState({
+    title: initialEditingItem?.title || '',
+    content: initialEditingItem?.content || '',
+    summary: initialEditingItem?.summary || '',
+    category: (initialEditingItem?.category || 'poetry') as Category,
+    image_url: initialEditingItem?.image_url || ''
+  });
+
+  useEffect(() => {
+    if (initialEditingItem) {
+      setEditingItem(initialEditingItem);
+      setFormData({
+        title: initialEditingItem.title,
+        content: initialEditingItem.content,
+        summary: initialEditingItem.summary,
+        category: initialEditingItem.category,
+        image_url: initialEditingItem.image_url
+      });
+      setIsAdding(false);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [initialEditingItem]);
+
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploading(true);
+    try {
+      const base64 = await compressImage(file);
+      setFormData({ ...formData, image_url: base64 });
+    } catch (err) {
+      console.error("Upload failed", err);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleContentImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploading(true);
+    try {
+      const base64 = await compressImage(file);
+      setFormData({ 
+        ...formData, 
+        content: formData.content + `\n\n![image](${base64})\n\n` 
+      });
+    } catch (err) {
+      console.error("Upload failed", err);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const submissionData = {
+      ...formData,
+      image_url: formData.image_url.trim() || DEFAULT_IMAGE
+    };
+
+    if (editingItem) {
+      const { error } = await supabase
+        .from('archive_items')
+        .update(submissionData)
+        .eq('id', editingItem.id);
+      if (!error) {
+        setArchiveItems(prev => prev.map(item => item.id === editingItem.id ? { ...item, ...submissionData } : item));
+        setEditingItem(null);
+        if (onClearEdit) onClearEdit();
+      }
+    } else {
+      const { data, error } = await supabase
+        .from('archive_items')
+        .insert([submissionData])
+        .select();
+      if (!error && data) {
+        setArchiveItems(prev => [data[0], ...prev]);
+        setIsAdding(false);
+      }
+    }
+    setFormData({ title: '', content: '', summary: '', category: 'poetry', image_url: '' });
+  };
+
+  const deleteItem = async (id: string) => {
+    try {
+      const { error } = await supabase.from('archive_items').delete().eq('id', id);
+      if (error) throw error;
+      setArchiveItems(prev => prev.filter(item => item.id !== id));
+      setDeleteConfirmId(null);
+    } catch (err) {
+      console.error("Delete failed:", err);
+      alert("Failed to delete item. Please check your connection.");
+    }
+  };
+
+  return (
+    <div className="min-h-screen pt-32 px-6 md:px-24 bg-[#f8f8f8]">
+      <div className="max-w-7xl mx-auto pb-32">
+        <div className="flex justify-between items-end mb-16 border-b border-black pb-8">
+          <div className="space-y-2">
+            <p className="text-[10px] tracking-[0.5em] uppercase opacity-40">System Management</p>
+            <h2 className="text-5xl font-serif tracking-tight">Archive Control</h2>
+          </div>
+          <button 
+            onClick={() => {
+              setIsAdding(!isAdding);
+              if (editingItem) {
+                setEditingItem(null);
+                if (onClearEdit) onClearEdit();
+                setFormData({ title: '', content: '', summary: '', category: 'poetry', image_url: '' });
+              }
+            }}
+            className="flex items-center gap-3 bg-black text-white px-8 py-4 text-[10px] tracking-[0.4em] uppercase hover:bg-gray-800 transition-all active:scale-95"
+          >
+            {(isAdding || editingItem) ? <X size={14} /> : <Plus size={14} />}
+            {(isAdding || editingItem) ? 'Close Editor' : 'New Entry'}
+          </button>
+        </div>
+
+        {(isAdding || editingItem) && (
+          <motion.form 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            onSubmit={handleSubmit}
+            className="bg-white p-12 mb-24 shadow-2xl space-y-12 border border-black/5"
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+              <div className="space-y-4">
+                <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">Article Title</label>
+                <input 
+                  required
+                  value={formData.title}
+                  onChange={e => setFormData({...formData, title: e.target.value})}
+                  placeholder="Enter headline..."
+                  className="w-full border-b border-gray-300 py-4 text-2xl outline-none focus:border-black transition-colors font-serif placeholder:text-gray-300 text-black"
+                />
+              </div>
+              <div className="space-y-4">
+                <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">Category</label>
+                <select 
+                  value={formData.category}
+                  onChange={e => setFormData({...formData, category: e.target.value as Category})}
+                  className="w-full border-b border-gray-300 py-4 text-xl outline-none focus:border-black transition-colors font-serif bg-transparent cursor-pointer text-black"
+                >
+                  <option value="poetry" className="text-black">Poetry (詩)</option>
+                  <option value="calligraphy" className="text-black">Calligraphy (書)</option>
+                  <option value="painting" className="text-black">Painting (畫)</option>
+                  <option value="carving" className="text-black">Carving (刻)</option>
+                </select>
+              </div>
+            </div>
+            
+            <div className="space-y-4">
+              <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">Cover Image</label>
+              <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
+                <input 
+                  value={formData.image_url}
+                  onChange={e => setFormData({...formData, image_url: e.target.value})}
+                  placeholder="Image URL or upload..."
+                  className="flex-1 border-b border-gray-300 py-4 outline-none focus:border-black transition-colors font-serif text-black placeholder:text-gray-300"
+                />
+                <input 
+                  type="file" 
+                  ref={coverInputRef}
+                  onChange={handleCoverUpload}
+                  accept="image/*"
+                  className="hidden"
+                />
+                <button 
+                  type="button"
+                  disabled={isUploading}
+                  onClick={() => coverInputRef.current?.click()}
+                  className="flex items-center gap-2 px-6 py-3 border border-black/10 text-[10px] tracking-[0.2em] uppercase hover:bg-gray-50 transition-all disabled:opacity-50"
+                >
+                  <Upload size={14} /> {isUploading ? 'Uploading...' : 'Upload File'}
+                </button>
+              </div>
+              {formData.image_url && (
+                <div className="mt-4 w-40 h-24 overflow-hidden border border-black/5">
+                  <img src={formData.image_url} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-4">
+              <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">Brief Summary</label>
+              <textarea 
+                required
+                value={formData.summary}
+                onChange={e => setFormData({...formData, summary: e.target.value})}
+                rows={2}
+                placeholder="A short introduction..."
+                className="w-full border-b border-gray-300 py-4 text-lg outline-none focus:border-black transition-colors font-serif resize-none italic text-black placeholder:text-gray-300"
+              />
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">Main Content (Markdown Supported)</label>
+                <div className="flex gap-2">
+                  <input 
+                    type="file" 
+                    ref={contentImageInputRef}
+                    onChange={handleContentImageUpload}
+                    accept="image/*"
+                    className="hidden"
+                  />
+                  <button 
+                    type="button"
+                    disabled={isUploading}
+                    onClick={() => contentImageInputRef.current?.click()}
+                    className="flex items-center gap-2 px-4 py-2 border border-black/10 text-[9px] tracking-[0.2em] uppercase hover:bg-gray-50 transition-all disabled:opacity-50"
+                  >
+                    <ImageIcon size={12} /> {isUploading ? 'Adding...' : 'Add Image'}
+                  </button>
+                </div>
+              </div>
+              <textarea 
+                required
+                value={formData.content}
+                onChange={e => setFormData({...formData, content: e.target.value})}
+                rows={12}
+                placeholder="Write the full article here... You can use Markdown."
+                className="w-full border border-gray-200 p-8 outline-none focus:border-black transition-colors font-serif leading-relaxed text-lg text-black placeholder:text-gray-300"
+              />
+            </div>
+
+            <div className="flex gap-4">
+              <button type="submit" className="flex-1 bg-black text-white py-6 text-[10px] tracking-[0.5em] uppercase hover:bg-gray-800 transition-all">
+                {editingItem ? 'Save Changes' : 'Publish to Archive'}
+              </button>
+              {editingItem && (
+                <button 
+                  type="button" 
+                  onClick={() => { 
+                    setEditingItem(null); 
+                    if (onClearEdit) onClearEdit();
+                    setFormData({title:'', content:'', summary:'', category:'poetry', image_url:''}); 
+                  }}
+                  className="px-12 border border-black/10 text-[10px] tracking-[0.5em] uppercase hover:bg-gray-50 transition-all"
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
+          </motion.form>
+        )}
+
+        <div className="bg-white shadow-2xl border border-black/5 overflow-hidden">
+          <div className="p-8 bg-gray-50 border-b border-black/5 flex justify-between items-center">
+            <span className="text-[10px] tracking-[0.5em] uppercase opacity-40">Database Records</span>
+            <span className="text-[10px] tracking-[0.5em] uppercase opacity-40">{archiveItems.length} Total</span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="text-[9px] tracking-[0.5em] uppercase opacity-30 border-b border-black/5">
+                  <th className="px-8 py-6 font-bold">Preview</th>
+                  <th className="px-8 py-6 font-bold">Headline</th>
+                  <th className="px-8 py-6 font-bold">Category</th>
+                  <th className="px-8 py-6 font-bold">Date</th>
+                  <th className="px-8 py-6 font-bold text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-black/5">
+                {archiveItems.map((item) => (
+                  <tr key={item.id} className="hover:bg-gray-50/50 transition-colors group">
+                    <td className="px-8 py-6">
+                      <div className="w-20 h-12 overflow-hidden bg-gray-100">
+                        <img src={item.image_url || DEFAULT_IMAGE} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700" referrerPolicy="no-referrer" />
+                      </div>
+                    </td>
+                    <td className="px-8 py-6">
+                      <div className="font-serif text-lg tracking-tight">{item.title}</div>
+                      <div className="text-[10px] opacity-30 line-clamp-1 mt-1">{item.summary}</div>
+                    </td>
+                    <td className="px-8 py-6">
+                      <span className="text-[9px] tracking-[0.3em] uppercase opacity-60 border border-black/10 px-3 py-1 rounded-full">{item.category}</span>
+                    </td>
+                    <td className="px-8 py-6 text-[10px] opacity-40 font-mono">
+                      {new Date(item.created_at).toLocaleDateString()}
+                    </td>
+                    <td className="px-8 py-6 text-right">
+                      <div className="flex justify-end gap-6">
+                        <button 
+                          onClick={() => {
+                            setEditingItem(item);
+                            setFormData({
+                              title: item.title,
+                              content: item.content,
+                              summary: item.summary,
+                              category: item.category,
+                              image_url: item.image_url
+                            });
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                          }}
+                          className="text-gray-400 hover:text-black transition-colors p-2"
+                          title="Edit Article"
+                        >
+                          <Edit2 size={16} />
+                        </button>
+                        {deleteConfirmId === item.id ? (
+                          <div className="flex items-center gap-2">
+                            <button 
+                              onClick={() => deleteItem(item.id)}
+                              className="bg-red-600 text-white text-[9px] px-3 py-1 uppercase tracking-widest hover:bg-red-700 transition-colors"
+                            >
+                              Confirm
+                            </button>
+                            <button 
+                              onClick={() => setDeleteConfirmId(null)}
+                              className="text-gray-400 hover:text-black text-[9px] px-3 py-1 uppercase tracking-widest transition-colors"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <button 
+                            onClick={() => setDeleteConfirmId(item.id)}
+                            className="text-gray-400 hover:text-red-600 transition-colors p-2"
+                            title="Delete Article"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ContactPage = ({ t, setPage }: { t: any; setPage: (p: Page) => void }) => (
+  <motion.div 
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    exit={{ opacity: 0 }}
+    className="min-h-screen pt-32 px-6 md:px-24 bg-[#fdfdfd]"
+  >
+    <div className="max-w-4xl mx-auto">
+      <h2 className="text-4xl md:text-6xl font-serif mb-24 tracking-[0.2em] text-center">{t.contact.title}</h2>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-24 pb-32">
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+        >
+          <h3 className="text-2xl font-serif mb-8 tracking-widest opacity-80">{t.contact.title}</h3>
+          <div className="space-y-6 opacity-60 font-serif tracking-wide">
+            <p>Email: contact@bulhanza.com</p>
+            <p>Instagram: @bulhanza_official</p>
+            <p>Studio: Seoul, Korea</p>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+        >
+          <h3 className="text-2xl font-serif mb-8 tracking-widest opacity-80">{t.contact.collaboration}</h3>
+          <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
+            <div>
+              <label className="block text-xs tracking-[0.3em] uppercase opacity-40 mb-2">{t.contact.email}</label>
+              <input type="email" className="w-full bg-transparent border-b border-black/10 py-2 focus:border-black transition-colors outline-none font-serif" />
+            </div>
+            <div>
+              <label className="block text-xs tracking-[0.3em] uppercase opacity-40 mb-2">{t.contact.message}</label>
+              <textarea rows={4} className="w-full bg-transparent border-b border-black/10 py-2 focus:border-black transition-colors outline-none font-serif resize-none" />
+            </div>
+            <button className="text-sm tracking-[0.5em] uppercase border border-black/20 px-8 py-3 hover:bg-black hover:text-white transition-all duration-500">
+              {t.contact.send}
+            </button>
+          </form>
+        </motion.div>
+      </div>
+    </div>
+    <div className="pb-24 text-center">
+      <button 
+        onClick={() => setPage('home')}
+        className="text-sm tracking-[0.5em] uppercase opacity-40 hover:opacity-100 transition-opacity border-b border-black/20 pb-2"
+      >
+        Back to Main
+      </button>
+    </div>
+  </motion.div>
+);
+
 export default function App() {
   const [lang, setLang] = useState<Language>('KR');
   const [page, setPage] = useState<Page>('home');
+  const [selectedArchiveItem, setSelectedArchiveItem] = useState<ArchiveItem | null>(null);
+  const [archiveItems, setArchiveItems] = useState<ArchiveItem[]>([]);
+  const [adminEditingItem, setAdminEditingItem] = useState<ArchiveItem | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLangOpen, setIsLangOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -292,306 +1109,26 @@ export default function App() {
   // Scroll to top when page changes
   useEffect(() => {
     window.scrollTo(0, 0);
+    if (page !== 'archive') setSelectedArchiveItem(null);
   }, [page]);
 
-  const Section = ({ id, title, text, dark = false, bgImage }: { id: string; title: string; text: string; dark?: boolean; bgImage?: string }) => (
-    <section id={id} className={`relative min-h-screen flex flex-col justify-center px-6 md:px-24 py-24 ${dark ? 'bg-[#1a1a1a] text-white' : 'bg-white text-[#1a1a1a]'} overflow-hidden group`}>
-      {bgImage && (
-        <div className="absolute inset-0 z-0">
-          <img 
-            src={bgImage} 
-            alt={title}
-            referrerPolicy="no-referrer"
-            className="w-full h-full object-cover grayscale opacity-25 group-hover:opacity-40 transition-opacity duration-1000"
-          />
-          <div className={`absolute inset-0 ${dark ? 'bg-gradient-to-b from-transparent to-[#1a1a1a]' : 'bg-gradient-to-b from-transparent to-white'}`} />
-        </div>
-      )}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 1, ease: "easeOut" }}
-        className="max-w-4xl z-10"
-      >
-        <h2 className="text-3xl md:text-5xl font-serif mb-12 tracking-widest opacity-80">{title}</h2>
-        <p className="text-xl md:text-2xl font-serif leading-relaxed tracking-wide opacity-90 whitespace-pre-line">
-          {text}
-        </p>
-      </motion.div>
-    </section>
-  );
+  // Fetch Archive Items from Supabase
+  useEffect(() => {
+    const fetchArchive = async () => {
+      const { data, error } = await supabase
+        .from('archive_items')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('Error fetching archive:', error);
+      } else if (data) {
+        setArchiveItems(data);
+      }
+    };
 
-  const PhilosophyPage = () => (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="bg-[#fdfdfd]"
-    >
-      {/* Hero Section */}
-      <header className="relative min-h-[70vh] flex flex-col items-center justify-center text-center px-6 overflow-hidden">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1.5 }}
-          className="z-10 max-w-5xl"
-        >
-          <h1 className="text-4xl md:text-7xl font-serif mb-6 tracking-[0.2em] leading-tight">
-            {t.philosophyDetail.title}
-          </h1>
-          <p className="text-xl md:text-2xl font-serif tracking-[0.3em] opacity-60">
-            {t.philosophyDetail.subtitle}
-          </p>
-        </motion.div>
-      </header>
-
-      {/* Intro Section */}
-      <section className="py-32 px-6 md:px-24 max-w-4xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="relative"
-        >
-          <div className="absolute -left-12 top-0 text-8xl font-serif opacity-[0.05] select-none">“</div>
-          <p className="text-2xl md:text-3xl font-serif leading-relaxed tracking-wide whitespace-pre-line opacity-80 italic">
-            {t.philosophyDetail.intro}
-          </p>
-        </motion.div>
-      </section>
-
-      {/* Chapters */}
-      <section className="py-24 px-6 md:px-24 space-y-48 pb-64">
-        {t.philosophyDetail.sections.map((section, i) => (
-          <motion.div 
-            key={i}
-            initial={{ opacity: 0, y: 40 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 1 }}
-            className={`flex flex-col ${i % 2 === 0 ? 'md:flex-row' : 'md:flex-row-reverse'} gap-16 items-center max-w-6xl mx-auto`}
-          >
-            <div className="flex-1 space-y-8">
-              <h3 className="text-3xl md:text-4xl font-serif tracking-widest border-b border-black/10 pb-4 inline-block">
-                {section.title}
-              </h3>
-              <p className="text-lg md:text-xl font-serif leading-relaxed tracking-wide opacity-70 whitespace-pre-line">
-                {section.content}
-              </p>
-            </div>
-            <div className="flex-1 w-full aspect-[4/5] overflow-hidden relative group">
-              <img 
-                src={`https://picsum.photos/seed/philosophy-${i}/800/1000?grayscale`} 
-                alt={section.title}
-                referrerPolicy="no-referrer"
-                className="w-full h-full object-cover transition-transform duration-[2s] group-hover:scale-110"
-              />
-              <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors duration-1000" />
-            </div>
-          </motion.div>
-        ))}
-      </section>
-
-      {/* Back Button */}
-      <div className="pb-24 text-center">
-        <button 
-          onClick={() => setPage('home')}
-          className="text-sm tracking-[0.5em] uppercase opacity-40 hover:opacity-100 transition-opacity border-b border-black/20 pb-2"
-        >
-          Back to Main
-        </button>
-      </div>
-    </motion.div>
-  );
-
-  const TeaDetailPage = () => (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="bg-[#fdfdfd]"
-    >
-      {/* Hero Section */}
-      <header className="relative h-[80vh] flex flex-col items-center justify-center text-center px-6 overflow-hidden">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1.5 }}
-          className="z-10"
-        >
-          <h1 className="text-4xl md:text-6xl font-serif mb-6 tracking-[0.2em] leading-tight whitespace-pre-line">
-            {t.teaDetail.headline}
-          </h1>
-        </motion.div>
-      </header>
-
-      {/* Core Description */}
-      <section className="py-32 px-6 md:px-24 flex flex-col md:flex-row items-center gap-16">
-        <div className="flex-1">
-          <motion.p 
-            initial={{ opacity: 0, x: -20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            className="text-2xl md:text-3xl font-serif leading-relaxed tracking-widest whitespace-pre-line opacity-80"
-          >
-            {t.teaDetail.core}
-          </motion.p>
-        </div>
-        <div className="flex-1 w-full h-[500px] overflow-hidden">
-          <img 
-            src={bulhansunchaImg} 
-            alt="Tea Leaves"
-            referrerPolicy="no-referrer"
-            className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-1000"
-          />
-        </div>
-      </section>
-
-      {/* Experience Description */}
-      <section className="py-32 px-6 md:px-24 bg-[#1a1a1a] text-white text-center">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true }}
-          className="max-w-3xl mx-auto"
-        >
-          <p className="text-2xl md:text-4xl font-serif leading-loose tracking-[0.2em] whitespace-pre-line opacity-90">
-            {t.teaDetail.experience}
-          </p>
-        </motion.div>
-      </section>
-
-      {/* Closing & Final */}
-      <section className="py-48 px-6 text-center">
-        <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          className="max-w-2xl mx-auto"
-        >
-          <h3 className="text-3xl md:text-5xl font-serif tracking-[0.3em] mb-24 opacity-80 whitespace-nowrap">
-            {t.teaDetail.closing}
-          </h3>
-          <div className="w-16 h-px bg-black/20 mx-auto mb-24" />
-          <p className="text-xl md:text-3xl font-serif tracking-widest leading-relaxed opacity-60">
-            {t.teaDetail.final}
-          </p>
-        </motion.div>
-      </section>
-
-      {/* Back Button */}
-      <div className="pb-24 text-center">
-        <button 
-          onClick={() => setPage('home')}
-          className="text-sm tracking-[0.5em] uppercase opacity-40 hover:opacity-100 transition-opacity border-b border-black/20 pb-2"
-        >
-          Back to Main
-        </button>
-      </div>
-    </motion.div>
-  );
-
-  const ArchivePage = () => (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="min-h-screen pt-32 px-6 md:px-24 bg-[#fdfdfd]"
-    >
-      <h2 className="text-4xl md:text-6xl font-serif mb-24 tracking-[0.2em] text-center">{t.archive.title}</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-6xl mx-auto pb-32">
-        {[
-          { title: t.archive.poetry, img: "https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&q=80&w=800" },
-          { title: t.archive.calligraphy, img: "https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?auto=format&fit=crop&q=80&w=800" },
-          { title: t.archive.painting, img: "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?auto=format&fit=crop&q=80&w=800" },
-          { title: t.archive.carving, img: "https://images.unsplash.com/photo-1582555172866-f73bb12a2ab3?auto=format&fit=crop&q=80&w=800" }
-        ].map((item, i) => (
-          <motion.div 
-            key={i}
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: i * 0.1 }}
-            className="group relative aspect-[4/3] overflow-hidden bg-gray-100"
-          >
-            <img 
-              src={item.img} 
-              alt={item.title}
-              referrerPolicy="no-referrer"
-              className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700 group-hover:scale-105"
-            />
-            <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-colors duration-500 flex items-center justify-center">
-              <h3 className="text-white text-3xl md:text-4xl font-serif tracking-[0.3em] drop-shadow-lg">{item.title}</h3>
-            </div>
-          </motion.div>
-        ))}
-      </div>
-      <div className="pb-24 text-center">
-        <button 
-          onClick={() => setPage('home')}
-          className="text-sm tracking-[0.5em] uppercase opacity-40 hover:opacity-100 transition-opacity border-b border-black/20 pb-2"
-        >
-          Back to Main
-        </button>
-      </div>
-    </motion.div>
-  );
-
-  const ContactPage = () => (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="min-h-screen pt-32 px-6 md:px-24 bg-[#fdfdfd]"
-    >
-      <div className="max-w-4xl mx-auto">
-        <h2 className="text-4xl md:text-6xl font-serif mb-24 tracking-[0.2em] text-center">{t.contact.title}</h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-24 pb-32">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-          >
-            <h3 className="text-2xl font-serif mb-8 tracking-widest opacity-80">{t.contact.title}</h3>
-            <div className="space-y-6 opacity-60 font-serif tracking-wide">
-              <p>Email: contact@bulhanza.com</p>
-              <p>Instagram: @bulhanza_official</p>
-              <p>Studio: Seoul, Korea</p>
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-          >
-            <h3 className="text-2xl font-serif mb-8 tracking-widest opacity-80">{t.contact.collaboration}</h3>
-            <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
-              <div>
-                <label className="block text-xs tracking-[0.3em] uppercase opacity-40 mb-2">{t.contact.email}</label>
-                <input type="email" className="w-full bg-transparent border-b border-black/10 py-2 focus:border-black transition-colors outline-none font-serif" />
-              </div>
-              <div>
-                <label className="block text-xs tracking-[0.3em] uppercase opacity-40 mb-2">{t.contact.message}</label>
-                <textarea rows={4} className="w-full bg-transparent border-b border-black/10 py-2 focus:border-black transition-colors outline-none font-serif resize-none" />
-              </div>
-              <button className="text-sm tracking-[0.5em] uppercase border border-black/20 px-8 py-3 hover:bg-black hover:text-white transition-all duration-500">
-                {t.contact.send}
-              </button>
-            </form>
-          </motion.div>
-        </div>
-      </div>
-      <div className="pb-24 text-center">
-        <button 
-          onClick={() => setPage('home')}
-          className="text-sm tracking-[0.5em] uppercase opacity-40 hover:opacity-100 transition-opacity border-b border-black/20 pb-2"
-        >
-          Back to Main
-        </button>
-      </div>
-    </motion.div>
-  );
+    fetchArchive();
+  }, []);
 
   return (
     <div className="font-sans selection:bg-black selection:text-white">
@@ -606,6 +1143,7 @@ export default function App() {
             <button onClick={() => setPage('tea')} className={`hover:opacity-100 transition-opacity ${page === 'tea' ? 'opacity-100 font-bold' : ''}`}>{t.nav.tea}</button>
             <button onClick={() => setPage('archive')} className={`hover:opacity-100 transition-opacity ${page === 'archive' ? 'opacity-100 font-bold' : ''}`}>{t.nav.archive}</button>
             <button onClick={() => setPage('contact')} className={`hover:opacity-100 transition-opacity ${page === 'contact' ? 'opacity-100 font-bold' : ''}`}>{t.nav.contact}</button>
+            <button onClick={() => setPage('admin')} className={`hover:opacity-100 transition-opacity text-red-800/40 hover:text-red-800 ${page === 'admin' ? 'opacity-100 font-bold text-red-800' : ''}`}>ADMIN</button>
           </div>
         </div>
 
@@ -752,13 +1290,32 @@ export default function App() {
             </section>
           </motion.div>
         ) : page === 'philosophy' ? (
-          <PhilosophyPage key="philosophy" />
+          <PhilosophyPage key="philosophy" t={t} setPage={setPage} />
         ) : page === 'tea' ? (
-          <TeaDetailPage key="tea" />
+          <TeaDetailPage key="tea" t={t} setPage={setPage} />
         ) : page === 'archive' ? (
-          <ArchivePage key="archive" />
+          <ArchivePage 
+            key="archive" 
+            t={t} 
+            setPage={setPage} 
+            archiveItems={archiveItems} 
+            selectedArchiveItem={selectedArchiveItem} 
+            setSelectedArchiveItem={setSelectedArchiveItem} 
+            onEdit={(item) => {
+              setAdminEditingItem(item);
+              setPage('admin');
+            }}
+          />
+        ) : page === 'admin' ? (
+          <AdminDashboard 
+            key="admin" 
+            archiveItems={archiveItems} 
+            setArchiveItems={setArchiveItems} 
+            initialEditingItem={adminEditingItem}
+            onClearEdit={() => setAdminEditingItem(null)}
+          />
         ) : (
-          <ContactPage key="contact" />
+          <ContactPage key="contact" t={t} setPage={setPage} />
         )}
       </AnimatePresence>
 
@@ -774,6 +1331,12 @@ export default function App() {
             "{t.footer}"
           </p>
           <div className="w-12 h-px bg-black/20 mx-auto mb-12" />
+          <button 
+            onClick={() => setPage('admin')}
+            className="text-[10px] tracking-[0.5em] opacity-60 hover:opacity-100 transition-opacity uppercase mb-8 block mx-auto font-bold border border-black/10 px-4 py-2 rounded"
+          >
+            Go to Dashboard
+          </button>
           <p className="text-xs tracking-[0.3em] opacity-30 uppercase">
             &copy; {new Date().getFullYear()} Bulhanza. All Rights Reserved.
           </p>
