@@ -555,7 +555,7 @@ const ArchivePage = ({ t, setPage, archiveItems, selectedArchiveItem, setSelecte
               />
             </div>
 
-            <div className="font-serif leading-relaxed tracking-wide opacity-90 text-lg md:text-xl whitespace-pre-wrap max-w-none">
+            <div className="font-serif leading-[1.2] tracking-wide opacity-90 text-lg md:text-xl whitespace-pre-wrap max-w-none">
               <ReactMarkdown 
                 remarkPlugins={[remarkGfm, remarkBreaks]}
                 components={{
