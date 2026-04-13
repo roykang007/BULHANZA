@@ -1645,7 +1645,6 @@ export default function App() {
             <button onClick={() => setPage('tea')} className={`hover:opacity-100 transition-opacity ${page === 'tea' ? 'opacity-100 font-bold' : ''}`}>{t.nav.tea}</button>
             <button onClick={() => setPage('archive')} className={`hover:opacity-100 transition-opacity ${page === 'archive' ? 'opacity-100 font-bold' : ''}`}>{t.nav.archive}</button>
             <button onClick={() => setPage('contact')} className={`hover:opacity-100 transition-opacity ${page === 'contact' ? 'opacity-100 font-bold' : ''}`}>{t.nav.contact}</button>
-            <button onClick={() => setPage('admin')} className={`hover:opacity-100 transition-opacity text-red-800/40 hover:text-red-800 ${page === 'admin' ? 'opacity-100 font-bold text-red-800' : ''}`}>ADMIN</button>
           </div>
         </div>
 
