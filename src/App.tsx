@@ -5,8 +5,10 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
 import { supabase } from './lib/supabase';
-import bulhansunchaImg from './assets/bulhansuncha.jpg';
-import mountainsImg from './assets/mountains.jpg';
+
+const bulhansunchaImg = 'https://images.unsplash.com/photo-1594631252845-29fc4cc8cde9?auto=format&fit=crop&q=80&w=1920';
+const mountainsImg = 'mountains.jpg';
+const logoImg = 'logo.png';
 
 type Language = 'KR' | 'TC' | 'EN';
 type Page = 'home' | 'tea' | 'archive' | 'contact' | 'philosophy' | 'admin' | 'art';
@@ -20,6 +22,13 @@ interface ArchiveItem {
   category: Category;
   image_url: string;
   created_at: string;
+}
+
+interface SiteSettings {
+  id: string;
+  logo_url: string;
+  hero_bg_url: string;
+  tea_detail_url: string;
 }
 
 interface Content {
@@ -679,7 +688,7 @@ const ArtDetailPage = ({ t, setPage }: { t: any; setPage: (p: Page) => void }) =
   </motion.div>
 );
 
-const TeaDetailPage = ({ t, setPage }: { t: any; setPage: (p: Page) => void }) => (
+const TeaDetailPage = ({ t, setPage, currentTeaImage }: { t: any; setPage: (p: Page) => void; currentTeaImage: string }) => (
   <motion.div 
     initial={{ opacity: 0 }}
     animate={{ opacity: 1 }}
@@ -712,12 +721,12 @@ const TeaDetailPage = ({ t, setPage }: { t: any; setPage: (p: Page) => void }) =
           {t.teaDetail.core}
         </motion.p>
       </div>
-      <div className="flex-1 w-full h-[500px] overflow-hidden">
+      <div className="flex-1 w-full h-[500px] overflow-hidden shadow-2xl">
         <img 
-          src={bulhansunchaImg} 
-          alt="Tea Leaves"
+          src={currentTeaImage} 
+          alt="Bulhansuncha Tea"
           referrerPolicy="no-referrer"
-          className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-1000"
+          className="w-full h-full object-cover hover:scale-105 transition-all duration-1000"
         />
       </div>
     </section>
@@ -952,13 +961,31 @@ const ArchivePage = ({ t, setPage, archiveItems, selectedArchiveItem, setSelecte
   );
 };
 
-const AdminDashboard = ({ archiveItems, setArchiveItems, initialEditingItem, onClearEdit }: { archiveItems: ArchiveItem[]; setArchiveItems: React.Dispatch<React.SetStateAction<ArchiveItem[]>>; initialEditingItem?: ArchiveItem | null; onClearEdit?: () => void }) => {
+const AdminDashboard = ({ 
+  archiveItems, 
+  setArchiveItems, 
+  initialEditingItem, 
+  onClearEdit,
+  siteSettings,
+  setSiteSettings
+}: { 
+  archiveItems: ArchiveItem[]; 
+  setArchiveItems: React.Dispatch<React.SetStateAction<ArchiveItem[]>>; 
+  initialEditingItem?: ArchiveItem | null; 
+  onClearEdit?: () => void;
+  siteSettings: SiteSettings | null;
+  setSiteSettings: React.Dispatch<React.SetStateAction<SiteSettings | null>>;
+}) => {
   const [isAdding, setIsAdding] = useState(false);
   const [editingItem, setEditingItem] = useState<ArchiveItem | null>(initialEditingItem || null);
   const [isUploading, setIsUploading] = useState(false);
+  const [activeTab, setActiveTab] = useState<'archive' | 'settings'>('archive');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
   const contentImageInputRef = useRef<HTMLInputElement>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const heroInputRef = useRef<HTMLInputElement>(null);
+  const teaInputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState({
     title: initialEditingItem?.title || '',
@@ -967,6 +994,22 @@ const AdminDashboard = ({ archiveItems, setArchiveItems, initialEditingItem, onC
     category: (initialEditingItem?.category || 'poetry') as Category,
     image_url: initialEditingItem?.image_url || ''
   });
+
+  const [settingsData, setSettingsData] = useState<Partial<SiteSettings>>({
+    logo_url: siteSettings?.logo_url || '',
+    hero_bg_url: siteSettings?.hero_bg_url || '',
+    tea_detail_url: siteSettings?.tea_detail_url || ''
+  });
+
+  useEffect(() => {
+    if (siteSettings) {
+      setSettingsData({
+        logo_url: siteSettings.logo_url,
+        hero_bg_url: siteSettings.hero_bg_url,
+        tea_detail_url: siteSettings.tea_detail_url
+      });
+    }
+  }, [siteSettings]);
 
   useEffect(() => {
     if (initialEditingItem) {
@@ -979,9 +1022,53 @@ const AdminDashboard = ({ archiveItems, setArchiveItems, initialEditingItem, onC
         image_url: initialEditingItem.image_url
       });
       setIsAdding(false);
+      setActiveTab('archive');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }, [initialEditingItem]);
+
+  const handleSettingUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: keyof SiteSettings) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploading(true);
+    try {
+      const formDataUpload = new FormData();
+      formDataUpload.append('image', file);
+      
+      const response = await fetch('/upload.php', {
+        method: 'POST',
+        body: formDataUpload
+      });
+      
+      const result = await response.json();
+      if (result.url) {
+        setSettingsData(prev => ({ ...prev, [field]: result.url }));
+      } else {
+        const base64 = await compressImage(file);
+        setSettingsData(prev => ({ ...prev, [field]: base64 }));
+      }
+    } catch (err) {
+      console.error("Upload failed", err);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const saveSettings = async () => {
+    if (!siteSettings) return;
+    const { error } = await supabase
+      .from('site_settings')
+      .update(settingsData)
+      .eq('id', siteSettings.id);
+    
+    if (!error) {
+      setSiteSettings({ ...siteSettings, ...settingsData });
+      alert("Settings saved successfully.");
+    } else {
+      console.error("Error saving settings:", error);
+      alert("Failed to save settings.");
+    }
+  };
 
   const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1099,241 +1186,328 @@ const AdminDashboard = ({ archiveItems, setArchiveItems, initialEditingItem, onC
   return (
     <div className="min-h-screen pt-32 px-6 md:px-24 bg-[#f8f8f8]">
       <div className="max-w-7xl mx-auto pb-32">
-        <div className="flex justify-between items-end mb-16 border-b border-black pb-8">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 border-b border-black pb-8 gap-8">
           <div className="space-y-2">
             <p className="text-[10px] tracking-[0.5em] uppercase opacity-40">System Management</p>
-            <h2 className="text-5xl font-serif tracking-tight">Archive Control</h2>
+            <h2 className="text-5xl font-serif tracking-tight">Control Center</h2>
           </div>
-          <button 
-            onClick={() => {
-              setIsAdding(!isAdding);
-              if (editingItem) {
-                setEditingItem(null);
-                if (onClearEdit) onClearEdit();
-                setFormData({ title: '', content: '', summary: '', category: 'poetry', image_url: '' });
-              }
-            }}
-            className="flex items-center gap-3 bg-black text-white px-8 py-4 text-[10px] tracking-[0.4em] uppercase hover:bg-gray-800 transition-all active:scale-95"
-          >
-            {(isAdding || editingItem) ? <X size={14} /> : <Plus size={14} />}
-            {(isAdding || editingItem) ? 'Close Editor' : 'New Entry'}
-          </button>
+          <div className="flex gap-4">
+            <button 
+              onClick={() => setActiveTab('archive')}
+              className={`px-6 py-3 text-[10px] tracking-[0.3em] uppercase transition-all ${activeTab === 'archive' ? 'bg-black text-white' : 'bg-white text-black border border-black/10'}`}
+            >
+              Archive
+            </button>
+            <button 
+              onClick={() => setActiveTab('settings')}
+              className={`px-6 py-3 text-[10px] tracking-[0.3em] uppercase transition-all ${activeTab === 'settings' ? 'bg-black text-white' : 'bg-white text-black border border-black/10'}`}
+            >
+              Site Settings
+            </button>
+          </div>
         </div>
 
-        {(isAdding || editingItem) && (
-          <motion.form 
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            onSubmit={handleSubmit}
-            className="bg-white p-12 mb-24 shadow-2xl space-y-12 border border-black/5"
+        {activeTab === 'settings' ? (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="space-y-12"
           >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+            <div className="bg-white p-12 shadow-2xl border border-black/5 space-y-12">
+              <h3 className="text-2xl font-serif tracking-widest border-b border-black/5 pb-4">Visual Identity</h3>
+              
+              {/* Logo Setting */}
               <div className="space-y-4">
-                <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">Article Title</label>
-                <input 
-                  required
-                  value={formData.title}
-                  onChange={e => setFormData({...formData, title: e.target.value})}
-                  placeholder="Enter headline..."
-                  className="w-full border-b border-gray-300 py-4 text-2xl outline-none focus:border-black transition-colors font-serif placeholder:text-gray-300 text-black"
-                />
-              </div>
-              <div className="space-y-4">
-                <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">Category</label>
-                <select 
-                  value={formData.category}
-                  onChange={e => setFormData({...formData, category: e.target.value as Category})}
-                  className="w-full border-b border-gray-300 py-4 text-xl outline-none focus:border-black transition-colors font-serif bg-transparent cursor-pointer text-black"
-                >
-                  <option value="poetry" className="text-black">Poetry (詩)</option>
-                  <option value="calligraphy" className="text-black">Calligraphy (書)</option>
-                  <option value="painting" className="text-black">Painting (畫)</option>
-                  <option value="carving" className="text-black">Carving (刻)</option>
-                </select>
-              </div>
-            </div>
-            
-            <div className="space-y-4">
-              <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">Cover Image</label>
-              <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
-                <input 
-                  value={formData.image_url}
-                  onChange={e => setFormData({...formData, image_url: e.target.value})}
-                  placeholder="Image URL or upload..."
-                  className="flex-1 border-b border-gray-300 py-4 outline-none focus:border-black transition-colors font-serif text-black placeholder:text-gray-300"
-                />
-                <input 
-                  type="file" 
-                  ref={coverInputRef}
-                  onChange={handleCoverUpload}
-                  accept="image/*"
-                  className="hidden"
-                />
-                <button 
-                  type="button"
-                  disabled={isUploading}
-                  onClick={() => coverInputRef.current?.click()}
-                  className="flex items-center gap-2 px-6 py-3 border border-black/10 text-[10px] tracking-[0.2em] uppercase hover:bg-gray-50 transition-all disabled:opacity-50"
-                >
-                  <Upload size={14} /> {isUploading ? 'Uploading...' : 'Upload File'}
-                </button>
-              </div>
-              {formData.image_url && (
-                <div className="mt-4 w-40 h-24 overflow-hidden border border-black/5">
-                  <img src={formData.image_url} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-4">
-              <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">Brief Summary</label>
-              <textarea 
-                required
-                value={formData.summary}
-                onChange={e => setFormData({...formData, summary: e.target.value})}
-                rows={2}
-                placeholder="A short introduction..."
-                className="w-full border-b border-gray-300 py-4 text-lg outline-none focus:border-black transition-colors font-serif resize-none italic text-black placeholder:text-gray-300"
-              />
-            </div>
-
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">Main Content (Markdown Supported)</label>
-                <div className="flex gap-2">
+                <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">Site Logo</label>
+                <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
                   <input 
-                    type="file" 
-                    ref={contentImageInputRef}
-                    onChange={handleContentImageUpload}
-                    accept="image/*"
-                    className="hidden"
+                    value={settingsData.logo_url}
+                    onChange={e => setSettingsData({...settingsData, logo_url: e.target.value})}
+                    placeholder="Logo URL..."
+                    className="flex-1 border-b border-gray-300 py-4 outline-none focus:border-black transition-colors font-serif text-black"
                   />
-                  <button 
-                    type="button"
-                    disabled={isUploading}
-                    onClick={() => contentImageInputRef.current?.click()}
-                    className="flex items-center gap-2 px-4 py-2 border border-black/10 text-[9px] tracking-[0.2em] uppercase hover:bg-gray-50 transition-all disabled:opacity-50"
-                  >
-                    <ImageIcon size={12} /> {isUploading ? 'Adding...' : 'Add Image'}
-                  </button>
+                  <input type="file" ref={logoInputRef} onChange={(e) => handleSettingUpload(e, 'logo_url')} accept="image/*" className="hidden" />
+                  <button type="button" onClick={() => logoInputRef.current?.click()} className="px-6 py-3 border border-black/10 text-[10px] tracking-[0.2em] uppercase hover:bg-gray-50">Upload</button>
                 </div>
+                {settingsData.logo_url && <img src={settingsData.logo_url} className="h-12 object-contain bg-gray-50 p-2" referrerPolicy="no-referrer" />}
               </div>
-              <textarea 
-                required
-                value={formData.content}
-                onChange={e => setFormData({...formData, content: e.target.value})}
-                rows={12}
-                placeholder="Write the full article here... You can use Markdown."
-                className="w-full border border-gray-200 p-8 outline-none focus:border-black transition-colors font-serif leading-relaxed text-lg text-black placeholder:text-gray-300"
-              />
-            </div>
 
-            <div className="flex gap-4">
-              <button type="submit" className="flex-1 bg-black text-white py-6 text-[10px] tracking-[0.5em] uppercase hover:bg-gray-800 transition-all">
-                {editingItem ? 'Save Changes' : 'Publish to Archive'}
+              {/* Hero BG Setting */}
+              <div className="space-y-4">
+                <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">Hero Background</label>
+                <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
+                  <input 
+                    value={settingsData.hero_bg_url}
+                    onChange={e => setSettingsData({...settingsData, hero_bg_url: e.target.value})}
+                    placeholder="Hero Background URL..."
+                    className="flex-1 border-b border-gray-300 py-4 outline-none focus:border-black transition-colors font-serif text-black"
+                  />
+                  <input type="file" ref={heroInputRef} onChange={(e) => handleSettingUpload(e, 'hero_bg_url')} accept="image/*" className="hidden" />
+                  <button type="button" onClick={() => heroInputRef.current?.click()} className="px-6 py-3 border border-black/10 text-[10px] tracking-[0.2em] uppercase hover:bg-gray-50">Upload</button>
+                </div>
+                {settingsData.hero_bg_url && <img src={settingsData.hero_bg_url} className="w-40 h-24 object-cover border border-black/5" referrerPolicy="no-referrer" />}
+              </div>
+
+              {/* Tea Detail Setting */}
+              <div className="space-y-4">
+                <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">Tea Detail Image</label>
+                <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
+                  <input 
+                    value={settingsData.tea_detail_url}
+                    onChange={e => setSettingsData({...settingsData, tea_detail_url: e.target.value})}
+                    placeholder="Tea Detail Image URL..."
+                    className="flex-1 border-b border-gray-300 py-4 outline-none focus:border-black transition-colors font-serif text-black"
+                  />
+                  <input type="file" ref={teaInputRef} onChange={(e) => handleSettingUpload(e, 'tea_detail_url')} accept="image/*" className="hidden" />
+                  <button type="button" onClick={() => teaInputRef.current?.click()} className="px-6 py-3 border border-black/10 text-[10px] tracking-[0.2em] uppercase hover:bg-gray-50">Upload</button>
+                </div>
+                {settingsData.tea_detail_url && <img src={settingsData.tea_detail_url} className="w-40 h-24 object-cover border border-black/5" referrerPolicy="no-referrer" />}
+              </div>
+
+              <button 
+                onClick={saveSettings}
+                className="w-full bg-black text-white py-6 text-[10px] tracking-[0.5em] uppercase hover:bg-gray-800 transition-all"
+              >
+                Save Site Settings
               </button>
-              {editingItem && (
-                <button 
-                  type="button" 
-                  onClick={() => { 
-                    setEditingItem(null); 
-                    if (onClearEdit) onClearEdit();
-                    setFormData({title:'', content:'', summary:'', category:'poetry', image_url:''}); 
-                  }}
-                  className="px-12 border border-black/10 text-[10px] tracking-[0.5em] uppercase hover:bg-gray-50 transition-all"
-                >
-                  Cancel
-                </button>
-              )}
             </div>
-          </motion.form>
-        )}
+          </motion.div>
+        ) : (
+          <>
+            <div className="flex justify-end mb-8">
+              <button 
+                onClick={() => {
+                  setIsAdding(!isAdding);
+                  if (editingItem) {
+                    setEditingItem(null);
+                    if (onClearEdit) onClearEdit();
+                    setFormData({ title: '', content: '', summary: '', category: 'poetry', image_url: '' });
+                  }
+                }}
+                className="flex items-center gap-3 bg-black text-white px-8 py-4 text-[10px] tracking-[0.4em] uppercase hover:bg-gray-800 transition-all active:scale-95"
+              >
+                {(isAdding || editingItem) ? <X size={14} /> : <Plus size={14} />}
+                {(isAdding || editingItem) ? 'Close Editor' : 'New Entry'}
+              </button>
+            </div>
+            {/* Existing Archive Form and Table */}
+            {(isAdding || editingItem) && (
+              <motion.form 
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                onSubmit={handleSubmit}
+                className="bg-white p-12 mb-24 shadow-2xl space-y-12 border border-black/5"
+              >
+                {/* ... existing form content ... */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                  <div className="space-y-4">
+                    <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">Article Title</label>
+                    <input 
+                      required
+                      value={formData.title}
+                      onChange={e => setFormData({...formData, title: e.target.value})}
+                      placeholder="Enter headline..."
+                      className="w-full border-b border-gray-300 py-4 text-2xl outline-none focus:border-black transition-colors font-serif placeholder:text-gray-300 text-black"
+                    />
+                  </div>
+                  <div className="space-y-4">
+                    <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">Category</label>
+                    <select 
+                      value={formData.category}
+                      onChange={e => setFormData({...formData, category: e.target.value as Category})}
+                      className="w-full border-b border-gray-300 py-4 text-xl outline-none focus:border-black transition-colors font-serif bg-transparent cursor-pointer text-black"
+                    >
+                      <option value="poetry" className="text-black">Poetry (詩)</option>
+                      <option value="calligraphy" className="text-black">Calligraphy (書)</option>
+                      <option value="painting" className="text-black">Painting (畫)</option>
+                      <option value="carving" className="text-black">Carving (刻)</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">Cover Image</label>
+                  <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
+                    <input 
+                      value={formData.image_url}
+                      onChange={e => setFormData({...formData, image_url: e.target.value})}
+                      placeholder="Image URL or upload..."
+                      className="flex-1 border-b border-gray-300 py-4 outline-none focus:border-black transition-colors font-serif text-black placeholder:text-gray-300"
+                    />
+                    <input 
+                      type="file" 
+                      ref={coverInputRef}
+                      onChange={handleCoverUpload}
+                      accept="image/*"
+                      className="hidden"
+                    />
+                    <button 
+                      type="button"
+                      disabled={isUploading}
+                      onClick={() => coverInputRef.current?.click()}
+                      className="flex items-center gap-2 px-6 py-3 border border-black/10 text-[10px] tracking-[0.2em] uppercase hover:bg-gray-50 transition-all disabled:opacity-50"
+                    >
+                      <Upload size={14} /> {isUploading ? 'Uploading...' : 'Upload File'}
+                    </button>
+                  </div>
+                  {formData.image_url && (
+                    <div className="mt-4 w-40 h-24 overflow-hidden border border-black/5">
+                      <img src={formData.image_url} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                    </div>
+                  )}
+                </div>
 
-        <div className="bg-white shadow-2xl border border-black/5 overflow-hidden">
-          <div className="p-8 bg-gray-50 border-b border-black/5 flex justify-between items-center">
-            <span className="text-[10px] tracking-[0.5em] uppercase opacity-40">Database Records</span>
-            <span className="text-[10px] tracking-[0.5em] uppercase opacity-40">{archiveItems.length} Total</span>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="text-[9px] tracking-[0.5em] uppercase opacity-30 border-b border-black/5">
-                  <th className="px-8 py-6 font-bold">Preview</th>
-                  <th className="px-8 py-6 font-bold">Headline</th>
-                  <th className="px-8 py-6 font-bold">Category</th>
-                  <th className="px-8 py-6 font-bold">Date</th>
-                  <th className="px-8 py-6 font-bold text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-black/5">
-                {archiveItems.map((item) => (
-                  <tr key={item.id} className="hover:bg-gray-50/50 transition-colors group">
-                    <td className="px-8 py-6">
-                      <div className="w-20 h-12 overflow-hidden bg-gray-100">
-                        <img src={item.image_url || DEFAULT_IMAGE} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700" referrerPolicy="no-referrer" />
-                      </div>
-                    </td>
-                    <td className="px-8 py-6">
-                      <div className="font-serif text-lg tracking-tight">{item.title}</div>
-                      <div className="text-[10px] opacity-30 line-clamp-1 mt-1">{item.summary}</div>
-                    </td>
-                    <td className="px-8 py-6">
-                      <span className="text-[9px] tracking-[0.3em] uppercase opacity-60 border border-black/10 px-3 py-1 rounded-full">{item.category}</span>
-                    </td>
-                    <td className="px-8 py-6 text-[10px] opacity-40 font-mono">
-                      {new Date(item.created_at).toLocaleDateString()}
-                    </td>
-                    <td className="px-8 py-6 text-right">
-                      <div className="flex justify-end gap-6">
-                        <button 
-                          onClick={() => {
-                            setEditingItem(item);
-                            setFormData({
-                              title: item.title,
-                              content: item.content,
-                              summary: item.summary,
-                              category: item.category,
-                              image_url: item.image_url
-                            });
-                            window.scrollTo({ top: 0, behavior: 'smooth' });
-                          }}
-                          className="text-gray-400 hover:text-black transition-colors p-2"
-                          title="Edit Article"
-                        >
-                          <Edit2 size={16} />
-                        </button>
-                        {deleteConfirmId === item.id ? (
-                          <div className="flex items-center gap-2">
-                            <button 
-                              onClick={() => deleteItem(item.id)}
-                              className="bg-red-600 text-white text-[9px] px-3 py-1 uppercase tracking-widest hover:bg-red-700 transition-colors"
-                            >
-                              Confirm
-                            </button>
-                            <button 
-                              onClick={() => setDeleteConfirmId(null)}
-                              className="text-gray-400 hover:text-black text-[9px] px-3 py-1 uppercase tracking-widest transition-colors"
-                            >
-                              Cancel
-                            </button>
+                <div className="space-y-4">
+                  <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">Brief Summary</label>
+                  <textarea 
+                    required
+                    value={formData.summary}
+                    onChange={e => setFormData({...formData, summary: e.target.value})}
+                    rows={2}
+                    placeholder="A short introduction..."
+                    className="w-full border-b border-gray-300 py-4 text-lg outline-none focus:border-black transition-colors font-serif resize-none italic text-black placeholder:text-gray-300"
+                  />
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">Main Content (Markdown Supported)</label>
+                    <div className="flex gap-2">
+                      <input 
+                        type="file" 
+                        ref={contentImageInputRef}
+                        onChange={handleContentImageUpload}
+                        accept="image/*"
+                        className="hidden"
+                      />
+                      <button 
+                        type="button"
+                        disabled={isUploading}
+                        onClick={() => contentImageInputRef.current?.click()}
+                        className="flex items-center gap-2 px-4 py-2 border border-black/10 text-[9px] tracking-[0.2em] uppercase hover:bg-gray-50 transition-all disabled:opacity-50"
+                      >
+                        <ImageIcon size={12} /> {isUploading ? 'Adding...' : 'Add Image'}
+                      </button>
+                    </div>
+                  </div>
+                  <textarea 
+                    required
+                    value={formData.content}
+                    onChange={e => setFormData({...formData, content: e.target.value})}
+                    rows={12}
+                    placeholder="Write the full article here... You can use Markdown."
+                    className="w-full border border-gray-200 p-8 outline-none focus:border-black transition-colors font-serif leading-relaxed text-lg text-black placeholder:text-gray-300"
+                  />
+                </div>
+
+                <div className="flex gap-4">
+                  <button type="submit" className="flex-1 bg-black text-white py-6 text-[10px] tracking-[0.5em] uppercase hover:bg-gray-800 transition-all">
+                    {editingItem ? 'Save Changes' : 'Publish to Archive'}
+                  </button>
+                  {editingItem && (
+                    <button 
+                      type="button" 
+                      onClick={() => { 
+                        setEditingItem(null); 
+                        if (onClearEdit) onClearEdit();
+                        setFormData({title:'', content:'', summary:'', category:'poetry', image_url:''}); 
+                      }}
+                      className="px-12 border border-black/10 text-[10px] tracking-[0.5em] uppercase hover:bg-gray-50 transition-all"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
+              </motion.form>
+            )}
+
+            <div className="bg-white shadow-2xl border border-black/5 overflow-hidden">
+              <div className="p-8 bg-gray-50 border-b border-black/5 flex justify-between items-center">
+                <span className="text-[10px] tracking-[0.5em] uppercase opacity-40">Database Records</span>
+                <span className="text-[10px] tracking-[0.5em] uppercase opacity-40">{archiveItems.length} Total</span>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="text-[9px] tracking-[0.5em] uppercase opacity-30 border-b border-black/5">
+                      <th className="px-8 py-6 font-bold">Preview</th>
+                      <th className="px-8 py-6 font-bold">Headline</th>
+                      <th className="px-8 py-6 font-bold">Category</th>
+                      <th className="px-8 py-6 font-bold">Date</th>
+                      <th className="px-8 py-6 font-bold text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-black/5">
+                    {archiveItems.map((item) => (
+                      <tr key={item.id} className="hover:bg-gray-50/50 transition-colors group">
+                        <td className="px-8 py-6">
+                          <div className="w-20 h-12 overflow-hidden bg-gray-100">
+                            <img src={item.image_url || DEFAULT_IMAGE} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700" referrerPolicy="no-referrer" />
                           </div>
-                        ) : (
-                          <button 
-                            onClick={() => setDeleteConfirmId(item.id)}
-                            className="text-gray-400 hover:text-red-600 transition-colors p-2"
-                            title="Delete Article"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+                        </td>
+                        <td className="px-8 py-6">
+                          <div className="font-serif text-lg tracking-tight">{item.title}</div>
+                          <div className="text-[10px] opacity-30 line-clamp-1 mt-1">{item.summary}</div>
+                        </td>
+                        <td className="px-8 py-6">
+                          <span className="text-[9px] tracking-[0.3em] uppercase opacity-60 border border-black/10 px-3 py-1 rounded-full">{item.category}</span>
+                        </td>
+                        <td className="px-8 py-6 text-[10px] opacity-40 font-mono">
+                          {new Date(item.created_at).toLocaleDateString()}
+                        </td>
+                        <td className="px-8 py-6 text-right">
+                          <div className="flex justify-end gap-6">
+                            <button 
+                              onClick={() => {
+                                setEditingItem(item);
+                                setFormData({
+                                  title: item.title,
+                                  content: item.content,
+                                  summary: item.summary,
+                                  category: item.category,
+                                  image_url: item.image_url
+                                });
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                              }}
+                              className="text-gray-400 hover:text-black transition-colors p-2"
+                              title="Edit Article"
+                            >
+                              <Edit2 size={16} />
+                            </button>
+                            {deleteConfirmId === item.id ? (
+                              <div className="flex items-center gap-2">
+                                <button 
+                                  onClick={() => deleteItem(item.id)}
+                                  className="bg-red-600 text-white text-[9px] px-3 py-1 uppercase tracking-widest hover:bg-red-700 transition-colors"
+                                >
+                                  Confirm
+                                </button>
+                                <button 
+                                  onClick={() => setDeleteConfirmId(null)}
+                                  className="text-gray-400 hover:text-black text-[9px] px-3 py-1 uppercase tracking-widest transition-colors"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            ) : (
+                              <button 
+                                onClick={() => setDeleteConfirmId(item.id)}
+                                className="text-gray-400 hover:text-red-600 transition-colors p-2"
+                                title="Delete Article"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -1399,11 +1573,17 @@ export default function App() {
   const [page, setPage] = useState<Page>('home');
   const [selectedArchiveItem, setSelectedArchiveItem] = useState<ArchiveItem | null>(null);
   const [archiveItems, setArchiveItems] = useState<ArchiveItem[]>([]);
+  const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
   const [adminEditingItem, setAdminEditingItem] = useState<ArchiveItem | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLangOpen, setIsLangOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const t = translations[lang];
+
+  // Dynamic assets from settings or fallback
+  const currentLogo = siteSettings?.logo_url || 'logo.png';
+  const currentHeroBg = siteSettings?.hero_bg_url || 'mountains.jpg';
+  const currentTeaImage = siteSettings?.tea_detail_url || 'https://images.unsplash.com/photo-1594631252845-29fc4cc8cde9?auto=format&fit=crop&q=80&w=1920';
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
@@ -1411,37 +1591,43 @@ export default function App() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Close language dropdown when clicking outside
+  // Fetch Site Settings and Archive Items
   useEffect(() => {
-    const handleClickOutside = () => setIsLangOpen(false);
-    if (isLangOpen) {
-      window.addEventListener('click', handleClickOutside);
-    }
-    return () => window.removeEventListener('click', handleClickOutside);
-  }, [isLangOpen]);
+    const initData = async () => {
+      // Fetch Settings
+      const { data: settings, error: settingsError } = await supabase
+        .from('site_settings')
+        .select('*')
+        .single();
+      
+      if (!settingsError && settings) {
+        setSiteSettings(settings);
+      } else if (settingsError && settingsError.code === 'PGRST116') {
+        // No settings found, create initial
+        const { data: newSettings } = await supabase
+          .from('site_settings')
+          .insert([{ 
+            logo_url: 'logo.png', 
+            hero_bg_url: 'mountains.jpg', 
+            tea_detail_url: 'https://images.unsplash.com/photo-1594631252845-29fc4cc8cde9?auto=format&fit=crop&q=80&w=1920' 
+          }])
+          .select()
+          .single();
+        if (newSettings) setSiteSettings(newSettings);
+      }
 
-  // Scroll to top when page changes
-  useEffect(() => {
-    window.scrollTo(0, 0);
-    if (page !== 'archive') setSelectedArchiveItem(null);
-  }, [page]);
-
-  // Fetch Archive Items from Supabase
-  useEffect(() => {
-    const fetchArchive = async () => {
-      const { data, error } = await supabase
+      // Fetch Archive
+      const { data: archive, error: archiveError } = await supabase
         .from('archive_items')
         .select('*')
         .order('created_at', { ascending: false });
       
-      if (error) {
-        console.error('Error fetching archive:', error);
-      } else if (data) {
-        setArchiveItems(data);
+      if (!archiveError && archive) {
+        setArchiveItems(archive);
       }
     };
 
-    fetchArchive();
+    initData();
   }, []);
 
   return (
@@ -1449,7 +1635,9 @@ export default function App() {
       {/* Navigation */}
       <nav className={`fixed top-0 left-0 w-full z-50 transition-all duration-500 px-6 py-6 flex justify-between items-center ${scrolled ? 'bg-white/80 backdrop-blur-md py-4' : 'bg-transparent'}`}>
         <div className="flex items-center gap-8">
-          <button onClick={() => setPage('home')} className="text-3xl font-serif tracking-[0.2em] font-bold">弗寒子</button>
+          <button onClick={() => setPage('home')} className="flex items-center">
+            <img src={currentLogo} alt="Bulhanza Logo" className="h-12 md:h-16 w-auto object-contain" referrerPolicy="no-referrer" />
+          </button>
           <div className="hidden md:flex gap-8 text-lg tracking-widest uppercase opacity-70 font-medium">
             <a href={page === 'home' ? "#about" : "#"} onClick={(e) => { if (page !== 'home') { e.preventDefault(); setPage('home'); setTimeout(() => { const el = document.getElementById('about'); if (el) el.scrollIntoView({ behavior: 'smooth' }); }, 100); } }} className="hover:opacity-100 transition-opacity">{t.nav.about}</a>
             <button onClick={() => setPage('philosophy')} className={`hover:opacity-100 transition-opacity ${page === 'philosophy' ? 'opacity-100 font-bold' : ''}`}>{t.nav.philosophy}</button>
@@ -1533,6 +1721,15 @@ export default function App() {
           <motion.div key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             {/* Hero Section */}
             <header className="relative h-screen flex flex-col items-center justify-center text-center px-6 overflow-hidden group/hero">
+              <div className="absolute inset-0 z-0">
+                <img 
+                  src={currentHeroBg} 
+                  alt="Mountains" 
+                  className="w-full h-full object-cover opacity-20 grayscale group-hover/hero:scale-105 transition-transform duration-[10s] ease-out"
+                  referrerPolicy="no-referrer"
+                />
+                <div className="absolute inset-0 bg-gradient-to-b from-white via-transparent to-white" />
+              </div>
               <div className="absolute inset-0 opacity-[0.03] pointer-events-none z-10">
                 <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
                   <motion.path
@@ -1608,7 +1805,7 @@ export default function App() {
         ) : page === 'art' ? (
           <ArtDetailPage key="art" t={t} setPage={setPage} />
         ) : page === 'tea' ? (
-          <TeaDetailPage key="tea" t={t} setPage={setPage} />
+          <TeaDetailPage key="tea" t={t} setPage={setPage} currentTeaImage={currentTeaImage} />
         ) : page === 'archive' ? (
           <ArchivePage 
             key="archive" 
@@ -1629,6 +1826,8 @@ export default function App() {
             setArchiveItems={setArchiveItems} 
             initialEditingItem={adminEditingItem}
             onClearEdit={() => setAdminEditingItem(null)}
+            siteSettings={siteSettings}
+            setSiteSettings={setSiteSettings}
           />
         ) : (
           <ContactPage key="contact" t={t} setPage={setPage} />
