@@ -67,6 +67,7 @@ interface Content {
     };
     mulpaismTitle: string;
     mulpaismContent: string;
+    mulpaismDeclaration: string;
     artistName: string;
     artistTitle: string;
     artistDescription: string;
@@ -180,6 +181,7 @@ const translations: Record<Language, Content> = {
       },
       mulpaismTitle: "물파주의(物波主義)의 핵심",
       mulpaismContent: "물파주의는 형상을 넘어선 파동의 미학입니다. 모든 존재는 진동하며, 그 진동이 멈춘 상태가 물질입니다. 예술가는 물질 속에 갇힌 파동을 다시 깨워내는 존재이며, 물파주의는 그 깨어남의 방법론입니다.",
+      mulpaismDeclaration: "物波主義 宣言文\n\n20세기는 과학문명의 눈부신 성과에도 불구하고 정신문명은 오히려 衰(쇠)의 길을 걸어왔다고 보는 비판이 없지 않다. 즉 물질문화를 앞세운 나머지 도덕문화가 퇴보하게 되었다는 진단이다. 이 말은 가치관의 顚倒(전도)로 인류사회가 혼돈의 소용돌이 속에 휩쓸려 새 질서를 찾지 못한 채 방황하고 있음을 의미한다.\n\n한편으론 지금 세기말 격동적 변화의 세계를 두고 새로운 패러다임의 도덕문명을 맞이하기 위한 거대한 인류보편적 문명전환기로 파악하고 있기도 하다. 그리고 이러한 개벽적 새 문명의 물결이 物我的 二元論(물아적 이원론)의 서구문명으로부터 파장지우지 않고 그 구심점이 동북아 物我的 合一論(물아적 합일론)의 동북아 儒·佛·仙 三靈(유·불·선 삼령) 정신으로 압축되고 있음은 하나의 원대한 민족적 비전이 아닐 수 없다고 하겠다.\n\n따라서 인류도덕사회를 지향하는 21세기 새로운 문명의 철학적 패러다임은 기성종교의 唯心論(유심론)이나 변증법적 唯物論(유물론)이 아닌 인간 智中心(지중심)의 唯心論이 될 것이다. 그것은 낡은 인식체계인 서양의 분석적·과학적 방법의 지식 중심이 아니라 동양고유의 직관적 對物觀(대물관)이기도 한 인식주체로서의 心(심)과 인식대상인 物(물)과의 合一(합일)된 기운, 즉 同氣一心(동기일심)에 의한 心物論(심물론)적 智覺中心(지각중심)을 뜻한다. 다시 말해 새로운 인식체계의 패러다임인 新氣運(신기운)의 智覺中心과 동서문명을 아우르는 心物論 哲學이야말로 21세기 문명의 핵심적 키워드(Key Word)가 될 것이 분명하다.\n\n흔히들 21세기는 정보의 시대요 문화의 시대가 될 것이라고 말한다. 그리고 정보문화의 글로벌 경쟁의 시대라고도 한다. 모두들 정치적 제스처와 경제적 속도에 너무 들뜨거나 치우친 감이 없지 않다. 새로운 정보의 창출과 주체적·독창적 文化藝術(문화예술)의 재생산 없이 세계화에 대처할 수 있을까? 과연 글로벌 시대의 경쟁력에 살아남을 수가 있을까 반문해 보지 않을 수 없다.\n\n바야흐로 21세기를 불과 2년 앞두고 있다. 아날로그에서 디지털화하는 첨단 테크놀로지의 사이버 시대에 어떻게 해야 서예가 예술의 한 장르로 살아남을 수 있을까 하는 소극적인 물음이 아니라 서예가 어떻게 변해야 세계공통의 발돋움할 수 있을까 하는 보다 적극적인 문제로 다시 한번 심각하게 성찰해 보고자 지난 4월 19일 物波(물파)그룹이 창립되었다. 이러한 문제의식과 함께 새로운 문명전환의 정보고속도로망을 담당할 주역들 못지않게 文字文化(문자문화)와 필묵예술을 직접 다루는 우리 서화가들의 사명 또한 적지 않다는 것이 물파예술가들의 자각적 인식이자 새 출발점이기도 하다.\n\n그렇다면 예술로서의 物波主義(물파주의)란 무엇인가? 물파주의가 지향하는 物藝藝術(물예예술)이란 과연 어떤 예술을 가리키는 것인가에 대한 질문에 답하지 않으면 안 된다. 예술에 있어 물파주의란 心物論 哲學(심물론 철학)에 근거한다. 바꾸어 말하면 물파주의 예술이란 心物論的 동양서예정신과 文人畵(문인화) 정신에 입각한 線(선)의 예술이다. 한마디로 정의하면 物波(물파)란 心物之波(심물지파)다. 그것은 단순히 서구과학의 유물적 物(물)의 波(파)나 동양종교의 유심적 心(심)의 波가 아닌 線의 예술로서 心物의 波인 것이다. 물론 物波藝術에서 波는 파동을 일컫지만, 그것은 현대 아원자물리학에서 말하는 物質波(물질파)와는 판이하게 다른 心物之氣(심물지기)로서의 파동이다. 왜냐하면 마음은 기운(人心氣也)이므로 心物之波 역시 물질파가 아닌 정신적·靈的(영적) 新氣運의 파동, 神氣波(신기파)이기 때문이다. 그러므로 心物之氣란 '무형의 마음거울에 비친 자연의 밝은 기운(無形心鏡, 自然明氣)'으로서 心物之哲이다. 총결해서 말한다면 物波主義 예술이란 心物哲學에 근거한 線의 예술이자 筆墨藝術(필묵예술)인 것이다.\n\n(孫炳哲 / 物波空間 館長)\n1997. 12. 12.",
       artistName: "불한자 (弗寒子)",
       artistTitle: "심물철학자 및 물파예술가",
       artistDescription: "불한자는 마음과 사물의 파동을 탐구하며, 이를 차(茶), 글(書), 그림(畵)으로 형상화하는 작업을 이어오고 있습니다. 그의 작품은 완성된 결과물이 아니라, 감상자의 마음속에서 계속해서 퍼져나가는 파동의 시작점입니다.",
@@ -289,6 +291,7 @@ const translations: Record<Language, Content> = {
       },
       mulpaismTitle: "物波主義的核",
       mulpaismContent: "物波主義是超越形象的波動美學。所有存在都在振動，那振動停止的狀態就是物質。藝術家是將困在物質中的波動再次喚醒的存在，物波主義就是那種覺醒的方法論。",
+      mulpaismDeclaration: "物波主義 宣言文\n\n20世紀雖然科學文明取得了令人矚目的成就，但人們仍批評精神文明反而走上了衰落之路。即，因重視物質文化而導致道德文化退步的診斷。這意味著由於價值觀的顚倒（顛倒），人類社會陷入混亂的漩渦中，在未能找到新秩序的情況下徘徊。\n\n另一方面，有人將當前世紀末激動變化的世界，視為為了迎接新範式的道德文明而進行的巨大的、全人類的文明轉型期。而且，這種開天闢地的新文明浪潮並非始於物我的二元論的西方文明，而是濃縮在東北亞物我的合一論的東北亞儒·佛·仙三靈精神中，這堪稱一個宏大的民族願景。\n\n因此，面向人類道德社會的21世紀新文明的哲學範式，將不是既成宗教的唯心論或辯證法的唯物論，而是以人智中心為基礎的唯心論。它不是指西方陳舊的、以分析和科學方法為主的知識中心，而是指作為認識主體的心與作為認識對象的物合一的氣，即由同氣一心產生的心物論式的智覺中心。換言之，作為新認識體系範式的新氣運的智覺中心和涵蓋東西方文明的心物論哲學，必將成為21世紀文明的核心關鍵詞（Key Word）。\n\n人們常說21世紀將是信息的時代、文化的時代。也被稱為信息文化的全球競爭時代。大家對政治姿態和經濟速度都顯得過於興奮或偏頗。如果沒有新信息的創造和主體性、原創性文化藝術的再生產，如何能應對全球化？在全球化時代的競爭力中，我們真的能生存下來嗎？對此不能不反問。\n\n眼看距離21世紀僅剩兩年。在從模擬轉向數字的尖端科技網絡時代，與其消極地問書法如何作為藝術的一個流派生存下來，不如更積極地思考書法應如何轉變才能走向世界。為了再次嚴肅反思這一問題，物波（MULPA）組合於去年4月19日宣告成立。伴隨著這種問題意識，我們書畫家除了要像那些負責文明轉型信息高速公路網的主角一樣重要外，直接處理文字文化和筆墨藝術的使命也不小，這既是物波藝術家的自覺認識，也是新的起點。\n\n那麼，作為藝術的物波主義（Mulpaism）究竟是什麼？對於物波主義所指向的物藝藝術究竟是指什麼樣的藝術，必須做出回答。在藝術方面，物波主義是以心物論哲學為基礎的。換言之，物波主義藝術是立足於心物論式的東方書法精神和文人畫精神的線的藝術。一言以蔽之，物波即心物之波。它不僅僅是西方科學的唯物性的物的波或東方宗教的唯心性的心的波，而是作為線的藝術的心物之波。當然，在物波藝術中，波是指波動，但它與現代亞原子物理學中所說的物質波截然不同，它是作為心物之氣的波動。因為心即氣（人心氣也），所以心物之波也不是物質波，而是精神上的、靈性的新氣運的波動，即神氣波。因此，所謂心物之氣，就是作為「映照在無形心鏡上的自然明亮之氣（無形心鏡, 自然明氣）」的心物之哲。總結來說，物波主義藝術是以心物哲學為基礎的線的藝術，也是筆墨藝術。\n\n（孫炳哲 / 物波空間 館長）\n1997. 12. 12.",
       artistName: "弗寒子 (Bulhanza)",
       artistTitle: "心物哲學家及物波藝術家",
       artistDescription: "弗寒子探求心與物的波動，並將其轉化為茶、書、畫。他的作品不是完成的結果，而是觀者心中不斷擴散的波動起點。",
@@ -398,6 +401,7 @@ const translations: Record<Language, Content> = {
       },
       mulpaismTitle: "The Core of Mulpaism",
       mulpaismContent: "Mulpaism is an aesthetics of waves beyond form. All existence vibrates, and matter is the state where that vibration stops. Artists are those who reawaken the waves trapped within matter, and Mulpaism is the methodology of that awakening.",
+      mulpaismDeclaration: "Mulpaism Declaration\n\nThe 20th century, despite its dazzling achievements in scientific civilization, has faced criticism that spiritual civilization has instead walked the path of decline. In other words, the diagnosis is that moral culture has regressed while material culture was prioritized. This means that due to the inversion of values, human society is caught in a whirlpool of chaos and is wandering without finding a new order.\n\nOn the other hand, some perceive the current turbulent world of the end of the century as a period of a great universal civilian transformation to welcome a new paradigm of moral civilization. And it can be said that the wave of this new civilization does not start from the Western civilization of self-material dualism, but its focal point is being compressed into the self-material oneness of Northeast Asia through the spirits of Confucianism, Buddhism, and Taoism, which is a grand national vision.\n\nTherefore, the philosophical paradigm of the new 21st-century civilization aimed at a moral human society will not be the idealism of established religions or dialectical materialism, but an idealism based on human wisdom-centering. It refers to the wisdom-centering through the oneness of mind and matter, which is the intuition of the East that combines the 'mind' as the subject of recognition and the 'matter' as the object of recognition, rather than the knowledge-centric analytical and scientific methods of the West. In other words, the wisdom-centering of new energy, which is a new paradigm of recognition, and the Mind-Matter Philosophy that encompasses Eastern and Western civilizations will surely be the key keywords of 21st-century civilization.\n\nIt is often said that the 21st century will be an eras of information and culture. And it is also called an era of global competition in information culture. Everyone seems a bit too excited or biased toward political gestures and economic speed. Without the creation of new information and the reproduction of subjective and creative culture and art, can we cope with globalization? Can we survive the competitiveness of the global era? We cannot help but ask back.\n\nNow, the 21st century is only two years away. In the cyber era of cutting-edge technology moving from analog to digital, the question is not a passive one of how calligraphy can survive as a genre of art, but rather a more active consideration of how calligraphy must change to make a global leap forward. To reflect deeply on this problem once again, the Mulpa Group was founded on April 19 last year. Along with this problem consciousness, the mission of us calligraphers and painters who directly handle the culture of letters and the art of ink and brush is no less than that of the protagonists who will be in charge of the information superhighway of the new civilian transformation. This is both the self-recognition and a new starting point for Mulpa artists.\n\nthen, what is Mulpaism as art? One must answer the question of what kind of art Mulpa-Art, which Mulpaism aims for, refers to. In art, Mulpaism is based on Mind-Matter Philosophy. In other words, Mulpaism art is an art of lines based on the Oriental calligraphic spirit of Mind-Matter logic and the spirit of literati painting. To define it in one word, Mulpa is the wave of mind and matter. It is not just the wave of material matter in Western science or the wave of idealistic mind in Eastern religion, but the wave of mind and matter as an art of lines. Of course, in Mulpa-Art, 'wave' refers to vibration, but it is a wave as the energy of mind and matter, which is completely different from the material wave spoken of in modern subatomic physics. Because the mind is energy (In-Sim-Gi-Ya), the wave of mind and matter is also not a material wave, but a wave of spiritual and energetic new vitality, a divine vitality wave. Therefore, the vitality of mind and matter is a philosophy of mind and matter as 'the bright vitality of nature reflected in the formless mirror of the mind (Mu-Hyeong-Sim-Gyeong, Ja-Yeon-Myeong-Gi)'. In conclusion, Mulpaism art is an art of lines based on Mind-Matter Philosophy and the art of ink and brush.\n\n(Sun Byung-chul / Director of Mulpa Space)\nDecember 12, 1997",
       artistName: "Bulhanza",
       artistTitle: "Mind-Matter Philosopher & Mulpa Artist",
       artistDescription: "Bulhanza explores the waves of mind and matter, manifesting them through tea, calligraphy, and painting. His work is not a completed result, but a starting point for waves that continue to spread within the viewer's mind.",
@@ -732,9 +736,21 @@ const ArtDetailPage = ({ t, setPage }: { t: any; setPage: (p: Page) => void }) =
           >
             <h2 className="text-4xl md:text-6xl font-serif mb-12 tracking-tight text-black">{t.artDetail.mulpaismTitle}</h2>
             <div className="w-16 h-px bg-black/20 mb-12" />
-            <p className="text-xl md:text-3xl font-serif leading-relaxed tracking-wide opacity-80 text-black whitespace-pre-line">
+            <p className="text-xl md:text-3xl font-serif leading-relaxed tracking-wide opacity-80 text-black whitespace-pre-line mb-24">
               {t.artDetail.mulpaismContent}
             </p>
+
+            <div className="bg-gray-50 p-8 md:p-16 border border-black/5 shadow-inner">
+              <div className="max-w-prose mx-auto">
+                <h3 className="text-2xl md:text-4xl font-serif text-center mb-12 text-black tracking-widest font-bold">
+                  {t.artDetail.mulpaismDeclaration.split('\n')[0]}
+                </h3>
+                <pre className="whitespace-pre-line font-serif text-sm md:text-base leading-loose opacity-70 text-black text-justify">
+                  {t.artDetail.mulpaismDeclaration.split('\n').slice(1).join('\n')}
+                </pre>
+              </div>
+            </div>
+
             <div className="mt-24 aspect-video overflow-hidden">
               <img 
                 src="https://images.unsplash.com/photo-1549490349-8643362247b5?q=80&w=2070&auto=format&fit=crop" 
