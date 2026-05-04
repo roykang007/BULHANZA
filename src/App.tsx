@@ -619,7 +619,7 @@ const ArtDetailPage = ({ t, setPage }: { t: any; setPage: (p: Page) => void }) =
           transition={{ duration: 1.5 }}
           className="z-10 max-w-5xl"
         >
-          <h1 className="text-5xl md:text-8xl font-serif mb-6 tracking-[0.2em] leading-tight text-black">
+          <h1 className="text-4xl md:text-7xl font-serif mb-6 tracking-[0.2em] leading-tight text-black">
             {t.artDetail.title}
           </h1>
           <p className="text-xl md:text-3xl font-serif tracking-[0.4em] opacity-60 text-black">
@@ -754,7 +754,7 @@ const ArtDetailPage = ({ t, setPage }: { t: any; setPage: (p: Page) => void }) =
           >
             <div className="flex-1 space-y-8">
               <div className="space-y-4">
-                <h2 className="text-5xl md:text-7xl font-serif text-black">{t.artDetail.artistName}</h2>
+                <h2 className="text-4xl md:text-6xl font-serif text-black">{t.artDetail.artistName}</h2>
                 <p className="text-sm tracking-[0.5em] uppercase opacity-40 font-bold text-black">{t.artDetail.artistTitle}</p>
               </div>
               <div className="w-16 h-px bg-black/20" />
