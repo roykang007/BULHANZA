@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Menu, X, Globe, ChevronDown, Plus, Trash2, Edit2, ArrowLeft, Newspaper, Image as ImageIcon, Upload } from 'lucide-react';
+import { Menu, X, Globe, ChevronDown, Plus, Trash2, Edit2, ArrowLeft, Newspaper, Image as ImageIcon, Upload, ChevronLeft, ChevronRight } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
@@ -10,6 +10,7 @@ import { SAMPLE_ARCHIVE_ITEMS } from './lib/seedData';
 const bulhansunchaImg = 'https://images.unsplash.com/photo-1594631252845-29fc4cc8cde9?auto=format&fit=crop&q=80&w=1920';
 const mountainsImg = 'mountains.jpg';
 const logoImg = 'logo.png';
+const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?auto=format&fit=crop&q=80&w=1000';
 
 type Language = 'KR' | 'TC' | 'EN';
 type Page = 'home' | 'tea' | 'archive' | 'contact' | 'philosophy' | 'admin' | 'art';
@@ -32,6 +33,20 @@ interface SiteSettings {
   tea_detail_url: string;
   tea_slider_images?: string[];
   tea_slider_speed?: number;
+  artists?: Artist[];
+}
+
+interface Work {
+  title: string;
+  image: string;
+}
+
+interface Artist {
+  name: string;
+  title: string;
+  bio: string;
+  image: string;
+  works: Work[];
 }
 
 interface Content {
@@ -68,10 +83,7 @@ interface Content {
     mulpaismTitle: string;
     mulpaismContent: string;
     mulpaismDeclaration: string;
-    artistName: string;
-    artistTitle: string;
-    artistDescription: string;
-    artistImage: string;
+    artists: Artist[];
   };
   tea: { title: string; text: string };
   teaDetail: {
@@ -181,11 +193,45 @@ const translations: Record<Language, Content> = {
       },
       mulpaismTitle: "물파주의(物波主義)의 핵심",
       mulpaismContent: "물파주의는 형상을 넘어선 파동의 미학입니다. 모든 존재는 진동하며, 그 진동이 멈춘 상태가 물질입니다. 예술가는 물질 속에 갇힌 파동을 다시 깨워내는 존재이며, 물파주의는 그 깨어남의 방법론입니다.",
-      mulpaismDeclaration: "物波主義 宣言文\n\n20세기는 과학문명의 눈부신 성과에도 불구하고 정신문명은 오히려 衰(쇠)의 길을 걸어왔다고 보는 비판이 없지 않다. 즉 물질문화를 앞세운 나머지 도덕문화가 퇴보하게 되었다는 진단이다. 이 말은 가치관의 顚倒(전도)로 인류사회가 혼돈의 소용돌이 속에 휩쓸려 새 질서를 찾지 못한 채 방황하고 있음을 의미한다.\n\n한편으론 지금 세기말 격동적 변화의 세계를 두고 새로운 패러다임의 도덕문명을 맞이하기 위한 거대한 인류보편적 문명전환기로 파악하고 있기도 하다. 그리고 이러한 개벽적 새 문명의 물결이 物我的 二元論(물아적 이원론)의 서구문명으로부터 파장지우지 않고 그 구심점이 동북아 物我的 合一論(물아적 합일론)의 동북아 儒·佛·仙 三靈(유·불·선 삼령) 정신으로 압축되고 있음은 하나의 원대한 민족적 비전이 아닐 수 없다고 하겠다.\n\n따라서 인류도덕사회를 지향하는 21세기 새로운 문명의 철학적 패러다임은 기성종교의 唯心論(유심론)이나 변증법적 唯物論(유물론)이 아닌 인간 智中心(지중심)의 唯心論이 될 것이다. 그것은 낡은 인식체계인 서양의 분석적·과학적 방법의 지식 중심이 아니라 동양고유의 직관적 對物觀(대물관)이기도 한 인식주체로서의 心(심)과 인식대상인 物(물)과의 合一(합일)된 기운, 즉 同氣一心(동기일심)에 의한 心物論(심물론)적 智覺中心(지각중심)을 뜻한다. 다시 말해 새로운 인식체계의 패러다임인 新氣運(신기운)의 智覺中心과 동서문명을 아우르는 心物論 哲學이야말로 21세기 문명의 핵심적 키워드(Key Word)가 될 것이 분명하다.\n\n흔히들 21세기는 정보의 시대요 문화의 시대가 될 것이라고 말한다. 그리고 정보문화의 글로벌 경쟁의 시대라고도 한다. 모두들 정치적 제스처와 경제적 속도에 너무 들뜨거나 치우친 감이 없지 않다. 새로운 정보의 창출과 주체적·독창적 文化藝術(문화예술)의 재생산 없이 세계화에 대처할 수 있을까? 과연 글로벌 시대의 경쟁력에 살아남을 수가 있을까 반문해 보지 않을 수 없다.\n\n바야흐로 21세기를 불과 2년 앞두고 있다. 아날로그에서 디지털화하는 첨단 테크놀로지의 사이버 시대에 어떻게 해야 서예가 예술의 한 장르로 살아남을 수 있을까 하는 소극적인 물음이 아니라 서예가 어떻게 변해야 세계공통의 발돋움할 수 있을까 하는 보다 적극적인 문제로 다시 한번 심각하게 성찰해 보고자 지난 4월 19일 物波(물파)그룹이 창립되었다. 이러한 문제의식과 함께 새로운 문명전환의 정보고속도로망을 담당할 주역들 못지않게 文字文化(문자문화)와 필묵예술을 직접 다루는 우리 서화가들의 사명 또한 적지 않다는 것이 물파예술가들의 자각적 인식이자 새 출발점이기도 하다.\n\n그렇다면 예술로서의 物波主義(물파주의)란 무엇인가? 물파주의가 지향하는 物藝藝術(물예예술)이란 과연 어떤 예술을 가리키는 것인가에 대한 질문에 답하지 않으면 안 된다. 예술에 있어 물파주의란 心物論 哲學(심물론 철학)에 근거한다. 바꾸어 말하면 물파주의 예술이란 心物論的 동양서예정신과 文人畵(문인화) 정신에 입각한 線(선)의 예술이다. 한마디로 정의하면 物波(물파)란 心物之波(심물지파)다. 그것은 단순히 서구과학의 유물적 物(물)의 波(파)나 동양종교의 유심적 心(심)의 波가 아닌 線의 예술로서 心物의 波인 것이다. 물론 物波藝術에서 波는 파동을 일컫지만, 그것은 현대 아원자물리학에서 말하는 物質波(물질파)와는 판이하게 다른 心物之氣(심물지기)로서의 파동이다. 왜냐하면 마음은 기운(人心氣也)이므로 心物之波 역시 물질파가 아닌 정신적·靈的(영적) 新氣運의 파동, 神氣波(신기파)이기 때문이다. 그러므로 心物之氣란 '무형의 마음거울에 비친 자연의 밝은 기운(無形心鏡, 自然明氣)'으로서 心物之哲이다. 총결해서 말한다면 物波主義 예술이란 心物哲學에 근거한 線의 예술이자 筆墨藝術(필묵예술)인 것이다.\n\n(孫炳哲 / 物波空間 館長)\n1997. 12. 12.",
-      artistName: "불한자 (弗寒子)",
-      artistTitle: "심물철학자 및 물파예술가",
-      artistDescription: "불한자는 마음과 사물의 파동을 탐구하며, 이를 차(茶), 글(書), 그림(畵)으로 형상화하는 작업을 이어오고 있습니다. 그의 작품은 완성된 결과물이 아니라, 감상자의 마음속에서 계속해서 퍼져나가는 파동의 시작점입니다.",
-      artistImage: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1974&auto=format&fit=crop"
+      mulpaismDeclaration: "物波主義 宣言文\n\n20세기는 과학문명의 눈부신 성과에도 불구하고 정신문명은 오히려 衰(쇠)의 길을 걸어왔다고 보는 비판이 없지 않다. 즉 물질문화를 앞세운 나머지 도덕문화가 퇴보하게 되었다는 진단이다. 이 말은 가치관의 顚倒(전도)로 인류사회가 혼돈의 소용돌이 속에 휩쓸려 새 질서를 찾지 못한 채 방황하고 있음을 의미한다.\n\n한편으론 지금 세기말 격동적 변화의 세계를 두고 새로운 패러다임의 도덕문명을 맞이하기 위한 거대한 인류보편적 문명전환기로 파악하고 있기도 하다. 그리고 이러한 개벽적 새 문명의 물결이 物我的 二元論(물아적 이원론)의 서구문명으로부터 파장지우지 않고 그 구심점이 동북아 物我的 合一論(물아적 합일론)의 동북아 儒·佛·仙 三靈(유·불·선 삼령) 정신으로 압축되고 있음은 하나의 원대한 민족적 비전이 아닐 수 없다고 하겠다.\n\n따라서 인류도덕사회를 지향하는 21세기 새로운 문명의 철학적 패러다임은 기성종교의 唯心論(유심론)이나 변증법적 唯物論(유물론)이 아닌 인간 智中心(지중심)의 唯心論이 될 것이다. 그것은 낡은 인식체계인 서양의 분석적·과학적 방법의 지식 중심이 아니라 동양고유의 직관적 對物觀(대물관)이기도 한 인식주체로서의 心(심)과 인식대상인 物(물)과의 合一(합일)된 기운, 즉 同氣一心(동기일심)에 의한 心物論(심물론)적 智覺中心(지각중심)을 뜻한다. 다시 말해 새로운 인식체계의 패러다임인 新氣運(신기운)의 智覺中心과 동서문명을 아우르는 心物論 哲學이야말로 21세기 문명의 핵심적 키워드(Key Word)가 될 것이 분명하다.\n\n흔히들 21세기는 정보의 시대요 문화의 시대가 될 것이라고 말한다. 그리고 정보문화의 글로벌 경쟁의 시대라고도 한다. 모두들 정치적 제스처와 경제적 속도에 너무 들뜨거나 치우친 감이 없지 않다. 새로운 정보의 창출과 주체적·독창적 文化藝術(문화예술)의 재생산 없이 세계화에 대처할 수 있을까? 과연 글로벌 시대의 경쟁력에 살아남을 수가 있을까 반문해 보지 않을 수 없다.\n\n바야흐로 21세기를 불과 2년 앞두고 있다. 아날로그에서 디지털화하는 첨단 테크놀로지의 사이버 시대에 어떻게 해야 서예가 예술의 한 장르로 살아남을 수 있을까 하는 소극적인 물음이 아니라 서예가 어떻게 변해야 세계공통의 발돋움할 수 있을까 하는 보다 적극적인 문제로 다시 한번 심각하게 성찰해 보고자 지난 4월 19일 物波(물파)그룹이 창립되었다. 이러한 문제의식과 함께 새로운 문명전환의 정보고속도로망을 담당할 주역들 못지않게 文字文化(문자문화)와 필묵예술을 직접 다루는 우리 서화가들의 사명 또한 적지 않다는 것이 물파예술가들의 자각적 인식이자 새 출발점이기도 하다.\n\n그렇다면 예술로서의 物波主義(물파주의)란 무엇인가? 물파주의가 지향하는 物藝藝術(물예예술)이란 과연 어떤 예술을 가리키는 것인가에 대한 질문에 답하지 않으면 안 된다. 예술에 있어 물파주의란 心物論 哲學(심물론 철학)에 근거한다. 바꾸어 말하면 물파주의 예술이란 心物論B的 동양서예정신과 文人畵(문인화) 정신에 입각한 線(선)의 예술이다. 한마디로 정의하면 物波(물파)란 心物之波(심물지파)다. 그것은 단순히 서구과학의 유물적 物(물)의 波(파)나 동양종교의 유심적 心(심)의 波가 아닌 線의 예술로서 心物의 波인 것이다. 물론 物波藝術에서 波는 파동을 일컫지만, 그것은 현대 아원자물리학에서 말하는 物質波(물질파)와는 판이하게 다른 心物之氣(심물지기)로서의 파동이다. 왜냐하면 마음은 기운(人心氣也)이므로 心物之波 역시 물질파가 아닌 정신적·靈的(영적) 新氣運의 파동, 神氣波(신기파)이기 때문이다. 그러므로 心物之氣란 '무형의 마음거울에 비친 자연의 밝은 기운(無形心鏡, 自然明氣)'으로서 心物之哲이다. 총결해서 말한다면 物波主義 예술이란 心物哲學에 근거한 線의 예술이자 筆墨藝術(필묵예술)인 것이다.\n\n(孫炳哲 / 物波空間 館長)\n1997. 12. 12.",
+      artists: [
+        {
+          name: "불한자 (弗寒子)",
+          title: "심물철학자 및 물파예술가",
+          bio: "불한자는 마음과 사물의 파동을 탐구하며, 이를 차(茶), 글(書), 그림(畵)으로 형상화하는 작업을 이어오고 있습니다. 그의 작품은 완성된 결과물이 아니라, 감상자의 마음속에서 계속해서 퍼져나가는 파동의 시작점입니다.",
+          image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1974&auto=format&fit=crop",
+          works: [
+            { title: "심물지파 01", image: "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?q=80&w=2090&auto=format&fit=crop" },
+            { title: "심물지파 02", image: "https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?q=80&w=2038&auto=format&fit=crop" },
+            { title: "심물지파 03", image: "https://images.unsplash.com/photo-1549490349-8643362247b5?q=80&w=2070&auto=format&fit=crop" },
+            { title: "심물지파 04", image: "https://images.unsplash.com/photo-1582555172866-f73bb12a2ab3?q=80&w=1978&auto=format&fit=crop" }
+          ]
+        },
+        {
+          name: "김철수 (Kim Chul-soo)",
+          title: "서양화가 / Painter",
+          bio: "자연의 아름다움을 추상화하는 서양화가. 그의 작업은 시각적 평온함과 사유의 공간을 제공합니다.",
+          image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=1974&auto=format&fit=crop",
+          works: [
+            { title: "숲의 소리", image: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?q=80&w=2071&auto=format&fit=crop" },
+            { title: "도시의 빛", image: "https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?q=80&w=2113&auto=format&fit=crop" },
+            { title: "환영", image: "https://images.unsplash.com/photo-1501854140801-50d01698950b?q=80&w=1975&auto=format&fit=crop" },
+            { title: "기억", image: "https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?q=80&w=2070&auto=format&fit=crop" }
+          ]
+        },
+        {
+          name: "이영희 (Lee Young-hee)",
+          title: "한국화가 / Korean Painter",
+          bio: "전통과 현대가 공존하는 한국화의 정수. 한지의 질감과 먹의 깊이를 통해 한국적 미학을 현대적으로 재해석합니다.",
+          image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=1976&auto=format&fit=crop",
+          works: [
+            { title: "여백의 미", image: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=2148&auto=format&fit=crop" },
+            { title: "산수화 01", image: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=2070&auto=format&fit=crop" },
+            { title: "필묵", image: "https://images.unsplash.com/photo-1533154683836-84ea7a0bc310?q=80&w=2031&auto=format&fit=crop" },
+            { title: "조화", image: "https://images.unsplash.com/photo-1510414842594-a61c69b5ae57?q=80&w=2070&auto=format&fit=crop" }
+          ]
+        }
+      ]
     },
     tea: {
       title: "弗寒仙茶",
@@ -292,10 +338,44 @@ const translations: Record<Language, Content> = {
       mulpaismTitle: "物波主義的核",
       mulpaismContent: "物波主義是超越形象的波動美學。所有存在都在振動，那振動停止的狀態就是物質。藝術家是將困在物質中的波動再次喚醒的存在，物波主義就是那種覺醒的方法論。",
       mulpaismDeclaration: "物波主義 宣言文\n\n20世紀雖然科學文明取得了令人矚目的成就，但人們仍批評精神文明反而走上了衰落之路。即，因重視物質文化而導致道德文化退步的診斷。這意味著由於價值觀的顚倒（顛倒），人類社會陷入混亂的漩渦中，在未能找到新秩序的情況下徘徊。\n\n另一方面，有人將當前世紀末激動變化的世界，視為為了迎接新範式的道德文明而進行的巨大的、全人類的文明轉型期。而且，這種開天闢地的新文明浪潮並非始於物我的二元論的西方文明，而是濃縮在東北亞物我的合一論的東北亞儒·佛·仙三靈精神中，這堪稱一個宏大的民族願景。\n\n因此，面向人類道德社會的21世紀新文明的哲學範式，將不是既成宗教的唯心論或辯證法的唯物論，而是以人智中心為基礎的唯心論。它不是指西方陳舊的、以分析和科學方法為主的知識中心，而是指作為認識主體的心與作為認識對象的物合一的氣，即由同氣一心產生的心物論式的智覺中心。換言之，作為新認識體系範式的新氣運的智覺中心和涵蓋東西方文明的心物論哲學，必將成為21世紀文明的核心關鍵詞（Key Word）。\n\n人們常說21世紀將是信息的時代、文化的時代。也被稱為信息文化的全球競爭時代。大家對政治姿態和經濟速度都顯得過於興奮或偏頗。如果沒有新信息的創造和主體性、原創性文化藝術的再生產，如何能應對全球化？在全球化時代的競爭力中，我們真的能生存下來嗎？對此不能不反問。\n\n眼看距離21世紀僅剩兩年。在從模擬轉向數字的尖端科技網絡時代，與其消極地問書法如何作為藝術的一個流派生存下來，不如更積極地思考書法應如何轉變才能走向世界。為了再次嚴肅反思這一問題，物波（MULPA）組合於去年4月19日宣告成立。伴隨著這種問題意識，我們書畫家除了要像那些負責文明轉型信息高速公路網的主角一樣重要外，直接處理文字文化和筆墨藝術的使命也不小，這既是物波藝術家的自覺認識，也是新的起點。\n\n那麼，作為藝術的物波主義（Mulpaism）究竟是什麼？對於物波主義所指向的物藝藝術究竟是指什麼樣的藝術，必須做出回答。在藝術方面，物波主義是以心物論哲學為基礎的。換言之，物波主義藝術是立足於心物論式的東方書法精神和文人畫精神的線的藝術。一言以蔽之，物波即心物之波。它不僅僅是西方科學的唯物性的物的波或東方宗教的唯心性的心的波，而是作為線的藝術的心物之波。當然，在物波藝術中，波是指波動，但它與現代亞原子物理學中所說的物質波截然不同，它是作為心物之氣的波動。因為心即氣（人心氣也），所以心物之波也不是物質波，而是精神上的、靈性的新氣運的波動，即神氣波。因此，所謂心物之氣，就是作為「映照在無形心鏡上的自然明亮之氣（無形心鏡, 自然明氣）」的心物之哲。總結來說，物波主義藝術是以心物哲學為基礎的線的藝術，也是筆墨藝術。\n\n（孫炳哲 / 物波空間 館長）\n1997. 12. 12.",
-      artistName: "弗寒子 (Bulhanza)",
-      artistTitle: "心物哲學家及物波藝術家",
-      artistDescription: "弗寒子探求心與物的波動，並將其轉化為茶、書、畫。他的作品不是完成的結果，而是觀者心中不斷擴散的波動起點。",
-      artistImage: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1974&auto=format&fit=crop"
+      artists: [
+        {
+          name: "弗寒子 (Bulhanza)",
+          title: "心物哲學家及物波藝術家",
+          bio: "弗寒子探求心與物的波動，並將其轉化為茶、書、畫。他的作品不是完成的結果，而是觀者心中不斷擴散的波動起點。",
+          image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1974&auto=format&fit=crop",
+          works: [
+            { title: "心物之波 01", image: "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?q=80&w=2090&auto=format&fit=crop" },
+            { title: "心物之波 02", image: "https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?q=80&w=2038&auto=format&fit=crop" },
+            { title: "心物之波 03", image: "https://images.unsplash.com/photo-1549490349-8643362247b5?q=80&w=2070&auto=format&fit=crop" },
+            { title: "心物之波 04", image: "https://images.unsplash.com/photo-1582555172866-f73bb12a2ab3?q=80&w=1978&auto=format&fit=crop" }
+          ]
+        },
+        {
+          name: "金哲秀 (Kim Chul-soo)",
+          title: "西洋畫家 / Painter",
+          bio: "將自然之美抽象化的西洋畫家。他的作品提供視覺的寧靜與思考空間。",
+          image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=1974&auto=format&fit=crop",
+          works: [
+            { title: "林之聲", image: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?q=80&w=2071&auto=format&fit=crop" },
+            { title: "城之光", image: "https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?q=80&w=2113&auto=format&fit=crop" },
+            { title: "幻象", image: "https://images.unsplash.com/photo-1501854140801-50d01698950b?q=80&w=1975&auto=format&fit=crop" },
+            { title: "記憶", image: "https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?q=80&w=2070&auto=format&fit=crop" }
+          ]
+        },
+        {
+          name: "李英熙 (Lee Young-hee)",
+          title: "韓國畫家 / Korean Painter",
+          bio: "傳統與現代共存的韓國畫之精髓。透過韓紙質感與墨之深淺，對韓國美學進行現代演繹。",
+          image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=1976&auto=format&fit=crop",
+          works: [
+            { title: "空白之美", image: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=2148&auto=format&fit=crop" },
+            { title: "山水畫 01", image: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=2070&auto=format&fit=crop" },
+            { title: "筆墨", image: "https://images.unsplash.com/photo-1533154683836-84ea7a0bc310?q=80&w=2031&auto=format&fit=crop" },
+            { title: "和諧", image: "https://images.unsplash.com/photo-1510414842594-a61c69b5ae57?q=80&w=2070&auto=format&fit=crop" }
+          ]
+        }
+      ]
     },
     tea: {
       title: "弗寒仙茶",
@@ -402,10 +482,44 @@ const translations: Record<Language, Content> = {
       mulpaismTitle: "The Core of Mulpaism",
       mulpaismContent: "Mulpaism is an aesthetics of waves beyond form. All existence vibrates, and matter is the state where that vibration stops. Artists are those who reawaken the waves trapped within matter, and Mulpaism is the methodology of that awakening.",
       mulpaismDeclaration: "Mulpaism Declaration\n\nThe 20th century, despite its dazzling achievements in scientific civilization, has faced criticism that spiritual civilization has instead walked the path of decline. In other words, the diagnosis is that moral culture has regressed while material culture was prioritized. This means that due to the inversion of values, human society is caught in a whirlpool of chaos and is wandering without finding a new order.\n\nOn the other hand, some perceive the current turbulent world of the end of the century as a period of a great universal civilian transformation to welcome a new paradigm of moral civilization. And it can be said that the wave of this new civilization does not start from the Western civilization of self-material dualism, but its focal point is being compressed into the self-material oneness of Northeast Asia through the spirits of Confucianism, Buddhism, and Taoism, which is a grand national vision.\n\nTherefore, the philosophical paradigm of the new 21st-century civilization aimed at a moral human society will not be the idealism of established religions or dialectical materialism, but an idealism based on human wisdom-centering. It refers to the wisdom-centering through the oneness of mind and matter, which is the intuition of the East that combines the 'mind' as the subject of recognition and the 'matter' as the object of recognition, rather than the knowledge-centric analytical and scientific methods of the West. In other words, the wisdom-centering of new energy, which is a new paradigm of recognition, and the Mind-Matter Philosophy that encompasses Eastern and Western civilizations will surely be the key keywords of 21st-century civilization.\n\nIt is often said that the 21st century will be an eras of information and culture. And it is also called an era of global competition in information culture. Everyone seems a bit too excited or biased toward political gestures and economic speed. Without the creation of new information and the reproduction of subjective and creative culture and art, can we cope with globalization? Can we survive the competitiveness of the global era? We cannot help but ask back.\n\nNow, the 21st century is only two years away. In the cyber era of cutting-edge technology moving from analog to digital, the question is not a passive one of how calligraphy can survive as a genre of art, but rather a more active consideration of how calligraphy must change to make a global leap forward. To reflect deeply on this problem once again, the Mulpa Group was founded on April 19 last year. Along with this problem consciousness, the mission of us calligraphers and painters who directly handle the culture of letters and the art of ink and brush is no less than that of the protagonists who will be in charge of the information superhighway of the new civilian transformation. This is both the self-recognition and a new starting point for Mulpa artists.\n\nthen, what is Mulpaism as art? One must answer the question of what kind of art Mulpa-Art, which Mulpaism aims for, refers to. In art, Mulpaism is based on Mind-Matter Philosophy. In other words, Mulpaism art is an art of lines based on the Oriental calligraphic spirit of Mind-Matter logic and the spirit of literati painting. To define it in one word, Mulpa is the wave of mind and matter. It is not just the wave of material matter in Western science or the wave of idealistic mind in Eastern religion, but the wave of mind and matter as an art of lines. Of course, in Mulpa-Art, 'wave' refers to vibration, but it is a wave as the energy of mind and matter, which is completely different from the material wave spoken of in modern subatomic physics. Because the mind is energy (In-Sim-Gi-Ya), the wave of mind and matter is also not a material wave, but a wave of spiritual and energetic new vitality, a divine vitality wave. Therefore, the vitality of mind and matter is a philosophy of mind and matter as 'the bright vitality of nature reflected in the formless mirror of the mind (Mu-Hyeong-Sim-Gyeong, Ja-Yeon-Myeong-Gi)'. In conclusion, Mulpaism art is an art of lines based on Mind-Matter Philosophy and the art of ink and brush.\n\n(Sun Byung-chul / Director of Mulpa Space)\nDecember 12, 1997",
-      artistName: "Bulhanza",
-      artistTitle: "Mind-Matter Philosopher & Mulpa Artist",
-      artistDescription: "Bulhanza explores the waves of mind and matter, manifesting them through tea, calligraphy, and painting. His work is not a completed result, but a starting point for waves that continue to spread within the viewer's mind.",
-      artistImage: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1974&auto=format&fit=crop"
+      artists: [
+        {
+          name: "Bulhanza",
+          title: "Mind-Matter Philosopher & Mulpa Artist",
+          bio: "Bulhanza explores the waves of mind and matter, manifesting them through tea, calligraphy, and painting. His work is not a completed result, but a starting point for waves that continue to spread within the viewer's mind.",
+          image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1974&auto=format&fit=crop",
+          works: [
+            { title: "Wave of Mind-Matter 01", image: "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?q=80&w=2090&auto=format&fit=crop" },
+            { title: "Wave of Mind-Matter 02", image: "https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?q=80&w=2038&auto=format&fit=crop" },
+            { title: "Wave of Mind-Matter 03", image: "https://images.unsplash.com/photo-1549490349-8643362247b5?q=80&w=2070&auto=format&fit=crop" },
+            { title: "Wave of Mind-Matter 04", image: "https://images.unsplash.com/photo-1582555172866-f73bb12a2ab3?q=80&w=1978&auto=format&fit=crop" }
+          ]
+        },
+        {
+          name: "Kim Chul-soo",
+          title: "Painter",
+          bio: "A painter who abstracts the beauty of nature. His work provides visual tranquility and space for contemplation.",
+          image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=1974&auto=format&fit=crop",
+          works: [
+            { title: "Sound of Forest", image: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?q=80&w=2071&auto=format&fit=crop" },
+            { title: "Urban Light", image: "https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?q=80&w=2113&auto=format&fit=crop" },
+            { title: "Illusion", image: "https://images.unsplash.com/photo-1501854140801-50d01698950b?q=80&w=1975&auto=format&fit=crop" },
+            { title: "Memory", image: "https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?q=80&w=2070&auto=format&fit=crop" }
+          ]
+        },
+        {
+          name: "Lee Young-hee",
+          title: "Korean Painter",
+          bio: "The essence of Korean painting where tradition and modernity coexist. Modern reinterpretation of Korean aesthetics through the texture of Hanji and the depth of ink.",
+          image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=1976&auto=format&fit=crop",
+          works: [
+            { title: "Beauty of Void", image: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=2148&auto=format&fit=crop" },
+            { title: "Landscape 01", image: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=2070&auto=format&fit=crop" },
+            { title: "Ink & Brush", image: "https://images.unsplash.com/photo-1533154683836-84ea7a0bc310?q=80&w=2031&auto=format&fit=crop" },
+            { title: "Harmony", image: "https://images.unsplash.com/photo-1510414842594-a61c69b5ae57?q=80&w=2070&auto=format&fit=crop" }
+          ]
+        }
+      ]
     },
     tea: {
       title: "Bulhan Tea",
@@ -447,8 +561,6 @@ const translations: Record<Language, Content> = {
     }
   }
 };
-
-const DEFAULT_IMAGE = "https://images.unsplash.com/photo-1514483127413-f72f273478c3?q=80&w=2070&auto=format&fit=crop";
 
 const compressImage = (file: File): Promise<string> => {
   return new Promise((resolve) => {
@@ -597,8 +709,11 @@ const PhilosophyPage = ({ t, setPage }: { t: any; setPage: (p: Page) => void }) 
   </motion.div>
 );
 
-const ArtDetailPage = ({ t, setPage }: { t: any; setPage: (p: Page) => void }) => {
+const ArtDetailPage = ({ t, setPage, siteSettings }: { t: any; setPage: (p: Page) => void; siteSettings: SiteSettings | null }) => {
   const [activeTab, setActiveTab] = useState<'intro' | 'mulpaism' | 'artist'>('intro');
+  const [galleryState, setGalleryState] = useState<{ artist: Artist; index: number } | null>(null);
+
+  const artists = siteSettings?.artists || t.artDetail.artists || [];
 
   return (
     <motion.div 
@@ -623,7 +738,7 @@ const ArtDetailPage = ({ t, setPage }: { t: any; setPage: (p: Page) => void }) =
           transition={{ duration: 1.5 }}
           className="z-10 max-w-5xl"
         >
-          <h1 className="text-4xl md:text-7xl font-serif mb-6 tracking-[0.2em] leading-tight text-black">
+          <h1 className="text-3xl md:text-5xl lg:text-7xl font-serif mb-6 tracking-[0.2em] leading-tight text-black whitespace-nowrap">
             {t.artDetail.title}
           </h1>
           <p className="text-xl md:text-3xl font-serif tracking-[0.4em] opacity-60 text-black">
@@ -742,7 +857,7 @@ const ArtDetailPage = ({ t, setPage }: { t: any; setPage: (p: Page) => void }) =
 
             <div className="bg-gray-50 p-8 md:p-16 border border-black/5 shadow-inner">
               <div className="max-w-prose mx-auto">
-                <h3 className="text-2xl md:text-4xl font-serif text-center mb-12 text-black tracking-widest font-bold">
+                <h3 className="text-xl md:text-3xl font-serif text-center mb-12 text-black tracking-[0.5em] font-bold opacity-80 decoration-black/5 underline underline-offset-[12px]">
                   {t.artDetail.mulpaismDeclaration.split('\n')[0]}
                 </h3>
                 <pre className="whitespace-pre-line font-serif text-sm md:text-base leading-loose opacity-70 text-black text-justify">
@@ -766,26 +881,148 @@ const ArtDetailPage = ({ t, setPage }: { t: any; setPage: (p: Page) => void }) =
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="py-32 px-6 md:px-24 max-w-6xl mx-auto flex flex-col md:flex-row gap-16 items-center"
+            className="py-32 px-6 md:px-24 max-w-7xl mx-auto"
           >
-            <div className="flex-1 space-y-8">
-              <div className="space-y-4">
-                <h2 className="text-4xl md:text-6xl font-serif text-black">{t.artDetail.artistName}</h2>
-                <p className="text-sm tracking-[0.5em] uppercase opacity-40 font-bold text-black">{t.artDetail.artistTitle}</p>
-              </div>
-              <div className="w-16 h-px bg-black/20" />
-              <p className="text-xl font-serif leading-relaxed tracking-wide opacity-70 text-black whitespace-pre-line">
-                {t.artDetail.artistDescription}
-              </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+              {artists.map((artist: Artist, idx: number) => (
+                <motion.div 
+                  key={idx}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: idx * 0.1 }}
+                  className="bg-white border border-black/5 p-8 flex flex-col space-y-8 group hover:shadow-2xl transition-all duration-500"
+                >
+                  {/* Profile Header */}
+                  <div className="flex gap-6 items-center">
+                    <div className="w-24 h-24 shrink-0 overflow-hidden bg-gray-50 border border-black/5">
+                      <img 
+                        src={artist.image} 
+                        alt={artist.name} 
+                        className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700" 
+                        referrerPolicy="no-referrer"
+                      />
+                    </div>
+                    <div className="space-y-1 overflow-hidden">
+                      <h3 className="text-xl md:text-2xl font-serif text-black whitespace-nowrap">{artist.name}</h3>
+                      <p className="text-[10px] tracking-[0.3em] uppercase opacity-40 font-bold text-black truncate">{artist.title}</p>
+                    </div>
+                  </div>
+
+                  {/* Bio */}
+                  <div className="flex-1">
+                    <div className="w-8 h-px bg-black/10 mb-6" />
+                    <p className="text-sm font-serif leading-relaxed opacity-60 text-justify text-black min-h-[100px]">
+                      {artist.bio}
+                    </p>
+                  </div>
+
+                  {/* Works Grid */}
+                  <div className="space-y-4">
+                    <p className="text-[8px] tracking-[0.4em] uppercase opacity-30 font-bold">Featured Works</p>
+                    <div className="grid grid-cols-4 gap-2">
+                      {artist.works.slice(0, 4).map((work, wIdx) => (
+                        <div 
+                          key={wIdx} 
+                          className="aspect-square overflow-hidden bg-gray-50 cursor-pointer"
+                          onClick={() => setGalleryState({ artist, index: wIdx })}
+                        >
+                          <img 
+                            src={work.image} 
+                            alt={work.title} 
+                            className="w-full h-full object-cover grayscale hover:grayscale-0 hover:scale-110 transition-all duration-500" 
+                            referrerPolicy="no-referrer"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
             </div>
-            <div className="flex-1 w-full aspect-[4/5] overflow-hidden bg-gray-100">
-              <img 
-                src={t.artDetail.artistImage} 
-                alt={t.artDetail.artistName}
-                className="w-full h-full object-cover grayscale"
-                referrerPolicy="no-referrer"
-              />
-            </div>
+
+            {/* Modal for Work Viewing with Slider */}
+            <AnimatePresence>
+              {galleryState && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 z-[100] bg-black/95 flex flex-col items-center justify-center p-4 md:p-12 cursor-pointer"
+                  onClick={() => setGalleryState(null)}
+                >
+                  <button
+                    className="absolute top-8 right-8 text-white/50 hover:text-white z-[110] p-2"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setGalleryState(null);
+                    }}
+                  >
+                    <X size={32} />
+                  </button>
+
+                  <div 
+                    className="relative w-full max-w-6xl h-full flex flex-col items-center justify-center select-none cursor-default"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {/* Navigation Buttons */}
+                    <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between px-4 z-[110]">
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setGalleryState(prev => prev ? {
+                            ...prev,
+                            index: (prev.index - 1 + prev.artist.works.length) % prev.artist.works.length
+                          } : null);
+                        }}
+                        className="p-4 text-white/30 hover:text-white hover:scale-110 transition-all bg-black/20 rounded-full"
+                      >
+                        <ChevronLeft size={40} />
+                      </button>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setGalleryState(prev => prev ? {
+                            ...prev,
+                            index: (prev.index + 1) % prev.artist.works.length
+                          } : null);
+                        }}
+                        className="p-4 text-white/30 hover:text-white hover:scale-110 transition-all bg-black/20 rounded-full"
+                      >
+                        <ChevronRight size={40} />
+                      </button>
+                    </div>
+
+                    {/* Image */}
+                    <div className="flex-1 w-full flex items-center justify-center overflow-hidden">
+                      <motion.img
+                        key={galleryState.index}
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 1.05 }}
+                        transition={{ duration: 0.3 }}
+                        src={galleryState.artist.works[galleryState.index].image}
+                        className="max-w-full max-h-[80vh] object-contain shadow-2xl"
+                        referrerPolicy="no-referrer"
+                      />
+                    </div>
+
+                    {/* Meta Info */}
+                    <div className="text-center mt-8 space-y-2">
+                      <h4 className="text-white text-xl md:text-2xl font-serif">
+                        {galleryState.artist.works[galleryState.index].title}
+                      </h4>
+                      <p className="text-white/40 text-[10px] tracking-[0.4em] uppercase font-bold">
+                        {galleryState.artist.name}
+                      </p>
+                      <p className="text-white/20 text-[9px] font-mono">
+                        {galleryState.index + 1} / {galleryState.artist.works.length}
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
         )}
       </AnimatePresence>
@@ -1119,6 +1356,156 @@ const ArchivePage = ({ t, setPage, archiveItems, selectedArchiveItem, setSelecte
   );
 };
 
+const ArtistEditor = ({ 
+  artist, 
+  onSave, 
+  onClose,
+  isUploading,
+  setIsUploading
+}: { 
+  artist: Artist; 
+  onSave: (updated: Artist) => void; 
+  onClose: () => void;
+  isUploading: boolean;
+  setIsUploading: (val: boolean) => void;
+}) => {
+  const [data, setData] = useState<Artist>({...artist});
+  const photoInputRef = useRef<HTMLInputElement>(null);
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      const response = await fetch('/upload.php', { method: 'POST', body: formData });
+      const result = await response.json();
+      const url = result.url || await compressImage(file);
+      setData(prev => ({ ...prev, image: url }));
+    } catch (err) {
+      const base64 = await compressImage(file);
+      setData(prev => ({ ...prev, image: base64 }));
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleWorkUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    setIsUploading(true);
+    try {
+      const newWorks = [...data.works];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const formData = new FormData();
+        formData.append('image', file);
+        const response = await fetch('/upload.php', { method: 'POST', body: formData });
+        const result = await response.json();
+        const url = result.url || await compressImage(file);
+        newWorks.push({ title: file.name.split('.')[0], image: url });
+      }
+      setData(prev => ({ ...prev, works: newWorks }));
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-6">
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="bg-white w-full max-w-5xl max-h-[90vh] overflow-y-auto p-12 shadow-2xl relative scrollbar-hide"
+      >
+        <button onClick={onClose} className="absolute top-8 right-8 opacity-40 hover:opacity-100"><X size={24} /></button>
+        <h3 className="text-3xl font-serif mb-12 tracking-tight text-black font-bold border-b border-black/5 pb-4">Focus Artist Profile</h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-16">
+          <div className="space-y-8">
+            <div className="space-y-4">
+              <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">Artist Name</label>
+              <input value={data.name} onChange={e => setData({...data, name: e.target.value})} className="w-full border-b border-black/10 py-4 outline-none focus:border-black font-serif text-black" placeholder="Name..." />
+            </div>
+            <div className="space-y-4">
+              <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">Artist Title</label>
+              <input value={data.title} onChange={e => setData({...data, title: e.target.value})} className="w-full border-b border-black/10 py-4 outline-none focus:border-black font-serif text-black" placeholder="Title/Position..." />
+            </div>
+            <div className="space-y-4">
+              <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">Bio</label>
+              <textarea value={data.bio} onChange={e => setData({...data, bio: e.target.value})} className="w-full h-40 border border-black/10 p-4 outline-none focus:border-black font-serif text-black text-sm leading-relaxed" placeholder="Artist biography..." />
+            </div>
+          </div>
+
+          <div className="space-y-8">
+            <div className="space-y-4">
+              <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">Profile Photo</label>
+              <div className="group relative aspect-square w-48 bg-gray-50 border border-black/5 overflow-hidden flex items-center justify-center cursor-pointer" onClick={() => photoInputRef.current?.click()}>
+                {data.image ? (
+                  <img src={data.image} className="w-full h-full object-cover grayscale" referrerPolicy="no-referrer" />
+                ) : (
+                  <Upload size={24} className="opacity-20" />
+                )}
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[10px] uppercase tracking-widest font-bold">Change</div>
+                <input type="file" ref={photoInputRef} className="hidden" onChange={handlePhotoUpload} accept="image/*" />
+              </div>
+            </div>
+
+            <div className="space-y-6 pt-8 border-t border-black/5">
+              <div className="flex justify-between items-center">
+                <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">Works ({data.works.length})</label>
+                <label className="text-[10px] tracking-[0.2em] uppercase font-bold text-blue-600 cursor-pointer hover:opacity-70">
+                  + Add Works
+                  <input type="file" multiple className="hidden" onChange={handleWorkUpload} accept="image/*" />
+                </label>
+              </div>
+              <div className="grid grid-cols-4 gap-4">
+                {data.works.map((work, idx) => (
+                  <div key={idx} className="relative group flex flex-col gap-2">
+                    <div className="aspect-square bg-gray-50 overflow-hidden border border-black/5 relative">
+                      <img src={work.image} className="w-full h-full object-cover grayscale" referrerPolicy="no-referrer" alt={work.title} />
+                      <button 
+                        onClick={() => {
+                          const newWorks = [...data.works];
+                          newWorks.splice(idx, 1);
+                          setData({...data, works: newWorks});
+                        }}
+                        className="absolute top-1 right-1 p-1 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Trash2 size={10} />
+                      </button>
+                    </div>
+                    <input 
+                      value={work.title} 
+                      onChange={e => {
+                        const newWorks = [...data.works];
+                        newWorks[idx] = { ...newWorks[idx], title: e.target.value };
+                        setData({...data, works: newWorks});
+                      }}
+                      className="text-[8px] uppercase tracking-widest border-b border-transparent focus:border-black/20 outline-none font-serif text-black"
+                      placeholder="Work Title"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-16 flex gap-4 pt-12 border-t border-black/5">
+          <button onClick={onClose} className="flex-1 py-4 border border-black/10 text-[10px] tracking-[0.4em] uppercase hover:bg-gray-50">Cancel</button>
+          <button onClick={() => onSave(data)} disabled={isUploading} className="flex-1 py-4 bg-black text-white text-[10px] tracking-[0.4em] uppercase hover:bg-gray-800 disabled:opacity-50">
+            {isUploading ? 'Uploading...' : 'Confirm Artist'}
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
 const AdminDashboard = ({ 
   archiveItems, 
   setArchiveItems, 
@@ -1137,7 +1524,8 @@ const AdminDashboard = ({
   const [isAdding, setIsAdding] = useState(false);
   const [editingItem, setEditingItem] = useState<ArchiveItem | null>(initialEditingItem || null);
   const [isUploading, setIsUploading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'archive' | 'settings'>('archive');
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [activeTab, setActiveTab] = useState<'archive' | 'settings' | 'artists'>('archive');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
   const contentImageInputRef = useRef<HTMLInputElement>(null);
@@ -1157,19 +1545,22 @@ const AdminDashboard = ({
     logo_url: siteSettings?.logo_url || '',
     hero_bg_url: siteSettings?.hero_bg_url || '',
     tea_detail_url: siteSettings?.tea_detail_url || '',
-    tea_slider_images: siteSettings?.tea_slider_images || [],
-    tea_slider_speed: siteSettings?.tea_slider_speed || 3
+    artists: (siteSettings?.artists && siteSettings.artists.length > 0) ? siteSettings.artists : translations.KR.artDetail.artists
   });
 
+  const [editingArtistIdx, setEditingArtistIdx] = useState<number | null>(null);
+  const [isAddingArtist, setIsAddingArtist] = useState(false);
+  const isInitialSync = useRef(true);
+
   useEffect(() => {
-    if (siteSettings) {
+    if (siteSettings && isInitialSync.current) {
       setSettingsData({
-        logo_url: siteSettings.logo_url,
-        hero_bg_url: siteSettings.hero_bg_url,
-        tea_detail_url: siteSettings.tea_detail_url,
-        tea_slider_images: siteSettings.tea_slider_images || [],
-        tea_slider_speed: siteSettings.tea_slider_speed || 3
+        logo_url: siteSettings.logo_url || '',
+        hero_bg_url: siteSettings.hero_bg_url || '',
+        tea_detail_url: siteSettings.tea_detail_url || '',
+        artists: (siteSettings.artists && siteSettings.artists.length > 0) ? siteSettings.artists : translations.KR.artDetail.artists
       });
+      isInitialSync.current = false;
     }
   }, [siteSettings]);
 
@@ -1222,43 +1613,63 @@ const AdminDashboard = ({
   };
 
   const saveSettings = async () => {
-    if (!siteSettings && (!settingsData.logo_url && !settingsData.hero_bg_url && !settingsData.tea_detail_url)) {
+    if (!settingsData.logo_url && !settingsData.hero_bg_url && !settingsData.tea_detail_url && (!settingsData.artists || settingsData.artists.length === 0)) {
       alert("No settings to save.");
       return;
     }
     
     setIsUploading(true);
     try {
+      // Explicitly define the payload to match DB columns
+      const payload = {
+        logo_url: settingsData.logo_url,
+        hero_bg_url: settingsData.hero_bg_url,
+        tea_detail_url: settingsData.tea_detail_url,
+        artists: settingsData.artists
+      };
+
       if (siteSettings?.id) {
         const { error } = await supabase
           .from('site_settings')
-          .update(settingsData)
+          .update(payload)
           .eq('id', siteSettings.id);
         
         if (!error) {
-          setSiteSettings({ ...siteSettings, ...settingsData } as SiteSettings);
-          alert("Settings saved successfully.");
+          setSiteSettings(prev => prev ? { ...prev, ...settingsData } : null);
+          setShowSuccess(true);
+          setTimeout(() => setShowSuccess(false), 2000);
         } else {
-          throw error;
+          console.error("Supabase Save Error:", error);
+          if (error.message.includes("artists")) {
+            alert("Database Error: 'artists' column missing. Please add a JSONB column named 'artists' to the 'site_settings' table.");
+          } else {
+            alert(`Failed to save: ${error.message}`);
+          }
         }
       } else {
         // Create new if somehow missing
         const { data, error } = await supabase
           .from('site_settings')
-          .insert([settingsData])
+          .insert([payload])
           .select()
           .single();
         
         if (!error && data) {
           setSiteSettings(data);
-          alert("Settings created and saved successfully.");
-        } else {
-          throw error;
+          setShowSuccess(true);
+          setTimeout(() => setShowSuccess(false), 2000);
+        } else if (error) {
+          console.error("Supabase Create Error:", error);
+          if (error.message.includes("artists")) {
+            alert("Database Error: 'artists' column missing. Please add a JSONB column named 'artists' to the 'site_settings' table.");
+          } else {
+            alert(`Failed to create settings: ${error.message}`);
+          }
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error saving settings:", err);
-      alert("Failed to save settings. Database connection issue or table missing.");
+      alert("Failed to save settings. Error: " + (err.message || String(err)));
     } finally {
       setIsUploading(false);
     }
@@ -1402,6 +1813,20 @@ const AdminDashboard = ({
 
   return (
     <div className="min-h-screen pt-32 px-6 md:px-24 bg-[#f8f8f8]">
+      <AnimatePresence>
+        {showSuccess && (
+          <motion.div 
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.9 }}
+            className="fixed bottom-12 left-1/2 -translate-x-1/2 z-[200] bg-black text-white px-12 py-5 shadow-2xl flex items-center gap-4 border border-white/10"
+          >
+            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+            <span className="text-[11px] tracking-[0.5em] uppercase font-bold">저장완료 / SAVED</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="max-w-7xl mx-auto pb-32">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 border-b border-black pb-8 gap-8">
           <div className="space-y-2">
@@ -1420,6 +1845,12 @@ const AdminDashboard = ({
               className={`px-6 py-3 text-[10px] tracking-[0.3em] uppercase transition-all ${activeTab === 'settings' ? 'bg-black text-white' : 'bg-white text-black border border-black/10'}`}
             >
               Site Settings
+            </button>
+            <button 
+              onClick={() => setActiveTab('artists')}
+              className={`px-6 py-3 text-[10px] tracking-[0.3em] uppercase transition-all ${activeTab === 'artists' ? 'bg-black text-white' : 'bg-white text-black border border-black/10'}`}
+            >
+              Artists
             </button>
           </div>
         </div>
@@ -1481,74 +1912,6 @@ const AdminDashboard = ({
                 {settingsData.tea_detail_url && <img src={settingsData.tea_detail_url} className="w-40 h-24 object-cover border border-black/5" referrerPolicy="no-referrer" />}
               </div>
 
-              {/* Tea Slider Setting */}
-              <div className="space-y-6 pt-12 border-t border-black/5">
-                <h3 className="text-2xl font-serif tracking-widest">Tea Section Slider</h3>
-                
-                <div className="space-y-4">
-                  <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">Slider Images ({settingsData.tea_slider_images?.length || 0})</label>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {settingsData.tea_slider_images?.map((url, idx) => (
-                      <div key={idx} className="relative group">
-                        <img src={url} className="w-full aspect-[3/4] object-cover border border-black/5" referrerPolicy="no-referrer" />
-                        <button 
-                          onClick={() => {
-                            const newImages = [...(settingsData.tea_slider_images || [])];
-                            newImages.splice(idx, 1);
-                            setSettingsData({...settingsData, tea_slider_images: newImages});
-                          }}
-                          className="absolute top-2 right-2 p-2 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    ))}
-                    <label className="flex flex-col items-center justify-center aspect-[3/4] border-2 border-dashed border-black/10 hover:border-black/30 cursor-pointer transition-colors bg-gray-50">
-                      <Plus size={24} className="opacity-20" />
-                      <span className="text-[10px] tracking-widest uppercase opacity-40 mt-2 font-bold">Add Image</span>
-                      <input 
-                        type="file" 
-                        className="hidden" 
-                        accept="image/*"
-                        onChange={async (e) => {
-                          const file = e.target.files?.[0];
-                          if (!file) return;
-                          setIsUploading(true);
-                          try {
-                            const formDataUpload = new FormData();
-                            formDataUpload.append('image', file);
-                            const response = await fetch('/upload.php', { method: 'POST', body: formDataUpload });
-                            const result = await response.json();
-                            const url = result.url || await compressImage(file);
-                            setSettingsData(prev => ({
-                              ...prev,
-                              tea_slider_images: [...(prev.tea_slider_images || []), url]
-                            }));
-                          } catch (err) {
-                            console.error("Upload failed", err);
-                          } finally {
-                            setIsUploading(false);
-                          }
-                        }}
-                      />
-                    </label>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">Slide Interval (Seconds)</label>
-                  <input 
-                    type="number"
-                    min={1}
-                    max={10}
-                    value={settingsData.tea_slider_speed}
-                    onChange={e => setSettingsData({...settingsData, tea_slider_speed: Number(e.target.value)})}
-                    className="w-full md:w-32 border-b border-gray-300 py-4 outline-none focus:border-black transition-colors font-serif text-black"
-                  />
-                  <p className="text-[9px] opacity-40 italic">Determines how fast the images slide (seconds per image set)</p>
-                </div>
-              </div>
-
               <button 
                 onClick={saveSettings}
                 className="w-full bg-black text-white py-6 text-[10px] tracking-[0.5em] uppercase hover:bg-gray-800 transition-all"
@@ -1556,6 +1919,95 @@ const AdminDashboard = ({
                 Save Site Settings
               </button>
             </div>
+          </motion.div>
+        ) : activeTab === 'artists' ? (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="space-y-12"
+          >
+            <div className="flex justify-between items-end mb-8">
+              <div className="space-y-2">
+                <h3 className="text-3xl font-serif tracking-tight text-black">Artist Roster</h3>
+                <p className="text-[10px] tracking-[0.3em] uppercase opacity-40">Manage art masters and their collections</p>
+              </div>
+              <button 
+                onClick={() => {
+                  const newArtist: Artist = { name: '', title: '', bio: '', image: '', works: [] };
+                  setSettingsData(prev => ({ ...prev, artists: [...(prev.artists || []), newArtist] }));
+                  setEditingArtistIdx((settingsData.artists || []).length);
+                }}
+                className="bg-black text-white px-8 py-4 text-[10px] tracking-[0.4em] uppercase hover:bg-gray-800 transition-all active:scale-95 flex items-center gap-2"
+              >
+                <Plus size={14} /> New Artist
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pb-12 text-black">
+              {(settingsData.artists || []).map((artist, idx) => (
+                <div key={idx} className="bg-white p-8 border border-black/5 shadow-lg group relative">
+                  <div className="flex gap-4 items-center mb-6">
+                    <img src={artist.image || DEFAULT_IMAGE} className="w-16 h-16 object-cover grayscale" referrerPolicy="no-referrer" />
+                    <div>
+                      <h4 className="font-serif text-lg leading-tight">{artist.name || 'Untitled Artist'}</h4>
+                      <p className="text-[9px] tracking-widest uppercase opacity-40 font-bold">{artist.title || 'No Title'}</p>
+                    </div>
+                  </div>
+                  <p className="text-xs font-serif leading-relaxed opacity-60 line-clamp-3 mb-6 h-12">{artist.bio || 'No bio provided.'}</p>
+                  
+                  <div className="grid grid-cols-4 gap-1 mb-8">
+                    {artist.works.slice(0, 4).map((w, i) => (
+                      <div key={i} className="aspect-square bg-gray-50 overflow-hidden">
+                        <img src={w.image} className="w-full h-full object-cover grayscale" referrerPolicy="no-referrer" />
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex gap-4 border-t border-black/5 pt-6">
+                    <button 
+                      onClick={() => setEditingArtistIdx(idx)}
+                      className="text-[9px] tracking-[0.3em] uppercase font-bold text-blue-600 hover:opacity-70 flex items-center gap-2"
+                    >
+                      <Edit2 size={12} /> Edit Profile
+                    </button>
+                    <button 
+                      onClick={() => {
+                        if (confirm('Are you sure you want to remove this artist?')) {
+                          const newArtists = [...(settingsData.artists || [])];
+                          newArtists.splice(idx, 1);
+                          setSettingsData({ ...settingsData, artists: newArtists });
+                        }
+                      }}
+                      className="text-[9px] tracking-[0.3em] uppercase font-bold text-red-600 hover:opacity-70 flex items-center gap-2 ml-auto"
+                    >
+                      <Trash2 size={12} /> Remove
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {editingArtistIdx !== null && (
+              <ArtistEditor 
+                artist={settingsData.artists![editingArtistIdx]} 
+                onSave={(updated) => {
+                  const newArtists = [...(settingsData.artists || [])];
+                  newArtists[editingArtistIdx] = updated;
+                  setSettingsData({ ...settingsData, artists: newArtists });
+                  setEditingArtistIdx(null);
+                }}
+                onClose={() => setEditingArtistIdx(null)}
+                isUploading={isUploading}
+                setIsUploading={setIsUploading}
+              />
+            )}
+
+            <button 
+              onClick={saveSettings}
+              className="w-full bg-black text-white py-6 text-[10px] tracking-[0.5em] uppercase hover:bg-gray-800 transition-all font-bold"
+            >
+              Save Roster to Database
+            </button>
           </motion.div>
         ) : (
           <>
@@ -1900,7 +2352,8 @@ export default function App() {
           .insert([{ 
             logo_url: 'logo.png', 
             hero_bg_url: 'mountains.jpg', 
-            tea_detail_url: 'https://images.unsplash.com/photo-1594631252845-29fc4cc8cde9?auto=format&fit=crop&q=80&w=1920' 
+            tea_detail_url: 'https://images.unsplash.com/photo-1594631252845-29fc4cc8cde9?auto=format&fit=crop&q=80&w=1920',
+            artists: translations.KR.artDetail.artists
           }])
           .select()
           .single();
@@ -2093,7 +2546,7 @@ export default function App() {
         ) : page === 'philosophy' ? (
           <PhilosophyPage key="philosophy" t={t} setPage={setPage} />
         ) : page === 'art' ? (
-          <ArtDetailPage key="art" t={t} setPage={setPage} />
+          <ArtDetailPage key="art" t={t} setPage={setPage} siteSettings={siteSettings} />
         ) : page === 'tea' ? (
           <TeaDetailPage key="tea" t={t} setPage={setPage} currentTeaImage={currentTeaImage} siteSettings={siteSettings} />
         ) : page === 'archive' ? (
