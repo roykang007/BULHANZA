@@ -5,6 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
 import { supabase } from './lib/supabase';
+import { SAMPLE_ARCHIVE_ITEMS } from './lib/seedData';
 
 const bulhansunchaImg = 'https://images.unsplash.com/photo-1594631252845-29fc4cc8cde9?auto=format&fit=crop&q=80&w=1920';
 const mountainsImg = 'mountains.jpg';
@@ -29,6 +30,8 @@ interface SiteSettings {
   logo_url: string;
   hero_bg_url: string;
   tea_detail_url: string;
+  tea_slider_images?: string[];
+  tea_slider_speed?: number;
 }
 
 interface Content {
@@ -47,6 +50,11 @@ interface Content {
   artDetail: {
     title: string;
     subtitle: string;
+    tabs: {
+      intro: string;
+      philosophy: string;
+      artist: string;
+    };
     intro: string;
     principles: {
       title: string;
@@ -57,6 +65,12 @@ interface Content {
       title: string;
       content: string;
     };
+    mulpaismTitle: string;
+    mulpaismContent: string;
+    artistName: string;
+    artistTitle: string;
+    artistDescription: string;
+    artistImage: string;
   };
   tea: { title: string; text: string };
   teaDetail: {
@@ -126,12 +140,17 @@ const translations: Record<Language, Content> = {
       ]
     },
     art: {
-      title: "物波藝術",
+      title: "物波空間",
       text: "예술은 형태가 아니라 파동이다. 그 파동이 마음에 닿을 때 공명이 일어난다. 작품은 만들어지는 것이 아니라 드러나는 것이다."
     },
     artDetail: {
       title: "물파미학(物波美學)이란?",
       subtitle: "21세기의 새로운 예술철학",
+      tabs: {
+        intro: "소개",
+        philosophy: "물파주의",
+        artist: "작가"
+      },
       intro: "물파미학은 마음(心)과 사물(物)이 분리되어 있지 않다는 '심물철학(心物哲學)'을 바탕으로, 예술을 단순한 대상의 재현이나 내면의 표현이 아니라 '마음과 사물이 만나 일으키는 파동(波)의 응축과 공명'으로 보는 새로운 예술철학입니다.",
       principles: [
         {
@@ -158,7 +177,13 @@ const translations: Record<Language, Content> = {
       why: {
         title: "왜 지금 물파미학이 필요한가?",
         content: "오늘날의 AI와 정보 과잉 시대 속에서 예술은 자극적인 이미지로 빠르게 소비되고 있습니다. 물파미학은 '예술이 왜 인간에게 필요한가'라는 근본적인 질문에 답합니다. 예술은 인간이 세계를 깊이 만나고 자신의 마음을 맑게 비추며 삶의 질서를 조율하는 '존재 방식의 운동'이 되어야 합니다."
-      }
+      },
+      mulpaismTitle: "물파주의(物波主義)의 핵심",
+      mulpaismContent: "물파주의는 형상을 넘어선 파동의 미학입니다. 모든 존재는 진동하며, 그 진동이 멈춘 상태가 물질입니다. 예술가는 물질 속에 갇힌 파동을 다시 깨워내는 존재이며, 물파주의는 그 깨어남의 방법론입니다.",
+      artistName: "불한자 (弗寒子)",
+      artistTitle: "심물철학자 및 물파예술가",
+      artistDescription: "불한자는 마음과 사물의 파동을 탐구하며, 이를 차(茶), 글(書), 그림(畵)으로 형상화하는 작업을 이어오고 있습니다. 그의 작품은 완성된 결과물이 아니라, 감상자의 마음속에서 계속해서 퍼져나가는 파동의 시작점입니다.",
+      artistImage: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1974&auto=format&fit=crop"
     },
     tea: {
       title: "弗寒仙茶",
@@ -193,7 +218,7 @@ const translations: Record<Language, Content> = {
     nav: {
       about: "소개",
       philosophy: "심물철학",
-      art: "물파예술",
+      art: "물파공간",
       tea: "불한선차",
       archive: "아카이브",
       contact: "문의"
@@ -224,12 +249,17 @@ const translations: Record<Language, Content> = {
       ]
     },
     art: {
-      title: "物波藝術",
+      title: "物波空間",
       text: "藝術，非形也，乃波也。 波動入心，則生共鳴。 作品，非造也， 乃顯也。"
     },
     artDetail: {
       title: "何謂物波美學？",
       subtitle: "21世紀的新藝術哲學",
+      tabs: {
+        intro: "介紹",
+        philosophy: "物波主義",
+        artist: "作家"
+      },
       intro: "物波美學以「心物哲學」為基礎，認為心與物並非分離。藝術並非單純的對象再現或內在表現，而是「心與物相遇所產生的波動（波）之凝聚與共鳴」。",
       principles: [
         {
@@ -256,7 +286,13 @@ const translations: Record<Language, Content> = {
       why: {
         title: "為何現在需要物波美學？",
         content: "在當今 AI 與資訊過載的時代，藝術正被作為刺激性圖像快速消費。物波美學回應了「藝術為何對人類必要」這一根本問題。藝術應是人類深度接觸世界、映照清澈心靈並協調生活秩序的「存在方式之運動」。"
-      }
+      },
+      mulpaismTitle: "物波主義的核",
+      mulpaismContent: "物波主義是超越形象的波動美學。所有存在都在振動，那振動停止的狀態就是物質。藝術家是將困在物質中的波動再次喚醒的存在，物波主義就是那種覺醒的方法論。",
+      artistName: "弗寒子 (Bulhanza)",
+      artistTitle: "心物哲學家及物波藝術家",
+      artistDescription: "弗寒子探求心與物的波動，並將其轉化為茶、書、畫。他的作品不是完成的結果，而是觀者心中不斷擴散的波動起點。",
+      artistImage: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1974&auto=format&fit=crop"
     },
     tea: {
       title: "弗寒仙茶",
@@ -291,7 +327,7 @@ const translations: Record<Language, Content> = {
     nav: {
       about: "關於",
       philosophy: "心物哲學",
-      art: "物波藝術",
+      art: "物波空間",
       tea: "弗寒仙茶",
       archive: "檔案",
       contact: "聯絡"
@@ -322,13 +358,18 @@ const translations: Record<Language, Content> = {
       ]
     },
     art: {
-      title: "Mulpa Art",
+      title: "MULPAISM",
       text: "Art is not form — it is a wave. When the wave reaches the mind, resonance arises. A work is not made. It reveals itself."
     },
     artDetail: {
       title: "What is Mulpa Aesthetics?",
       subtitle: "A New Art Philosophy for the 21st Century",
       intro: "Based on 'Mind-Matter Philosophy' which posits that mind (心) and matter (物) are inseparable, Mulpa Aesthetics views art not as mere representation or expression, but as the 'condensation and resonance of waves (波) created when mind and matter meet.'",
+      tabs: {
+        intro: "Intro",
+        philosophy: "Mulpaism",
+        artist: "Artist"
+      },
       principles: [
         {
           title: "1. Mind-Matter Wave",
@@ -354,7 +395,13 @@ const translations: Record<Language, Content> = {
       why: {
         title: "Why Mulpa Aesthetics Now?",
         content: "In today's age of AI and information overload, art is consumed rapidly as stimulating images. Mulpa Aesthetics answers the fundamental question: 'Why is art necessary for humans?' Art must be a 'movement of the mode of existence' that tunes the order of life."
-      }
+      },
+      mulpaismTitle: "The Core of Mulpaism",
+      mulpaismContent: "Mulpaism is an aesthetics of waves beyond form. All existence vibrates, and matter is the state where that vibration stops. Artists are those who reawaken the waves trapped within matter, and Mulpaism is the methodology of that awakening.",
+      artistName: "Bulhanza",
+      artistTitle: "Mind-Matter Philosopher & Mulpa Artist",
+      artistDescription: "Bulhanza explores the waves of mind and matter, manifesting them through tea, calligraphy, and painting. His work is not a completed result, but a starting point for waves that continue to spread within the viewer's mind.",
+      artistImage: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1974&auto=format&fit=crop"
     },
     tea: {
       title: "Bulhan Tea",
@@ -389,7 +436,7 @@ const translations: Record<Language, Content> = {
     nav: {
       about: "About",
       philosophy: "Philosophy",
-      art: "Art",
+      art: "MULPAISM",
       tea: "Tea",
       archive: "Archive",
       contact: "Contact"
@@ -546,149 +593,240 @@ const PhilosophyPage = ({ t, setPage }: { t: any; setPage: (p: Page) => void }) 
   </motion.div>
 );
 
-const ArtDetailPage = ({ t, setPage }: { t: any; setPage: (p: Page) => void }) => (
-  <motion.div 
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    exit={{ opacity: 0 }}
-    className="bg-[#fdfdfd]"
-  >
-    {/* Hero Section */}
-    <header className="relative min-h-screen flex flex-col items-center justify-center text-center px-6 overflow-hidden">
-      <div className="absolute inset-0 z-0">
-        <img 
-          src="https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=2070&auto=format&fit=crop" 
-          alt="Abstract Waves" 
-          className="w-full h-full object-cover opacity-10 grayscale"
-          referrerPolicy="no-referrer"
-        />
-        <div className="absolute inset-0 opacity-20 pointer-events-none">
-          <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
-            <motion.path
-              d="M0 50 Q 25 45, 50 50 T 100 50"
-              fill="none"
-              stroke="black"
-              strokeWidth="0.05"
-              animate={{
-                d: [
-                  "M0 50 Q 25 45, 50 50 T 100 50",
-                  "M0 50 Q 25 55, 50 50 T 100 50",
-                  "M0 50 Q 25 45, 50 50 T 100 50"
-                ]
-              }}
-              transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
-            />
-          </svg>
-        </div>
-      </div>
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 1.5 }}
-        className="z-10 max-w-5xl"
-      >
-        <h1 className="text-5xl md:text-8xl font-serif mb-6 tracking-[0.2em] leading-tight">
-          {t.artDetail.title}
-        </h1>
-        <p className="text-xl md:text-3xl font-serif tracking-[0.4em] opacity-60">
-          {t.artDetail.subtitle}
-        </p>
-      </motion.div>
-      <motion.div 
-        animate={{ y: [0, 10, 0] }}
-        transition={{ duration: 4, repeat: Infinity }}
-        className="absolute bottom-12 left-1/2 -translate-x-1/2 opacity-20"
-      >
-        <div className="w-px h-24 bg-black" />
-      </motion.div>
-    </header>
+const ArtDetailPage = ({ t, setPage }: { t: any; setPage: (p: Page) => void }) => {
+  const [activeTab, setActiveTab] = useState<'intro' | 'mulpaism' | 'artist'>('intro');
 
-    {/* Intro Section */}
-    <section className="py-32 px-6 md:px-24 max-w-4xl mx-auto text-center">
-      <motion.p 
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true }}
-        className="text-2xl md:text-4xl font-serif leading-relaxed tracking-wide opacity-80"
-      >
-        {t.artDetail.intro}
-      </motion.p>
-    </section>
-
-    {/* Principles Grid */}
-    <section className="py-32 px-6 md:px-24 bg-white">
-      <div className="max-w-7xl mx-auto">
-        <h2 className="text-[10px] tracking-[0.8em] uppercase opacity-40 mb-24 text-center">Core Principles</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-24 gap-y-32">
-          {t.artDetail.principles.map((p: any, i: number) => (
-            <motion.div 
-              key={i}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.2 }}
-              className="space-y-8 group"
-            >
-              <div className="aspect-[16/9] overflow-hidden bg-gray-50 relative">
-                <img 
-                  src={[
-                    "https://images.unsplash.com/photo-1518640467707-6811f4a6ab73?q=80&w=2080&auto=format&fit=crop",
-                    "https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?q=80&w=2038&auto=format&fit=crop",
-                    "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?q=80&w=2069&auto=format&fit=crop",
-                    "https://images.unsplash.com/photo-1499750310107-5fef28a66643?q=80&w=2070&auto=format&fit=crop"
-                  ][i]} 
-                  alt={p.title}
-                  className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-1000 group-hover:scale-105"
-                  referrerPolicy="no-referrer"
-                />
-                <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors duration-500" />
-              </div>
-              <div className="space-y-4">
-                <h3 className="text-3xl font-serif tracking-widest">{p.title}</h3>
-                <p className="text-sm tracking-[0.3em] uppercase opacity-40 italic">{p.subtitle}</p>
-                <p className="text-lg font-serif leading-relaxed opacity-60 text-justify">{p.description}</p>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-    </section>
-
-    {/* Why Now Section */}
-    <section className="py-48 px-6 md:px-24 bg-[#1a1a1a] text-white relative overflow-hidden">
-      <div className="absolute top-0 right-0 w-1/2 h-full opacity-10 pointer-events-none">
-        <svg viewBox="0 0 100 100" className="w-full h-full">
-          <motion.path 
-            d="M0 50 Q 25 20, 50 50 T 100 50" 
-            fill="none" 
-            stroke="white" 
-            strokeWidth="0.1"
-            animate={{ d: ["M0 50 Q 25 20, 50 50 T 100 50", "M0 50 Q 25 80, 50 50 T 100 50", "M0 50 Q 25 20, 50 50 T 100 50"] }}
-            transition={{ duration: 15, repeat: Infinity }}
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="bg-[#fdfdfd]"
+    >
+      {/* Hero Section */}
+      <header className="relative min-h-[60vh] flex flex-col items-center justify-center text-center px-6 overflow-hidden">
+        <div className="absolute inset-0 z-0">
+          <img 
+            src="https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=2070&auto=format&fit=crop" 
+            alt="Abstract Waves" 
+            className="w-full h-full object-cover opacity-10 grayscale"
+            referrerPolicy="no-referrer"
           />
-        </svg>
-      </div>
-      <div className="max-w-4xl relative z-10">
-        <h2 className="text-4xl md:text-6xl font-serif mb-12 tracking-tight">{t.artDetail.why.title}</h2>
-        <p className="text-xl md:text-3xl font-serif leading-relaxed opacity-80 italic">
-          {t.artDetail.why.content}
-        </p>
-      </div>
-    </section>
+        </div>
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1.5 }}
+          className="z-10 max-w-5xl"
+        >
+          <h1 className="text-5xl md:text-8xl font-serif mb-6 tracking-[0.2em] leading-tight text-black">
+            {t.artDetail.title}
+          </h1>
+          <p className="text-xl md:text-3xl font-serif tracking-[0.4em] opacity-60 text-black">
+            {t.artDetail.subtitle}
+          </p>
+        </motion.div>
+      </header>
 
-    {/* CTA */}
-    <div className="py-32 text-center">
-      <button 
-        onClick={() => setPage('home')}
-        className="text-sm tracking-[0.5em] uppercase opacity-40 hover:opacity-100 transition-opacity border-b border-black/20 pb-2"
-      >
-        Back to Main
-      </button>
+      {/* Sub tabs navigation */}
+      <nav className="sticky top-20 bg-white/80 backdrop-blur-md z-30 border-b border-black/5">
+        <div className="max-w-4xl mx-auto flex justify-center gap-8 md:gap-16 py-6 px-6">
+          <button 
+            onClick={() => setActiveTab('intro')}
+            className={`text-xs md:text-sm tracking-[0.4em] uppercase transition-all pb-2 border-b ${activeTab === 'intro' ? 'border-black opacity-100 font-bold' : 'border-transparent opacity-40 hover:opacity-100'}`}
+          >
+            {t.artDetail.tabs.intro}
+          </button>
+          <button 
+            onClick={() => setActiveTab('mulpaism')}
+            className={`text-xs md:text-sm tracking-[0.4em] uppercase transition-all pb-2 border-b ${activeTab === 'mulpaism' ? 'border-black opacity-100 font-bold' : 'border-transparent opacity-40 hover:opacity-100'}`}
+          >
+            {t.artDetail.tabs.philosophy}
+          </button>
+          <button 
+            onClick={() => setActiveTab('artist')}
+            className={`text-xs md:text-sm tracking-[0.4em] uppercase transition-all pb-2 border-b ${activeTab === 'artist' ? 'border-black opacity-100 font-bold' : 'border-transparent opacity-40 hover:opacity-100'}`}
+          >
+            {t.artDetail.tabs.artist}
+          </button>
+        </div>
+      </nav>
+
+      {/* Tab Content */}
+      <AnimatePresence mode="wait">
+        {activeTab === 'intro' ? (
+          <motion.div
+            key="intro"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+          >
+            {/* Intro Section */}
+            <section className="py-32 px-6 md:px-24 max-w-4xl mx-auto text-center">
+              <motion.p 
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                viewport={{ once: true }}
+                className="text-2xl md:text-4xl font-serif leading-relaxed tracking-wide opacity-80 text-black"
+              >
+                {t.artDetail.intro}
+              </motion.p>
+            </section>
+
+            {/* Principles Grid */}
+            <section className="py-32 px-6 md:px-24 bg-white">
+              <div className="max-w-7xl mx-auto">
+                <h2 className="text-[10px] tracking-[0.8em] uppercase opacity-40 mb-24 text-center text-black">Core Principles</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-24 gap-y-32">
+                  {t.artDetail.principles.map((p: any, i: number) => (
+                    <motion.div 
+                      key={i}
+                      initial={{ opacity: 0, y: 20 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: i * 0.2 }}
+                      className="space-y-8 group"
+                    >
+                      <div className="aspect-[16/9] overflow-hidden bg-gray-50 relative">
+                        <img 
+                          src={[
+                            "https://images.unsplash.com/photo-1518640467707-6811f4a6ab73?q=80&w=2080&auto=format&fit=crop",
+                            "https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?q=80&w=2038&auto=format&fit=crop",
+                            "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?q=80&w=2069&auto=format&fit=crop",
+                            "https://images.unsplash.com/photo-1499750310107-5fef28a66643?q=80&w=2070&auto=format&fit=crop"
+                          ][i]} 
+                          alt={p.title}
+                          className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-1000 group-hover:scale-105"
+                          referrerPolicy="no-referrer"
+                        />
+                        <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors duration-500" />
+                      </div>
+                      <div className="space-y-4">
+                        <h3 className="text-3xl font-serif tracking-widest text-black">{p.title}</h3>
+                        <p className="text-sm tracking-[0.3em] uppercase opacity-40 italic text-black">{p.subtitle}</p>
+                        <p className="text-lg font-serif leading-relaxed opacity-60 text-justify text-black">{p.description}</p>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            {/* Why Now Section */}
+            <section className="py-48 px-6 md:px-24 bg-[#1a1a1a] text-white relative overflow-hidden">
+              <div className="max-w-4xl relative z-10">
+                <h2 className="text-4xl md:text-6xl font-serif mb-12 tracking-tight">{t.artDetail.why.title}</h2>
+                <p className="text-xl md:text-3xl font-serif leading-relaxed opacity-80 italic">
+                  {t.artDetail.why.content}
+                </p>
+              </div>
+            </section>
+          </motion.div>
+        ) : activeTab === 'mulpaism' ? (
+          <motion.div
+            key="mulpaism"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="py-32 px-6 md:px-24 max-w-4xl mx-auto"
+          >
+            <h2 className="text-4xl md:text-6xl font-serif mb-12 tracking-tight text-black">{t.artDetail.mulpaismTitle}</h2>
+            <div className="w-16 h-px bg-black/20 mb-12" />
+            <p className="text-xl md:text-3xl font-serif leading-relaxed tracking-wide opacity-80 text-black whitespace-pre-line">
+              {t.artDetail.mulpaismContent}
+            </p>
+            <div className="mt-24 aspect-video overflow-hidden">
+              <img 
+                src="https://images.unsplash.com/photo-1549490349-8643362247b5?q=80&w=2070&auto=format&fit=crop" 
+                alt="Mulpaism" 
+                className="w-full h-full object-cover grayscale opacity-80"
+                referrerPolicy="no-referrer"
+              />
+            </div>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="artist"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="py-32 px-6 md:px-24 max-w-6xl mx-auto flex flex-col md:flex-row gap-16 items-center"
+          >
+            <div className="flex-1 space-y-8">
+              <div className="space-y-4">
+                <h2 className="text-5xl md:text-7xl font-serif text-black">{t.artDetail.artistName}</h2>
+                <p className="text-sm tracking-[0.5em] uppercase opacity-40 font-bold text-black">{t.artDetail.artistTitle}</p>
+              </div>
+              <div className="w-16 h-px bg-black/20" />
+              <p className="text-xl font-serif leading-relaxed tracking-wide opacity-70 text-black whitespace-pre-line">
+                {t.artDetail.artistDescription}
+              </p>
+            </div>
+            <div className="flex-1 w-full aspect-[4/5] overflow-hidden bg-gray-100">
+              <img 
+                src={t.artDetail.artistImage} 
+                alt={t.artDetail.artistName}
+                className="w-full h-full object-cover grayscale"
+                referrerPolicy="no-referrer"
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Back Button */}
+      <div className="pb-24 text-center mt-24">
+        <button 
+          onClick={() => setPage('home')}
+          className="text-sm tracking-[0.5em] uppercase opacity-40 hover:opacity-100 transition-opacity border-b border-black/20 pb-2 text-black"
+        >
+          Back to Main
+        </button>
+      </div>
+    </motion.div>
+  );
+};
+
+const ImageSlider = ({ images, speed = 3 }: { images: string[]; speed: number }) => {
+  if (!images || images.length === 0) return null;
+  
+  const shouldAnimate = images.length > 3;
+  // If we should animate, we need to repeat images for seamlessness
+  const sliderItems = shouldAnimate ? [...images, ...images] : images;
+
+  return (
+    <div className="w-full overflow-hidden my-24 py-12">
+      <div className="max-w-[2000px] mx-auto">
+        <motion.div
+          className="flex gap-4 px-4"
+          animate={shouldAnimate ? { x: ['0%', '-50%'] } : {}}
+          transition={shouldAnimate ? {
+            duration: speed * images.length,
+            repeat: Infinity,
+            ease: "linear",
+          } : {}}
+          style={{ width: shouldAnimate ? 'max-content' : '100%', display: 'flex' }}
+        >
+          {sliderItems.map((src, idx) => (
+            <div 
+              key={idx} 
+              className={`flex-shrink-0 aspect-[3/4] overflow-hidden border border-black/5 shadow-sm ${shouldAnimate ? 'w-[calc(33.333vw-1rem)] md:w-[calc(25vw-2rem)] lg:w-[calc(20vw-2rem)]' : 'flex-1'}`}
+            >
+              <img 
+                src={src} 
+                alt="" 
+                className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-1000"
+                referrerPolicy="no-referrer"
+              />
+            </div>
+          ))}
+        </motion.div>
+      </div>
     </div>
-  </motion.div>
-);
+  );
+};
 
-const TeaDetailPage = ({ t, setPage, currentTeaImage }: { t: any; setPage: (p: Page) => void; currentTeaImage: string }) => (
+const TeaDetailPage = ({ t, setPage, currentTeaImage, siteSettings }: { t: any; setPage: (p: Page) => void; currentTeaImage: string; siteSettings: SiteSettings | null }) => (
   <motion.div 
     initial={{ opacity: 0 }}
     animate={{ opacity: 1 }}
@@ -753,6 +891,10 @@ const TeaDetailPage = ({ t, setPage, currentTeaImage }: { t: any; setPage: (p: P
         viewport={{ once: true }}
         className="max-w-2xl mx-auto"
       >
+        <ImageSlider 
+          images={siteSettings?.tea_slider_images || []} 
+          speed={siteSettings?.tea_slider_speed || 3} 
+        />
         <h3 className="text-3xl md:text-5xl font-serif tracking-[0.3em] mb-24 opacity-80 whitespace-nowrap">
           {t.teaDetail.closing}
         </h3>
@@ -998,7 +1140,9 @@ const AdminDashboard = ({
   const [settingsData, setSettingsData] = useState<Partial<SiteSettings>>({
     logo_url: siteSettings?.logo_url || '',
     hero_bg_url: siteSettings?.hero_bg_url || '',
-    tea_detail_url: siteSettings?.tea_detail_url || ''
+    tea_detail_url: siteSettings?.tea_detail_url || '',
+    tea_slider_images: siteSettings?.tea_slider_images || [],
+    tea_slider_speed: siteSettings?.tea_slider_speed || 3
   });
 
   useEffect(() => {
@@ -1006,7 +1150,9 @@ const AdminDashboard = ({
       setSettingsData({
         logo_url: siteSettings.logo_url,
         hero_bg_url: siteSettings.hero_bg_url,
-        tea_detail_url: siteSettings.tea_detail_url
+        tea_detail_url: siteSettings.tea_detail_url,
+        tea_slider_images: siteSettings.tea_slider_images || [],
+        tea_slider_speed: siteSettings.tea_slider_speed || 3
       });
     }
   }, [siteSettings]);
@@ -1044,29 +1190,84 @@ const AdminDashboard = ({
       if (result.url) {
         setSettingsData(prev => ({ ...prev, [field]: result.url }));
       } else {
-        const base64 = await compressImage(file);
-        setSettingsData(prev => ({ ...prev, [field]: base64 }));
+        throw new Error('Upload server returned error');
       }
     } catch (err) {
-      console.error("Upload failed", err);
+      console.error("Upload failed, falling back to base64", err);
+      try {
+        const base64 = await compressImage(file);
+        setSettingsData(prev => ({ ...prev, [field]: base64 }));
+      } catch (compressErr) {
+        console.error("Compression failed", compressErr);
+      }
     } finally {
       setIsUploading(false);
     }
   };
 
   const saveSettings = async () => {
-    if (!siteSettings) return;
-    const { error } = await supabase
-      .from('site_settings')
-      .update(settingsData)
-      .eq('id', siteSettings.id);
+    if (!siteSettings && (!settingsData.logo_url && !settingsData.hero_bg_url && !settingsData.tea_detail_url)) {
+      alert("No settings to save.");
+      return;
+    }
     
-    if (!error) {
-      setSiteSettings({ ...siteSettings, ...settingsData });
-      alert("Settings saved successfully.");
-    } else {
-      console.error("Error saving settings:", error);
-      alert("Failed to save settings.");
+    setIsUploading(true);
+    try {
+      if (siteSettings?.id) {
+        const { error } = await supabase
+          .from('site_settings')
+          .update(settingsData)
+          .eq('id', siteSettings.id);
+        
+        if (!error) {
+          setSiteSettings({ ...siteSettings, ...settingsData } as SiteSettings);
+          alert("Settings saved successfully.");
+        } else {
+          throw error;
+        }
+      } else {
+        // Create new if somehow missing
+        const { data, error } = await supabase
+          .from('site_settings')
+          .insert([settingsData])
+          .select()
+          .single();
+        
+        if (!error && data) {
+          setSiteSettings(data);
+          alert("Settings created and saved successfully.");
+        } else {
+          throw error;
+        }
+      }
+    } catch (err) {
+      console.error("Error saving settings:", err);
+      alert("Failed to save settings. Database connection issue or table missing.");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const seedArchive = async () => {
+    if (!confirm("모든 샘플 데이터를 아카이브에 추가하시겠습니까?")) return;
+    setIsUploading(true);
+    try {
+      const { data, error } = await supabase
+        .from('archive_items')
+        .insert(SAMPLE_ARCHIVE_ITEMS)
+        .select();
+      
+      if (!error && data) {
+        setArchiveItems(prev => [...data, ...prev]);
+        alert("샘플 데이터가 성공적으로 복구되었습니다.");
+      } else {
+        throw error;
+      }
+    } catch (err) {
+      console.error("Seeding failed:", err);
+      alert("데이터 복구에 실패했습니다. DB 테이블이 생성되어 있는지 확인해주세요.");
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -1264,6 +1465,74 @@ const AdminDashboard = ({
                 {settingsData.tea_detail_url && <img src={settingsData.tea_detail_url} className="w-40 h-24 object-cover border border-black/5" referrerPolicy="no-referrer" />}
               </div>
 
+              {/* Tea Slider Setting */}
+              <div className="space-y-6 pt-12 border-t border-black/5">
+                <h3 className="text-2xl font-serif tracking-widest">Tea Section Slider</h3>
+                
+                <div className="space-y-4">
+                  <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">Slider Images ({settingsData.tea_slider_images?.length || 0})</label>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {settingsData.tea_slider_images?.map((url, idx) => (
+                      <div key={idx} className="relative group">
+                        <img src={url} className="w-full aspect-[3/4] object-cover border border-black/5" referrerPolicy="no-referrer" />
+                        <button 
+                          onClick={() => {
+                            const newImages = [...(settingsData.tea_slider_images || [])];
+                            newImages.splice(idx, 1);
+                            setSettingsData({...settingsData, tea_slider_images: newImages});
+                          }}
+                          className="absolute top-2 right-2 p-2 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    ))}
+                    <label className="flex flex-col items-center justify-center aspect-[3/4] border-2 border-dashed border-black/10 hover:border-black/30 cursor-pointer transition-colors bg-gray-50">
+                      <Plus size={24} className="opacity-20" />
+                      <span className="text-[10px] tracking-widest uppercase opacity-40 mt-2 font-bold">Add Image</span>
+                      <input 
+                        type="file" 
+                        className="hidden" 
+                        accept="image/*"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          setIsUploading(true);
+                          try {
+                            const formDataUpload = new FormData();
+                            formDataUpload.append('image', file);
+                            const response = await fetch('/upload.php', { method: 'POST', body: formDataUpload });
+                            const result = await response.json();
+                            const url = result.url || await compressImage(file);
+                            setSettingsData(prev => ({
+                              ...prev,
+                              tea_slider_images: [...(prev.tea_slider_images || []), url]
+                            }));
+                          } catch (err) {
+                            console.error("Upload failed", err);
+                          } finally {
+                            setIsUploading(false);
+                          }
+                        }}
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">Slide Interval (Seconds)</label>
+                  <input 
+                    type="number"
+                    min={1}
+                    max={10}
+                    value={settingsData.tea_slider_speed}
+                    onChange={e => setSettingsData({...settingsData, tea_slider_speed: Number(e.target.value)})}
+                    className="w-full md:w-32 border-b border-gray-300 py-4 outline-none focus:border-black transition-colors font-serif text-black"
+                  />
+                  <p className="text-[9px] opacity-40 italic">Determines how fast the images slide (seconds per image set)</p>
+                </div>
+              </div>
+
               <button 
                 onClick={saveSettings}
                 className="w-full bg-black text-white py-6 text-[10px] tracking-[0.5em] uppercase hover:bg-gray-800 transition-all"
@@ -1274,7 +1543,13 @@ const AdminDashboard = ({
           </motion.div>
         ) : (
           <>
-            <div className="flex justify-end mb-8">
+            <div className="flex justify-end mb-8 gap-4">
+              <button 
+                onClick={seedArchive}
+                className="flex items-center gap-3 bg-white text-black border border-black/10 px-8 py-4 text-[10px] tracking-[0.4em] uppercase hover:bg-gray-50 transition-all active:scale-95"
+              >
+                <Plus size={14} /> Restore Samples
+              </button>
               <button 
                 onClick={() => {
                   setIsAdding(!isAdding);
@@ -1804,7 +2079,7 @@ export default function App() {
         ) : page === 'art' ? (
           <ArtDetailPage key="art" t={t} setPage={setPage} />
         ) : page === 'tea' ? (
-          <TeaDetailPage key="tea" t={t} setPage={setPage} currentTeaImage={currentTeaImage} />
+          <TeaDetailPage key="tea" t={t} setPage={setPage} currentTeaImage={currentTeaImage} siteSettings={siteSettings} />
         ) : page === 'archive' ? (
           <ArchivePage 
             key="archive" 
