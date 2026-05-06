@@ -2020,10 +2020,23 @@ const AdminDashboard = ({
               </button>
               <button 
                 onClick={() => {
-                  setIsAdding(!isAdding);
+                  const nextIsAdding = !isAdding;
+                  setIsAdding(nextIsAdding);
+                  
                   if (editingItem) {
                     setEditingItem(null);
                     if (onClearEdit) onClearEdit();
+                  }
+
+                  if (nextIsAdding) {
+                    setFormData({ 
+                      title: '', 
+                      content: '', 
+                      summary: '', 
+                      category: 'poetry', 
+                      image_url: siteSettings?.logo_url || logoImg 
+                    });
+                  } else {
                     setFormData({ title: '', content: '', summary: '', category: 'poetry', image_url: '' });
                   }
                 }}
