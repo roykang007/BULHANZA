@@ -610,7 +610,7 @@ const Section = ({ id, title, text, dark = false, bgImage, onMore }: { id: strin
       transition={{ duration: 1, ease: "easeOut" }}
       className="max-w-4xl z-10"
     >
-      <h2 className="text-3xl md:text-5xl font-serif mb-12 tracking-widest opacity-80">{title}</h2>
+      <h2 className="text-[50px] font-serif mb-12 tracking-widest opacity-80">{title}</h2>
       <p className="text-xl md:text-2xl font-serif leading-relaxed tracking-wide opacity-90 whitespace-pre-line mb-12">
         {text}
       </p>
@@ -677,7 +677,7 @@ const PhilosophyPage = ({ t, setPage }: { t: any; setPage: (p: Page) => void }) 
           className={`flex flex-col ${i % 2 === 0 ? 'md:flex-row' : 'md:flex-row-reverse'} gap-16 items-center max-w-6xl mx-auto`}
         >
           <div className="flex-1 space-y-8">
-            <h3 className="text-3xl md:text-4xl font-serif tracking-widest border-b border-black/10 pb-4 inline-block">
+            <h3 className="text-[28px] font-serif tracking-widest border-b border-black/10 pb-4 inline-block">
               {section.title}
             </h3>
             <p className="text-lg md:text-xl font-serif leading-relaxed tracking-wide opacity-70 whitespace-pre-line">
@@ -752,19 +752,19 @@ const ArtDetailPage = ({ t, setPage, siteSettings }: { t: any; setPage: (p: Page
         <div className="max-w-4xl mx-auto flex justify-center gap-8 md:gap-16 py-6 px-6">
           <button 
             onClick={() => setActiveTab('intro')}
-            className={`text-xs md:text-sm tracking-[0.4em] uppercase transition-all pb-2 border-b ${activeTab === 'intro' ? 'border-black opacity-100 font-bold' : 'border-transparent opacity-40 hover:opacity-100'}`}
+            className={`text-[18px] tracking-[0.4em] uppercase transition-all pb-2 border-b ${activeTab === 'intro' ? 'border-black opacity-100 font-bold' : 'border-transparent opacity-40 hover:opacity-100'}`}
           >
             {t.artDetail.tabs.intro}
           </button>
           <button 
             onClick={() => setActiveTab('mulpaism')}
-            className={`text-xs md:text-sm tracking-[0.4em] uppercase transition-all pb-2 border-b ${activeTab === 'mulpaism' ? 'border-black opacity-100 font-bold' : 'border-transparent opacity-40 hover:opacity-100'}`}
+            className={`text-[18px] tracking-[0.4em] uppercase transition-all pb-2 border-b ${activeTab === 'mulpaism' ? 'border-black opacity-100 font-bold' : 'border-transparent opacity-40 hover:opacity-100'}`}
           >
             {t.artDetail.tabs.philosophy}
           </button>
           <button 
             onClick={() => setActiveTab('artist')}
-            className={`text-xs md:text-sm tracking-[0.4em] uppercase transition-all pb-2 border-b ${activeTab === 'artist' ? 'border-black opacity-100 font-bold' : 'border-transparent opacity-40 hover:opacity-100'}`}
+            className={`text-[18px] tracking-[0.4em] uppercase transition-all pb-2 border-b ${activeTab === 'artist' ? 'border-black opacity-100 font-bold' : 'border-transparent opacity-40 hover:opacity-100'}`}
           >
             {t.artDetail.tabs.artist}
           </button>
@@ -849,7 +849,7 @@ const ArtDetailPage = ({ t, setPage, siteSettings }: { t: any; setPage: (p: Page
             exit={{ opacity: 0, y: -20 }}
             className="py-32 px-6 md:px-24 max-w-4xl mx-auto"
           >
-            <h2 className="text-4xl md:text-6xl font-serif mb-12 tracking-tight text-black">{t.artDetail.mulpaismTitle}</h2>
+            <h2 className="text-[50px] font-serif mb-12 tracking-tight text-black">{t.artDetail.mulpaismTitle}</h2>
             <div className="w-16 h-px bg-black/20 mb-12" />
             <p className="text-xl md:text-3xl font-serif leading-relaxed tracking-wide opacity-80 text-black whitespace-pre-line mb-24">
               {t.artDetail.mulpaismContent}
@@ -1198,7 +1198,7 @@ const ArchivePage = ({ t, setPage, archiveItems, selectedArchiveItem, setSelecte
                 <span className="font-bold">{selectedArchiveItem.category}</span>
                 <span>{new Date(selectedArchiveItem.created_at).toLocaleDateString()}</span>
               </div>
-              <h1 className="text-5xl md:text-8xl font-serif leading-none tracking-tight px-4">
+              <h1 className="text-[50px] font-serif leading-none tracking-tight px-4">
                 {selectedArchiveItem.title}
               </h1>
               <div className="w-24 h-px bg-black mx-auto" />
@@ -2511,7 +2511,7 @@ export default function App() {
                 transition={{ duration: 2, ease: "easeOut" }}
                 className="z-20"
               >
-                <h1 className="text-4xl md:text-7xl font-serif mb-8 tracking-[0.3em] leading-tight drop-shadow-sm">
+                <h1 className="text-[60px] font-serif mb-8 tracking-[0.3em] leading-tight drop-shadow-sm w-[700px] mx-auto">
                   {t.hero.title}
                 </h1>
                 <p className="text-lg md:text-xl font-serif tracking-widest opacity-60 max-w-2xl mx-auto leading-relaxed">
