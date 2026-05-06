@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Menu, X, Globe, ChevronDown, Plus, Trash2, Edit2, ArrowLeft, Newspaper, Image as ImageIcon, Upload, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Menu, X, Plus, Trash2, Edit2, ArrowLeft, Newspaper, Image as ImageIcon, Upload, ChevronLeft, ChevronRight, BookOpen } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
@@ -13,7 +13,7 @@ const logoImg = 'logo.png';
 const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?auto=format&fit=crop&q=80&w=1000';
 
 type Language = 'KR' | 'TC' | 'EN';
-type Page = 'home' | 'tea' | 'archive' | 'contact' | 'philosophy' | 'admin' | 'art';
+type Page = 'home' | 'tea' | 'archive' | 'contact' | 'philosophy' | 'admin' | 'art' | 'poetryCollection';
 type Category = 'poetry' | 'calligraphy' | 'painting' | 'carving';
 
 interface ArchiveItem {
@@ -100,6 +100,17 @@ interface Content {
     painting: string;
     carving: string;
   };
+  poetryCollection: {
+    title: string;
+    categories: {
+      KR: string;
+      TC: string;
+      EN: string;
+    };
+    KR: string[];
+    TC: string[];
+    EN: string[];
+  };
   contact: {
     title: string;
     collaboration: string;
@@ -115,6 +126,7 @@ interface Content {
     art: string;
     tea: string;
     archive: string;
+    poetryCollection: string;
     contact: string;
   };
 }
@@ -251,6 +263,30 @@ const translations: Record<Language, Content> = {
       painting: "화(畫)",
       carving: "각(刻)"
     },
+    poetryCollection: {
+      title: "라석시집 (Lasok Poetry Collection)",
+      categories: {
+        KR: "한글",
+        TC: "중문",
+        EN: "영문"
+      },
+      KR: [
+        "1. 라석시전집", "2. 라석심물시집", "3. 라석심물철학시집", "4. 라석천자문시집", "5. 라석역학시집", "6. 라석화답시집", "7. 불한시사합작시집"
+      ],
+      TC: [
+        "1. 羅石東夷文詩集", "2. 羅石心物詩集", "3. 羅石心物哲學詩集", "4. 羅石和答詩集", "5. 羅石道德經詩集"
+      ],
+      EN: [
+        "1. Lasok's Complete Poetry Collection",
+        "2. Lasok's Mind and Matter Poetry Collection <1>",
+        "3. Lasok's Philosophy of Mind and Matter Poetry Collection",
+        "4. Lasok's Thousand Character Classic Poetry Collection",
+        "5. Lasok's I Ching Poetry Collection",
+        "6. Lasok's Responsive Poetry Collection",
+        "7. Bulhan Poetry Society Collaborative Poetry Collection",
+        "8. Lasok's Tao Te Ching Poetry Collection"
+      ]
+    },
     contact: {
       title: "Contact",
       collaboration: "Collaboration",
@@ -269,6 +305,7 @@ const translations: Record<Language, Content> = {
       art: "물파공간",
       tea: "불한선차",
       archive: "아카이브",
+      poetryCollection: "라석시집",
       contact: "문의"
     }
   },
@@ -395,6 +432,30 @@ const translations: Record<Language, Content> = {
       painting: "畫",
       carving: "刻"
     },
+    poetryCollection: {
+      title: "羅石詩集 (Lasok Poetry Collection)",
+      categories: {
+        KR: "韓文",
+        TC: "中文",
+        EN: "英文"
+      },
+      KR: [
+        "1. 라석시전집", "2. 라석심물시집", "3. 라석심물철학시집", "4. 라석천자문시집", "5. 라석역학시집", "6. 라석화답시집", "7. 불한시사합작시집"
+      ],
+      TC: [
+        "1. 羅石東夷文詩集", "2. 羅石心物詩集", "3. 羅石心物哲學詩集", "4. 羅石和答詩集", "5. 羅石道德經詩集"
+      ],
+      EN: [
+        "1. Lasok's Complete Poetry Collection",
+        "2. Lasok's Mind and Matter Poetry Collection <1>",
+        "3. Lasok's Philosophy of Mind and Matter Poetry Collection",
+        "4. Lasok's Thousand Character Classic Poetry Collection",
+        "5. Lasok's I Ching Poetry Collection",
+        "6. Lasok's Responsive Poetry Collection",
+        "7. Bulhan Poetry Society Collaborative Poetry Collection",
+        "8. Lasok's Tao Te Ching Poetry Collection"
+      ]
+    },
     contact: {
       title: "聯絡",
       collaboration: "合作",
@@ -413,6 +474,7 @@ const translations: Record<Language, Content> = {
       art: "物波空間",
       tea: "弗寒仙茶",
       archive: "檔案",
+      poetryCollection: "羅石詩集",
       contact: "聯絡"
     }
   },
@@ -539,6 +601,30 @@ const translations: Record<Language, Content> = {
       painting: "Painting",
       carving: "Carving"
     },
+    poetryCollection: {
+      title: "Lasok Poetry Collection",
+      categories: {
+        KR: "Korean",
+        TC: "Chinese",
+        EN: "English"
+      },
+      KR: [
+        "1. 라석시전집", "2. 라석심물시집", "3. 라석심물철학시집", "4. 라석천자문시집", "5. 라석역학시집", "6. 라석화답시집", "7. 불한시사합작시집"
+      ],
+      TC: [
+        "1. 羅石東夷文詩集", "2. 羅石心物詩集", "3. 羅石心物哲學詩集", "4. 羅石和答詩集", "5. 羅石道德經詩集"
+      ],
+      EN: [
+        "1. Lasok's Complete Poetry Collection",
+        "2. Lasok's Mind and Matter Poetry Collection <1>",
+        "3. Lasok's Philosophy of Mind and Matter Poetry Collection",
+        "4. Lasok's Thousand Character Classic Poetry Collection",
+        "5. Lasok's I Ching Poetry Collection",
+        "6. Lasok's Responsive Poetry Collection",
+        "7. Bulhan Poetry Society Collaborative Poetry Collection",
+        "8. Lasok's Tao Te Ching Poetry Collection"
+      ]
+    },
     contact: {
       title: "Contact",
       collaboration: "Collaboration",
@@ -557,6 +643,7 @@ const translations: Record<Language, Content> = {
       art: "MULPAISM",
       tea: "Tea",
       archive: "Archive",
+      poetryCollection: "Collection",
       contact: "Contact"
     }
   }
@@ -752,19 +839,19 @@ const ArtDetailPage = ({ t, setPage, siteSettings }: { t: any; setPage: (p: Page
         <div className="max-w-4xl mx-auto flex justify-center gap-8 md:gap-16 py-6 px-6">
           <button 
             onClick={() => setActiveTab('intro')}
-            className={`text-[18px] tracking-[0.4em] uppercase transition-all pb-2 border-b ${activeTab === 'intro' ? 'border-black opacity-100 font-bold' : 'border-transparent opacity-40 hover:opacity-100'}`}
+            className={`text-[16px] leading-[18px] tracking-[0.4em] uppercase transition-all pb-2 border-b ${activeTab === 'intro' ? 'border-black opacity-100 font-bold' : 'border-transparent opacity-40 hover:opacity-100'}`}
           >
             {t.artDetail.tabs.intro}
           </button>
           <button 
             onClick={() => setActiveTab('mulpaism')}
-            className={`text-[18px] tracking-[0.4em] uppercase transition-all pb-2 border-b ${activeTab === 'mulpaism' ? 'border-black opacity-100 font-bold' : 'border-transparent opacity-40 hover:opacity-100'}`}
+            className={`text-[16px] leading-[18px] tracking-[0.4em] uppercase transition-all pb-2 border-b ${activeTab === 'mulpaism' ? 'border-black opacity-100 font-bold' : 'border-transparent opacity-40 hover:opacity-100'}`}
           >
             {t.artDetail.tabs.philosophy}
           </button>
           <button 
             onClick={() => setActiveTab('artist')}
-            className={`text-[18px] tracking-[0.4em] uppercase transition-all pb-2 border-b ${activeTab === 'artist' ? 'border-black opacity-100 font-bold' : 'border-transparent opacity-40 hover:opacity-100'}`}
+            className={`text-[16px] leading-[18px] tracking-[0.4em] uppercase transition-all pb-2 border-b ${activeTab === 'artist' ? 'border-black opacity-100 font-bold' : 'border-transparent opacity-40 hover:opacity-100'}`}
           >
             {t.artDetail.tabs.artist}
           </button>
@@ -1266,7 +1353,7 @@ const ArchivePage = ({ t, setPage, archiveItems, selectedArchiveItem, setSelecte
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-32">
           <h2 className="text-5xl md:text-8xl font-serif mb-12 tracking-[0.1em]">{t.archive.title}</h2>
-          <div className="flex flex-wrap justify-center gap-8 text-[10px] tracking-[0.4em] uppercase opacity-40">
+          <div className="flex flex-wrap justify-center gap-8 text-[16px] tracking-[0.4em] uppercase opacity-40">
             {(['all', 'poetry', 'calligraphy', 'painting', 'carving'] as const).map((cat) => (
               <button 
                 key={cat}
@@ -2324,6 +2411,125 @@ const ContactPage = ({ t, setPage }: { t: any; setPage: (p: Page) => void }) => 
   </motion.div>
 );
 
+const PoetryCollectionPage = ({ t, setPage }: { t: any; setPage: (p: Page) => void }) => {
+  const [activeLang, setActiveLang] = useState<Language>('KR');
+  const collections = t.poetryCollection[activeLang];
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="min-h-screen pt-32 px-6 md:px-24 bg-[#fdfdfd] flex flex-col items-center"
+    >
+      <div className="max-w-5xl w-full">
+        <div className="text-center mb-24">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex justify-center mb-8"
+          >
+            <BookOpen className="opacity-10" size={64} strokeWidth={0.5} />
+          </motion.div>
+          <motion.h1 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-[60px] font-serif mb-12 tracking-tight text-black"
+          >
+            {t.poetryCollection.title}
+          </motion.h1>
+          
+          <div className="flex justify-center gap-4 mb-16">
+            {(['KR', 'TC', 'EN'] as const).map((langKey) => (
+              <button 
+                key={langKey}
+                onClick={() => setActiveLang(langKey)}
+                className={`px-6 py-2 text-lg font-serif transition-all duration-300 rounded shadow-sm border ${
+                  activeLang === langKey 
+                    ? 'bg-[#2c3e50] text-white border-[#2c3e50] shadow-md' 
+                    : 'bg-[#e5e1d8] text-black border-black/10 hover:bg-[#d8d3c9]'
+                }`}
+              >
+                [{t.poetryCollection.categories[langKey]}]
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-12 pb-32">
+          {/* List Section */}
+          <div className="md:col-span-6 bg-[#f9f7f2] p-12 shadow-sm border border-black/5 relative min-h-[600px]">
+            <div className="mb-12">
+              <h2 className="text-3xl font-serif text-black border-b border-black/10 pb-4 inline-block mb-8">
+                {activeLang === 'KR' ? '한국어 시집 목록' : activeLang === 'TC' ? '中文 詩集 目錄' : 'Poetry Collection List'}
+              </h2>
+              
+              <div className="space-y-6">
+                {collections.map((item: string, idx: number) => (
+                  <div key={idx} className="flex items-center justify-between group">
+                    <span className="text-2xl font-serif text-black opacity-80 group-hover:opacity-100 transition-opacity">
+                      {item}
+                    </span>
+                    <button className="px-4 py-1 border border-black/20 text-xs tracking-widest hover:bg-black hover:text-white transition-all duration-300">
+                      보기
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            {/* Decorative element like in the image */}
+            <div className="absolute bottom-8 right-8 opacity-5">
+               <BookOpen size={120} />
+            </div>
+          </div>
+
+          {/* Image Section */}
+          <div className="md:col-span-6 space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="aspect-[3/4] bg-[#f0ede6] overflow-hidden shadow-md">
+                <img 
+                  src="https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&q=80&w=600" 
+                  alt="Book" 
+                  className="w-full h-full object-cover grayscale opacity-80"
+                  referrerPolicy="no-referrer"
+                />
+              </div>
+              <div className="aspect-[3/4] pt-12">
+                <div className="bg-[#e5e1d8] p-4 shadow-inner">
+                  <img 
+                    src="https://images.unsplash.com/photo-1512418490979-92798ccc13a0?auto=format&fit=crop&q=80&w=600" 
+                    alt="Ink" 
+                    className="w-full h-full object-cover rounded-sm"
+                    referrerPolicy="no-referrer"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="aspect-[16/9] bg-[#e5e1d8] overflow-hidden shadow-md">
+              <img 
+                src="https://images.unsplash.com/photo-1490127252417-7c393f993ee4?auto=format&fit=crop&q=80&w=1200" 
+                alt="Scroll" 
+                className="w-full h-full object-cover opacity-60 mix-blend-multiply"
+                referrerPolicy="no-referrer"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="pb-24 text-center border-t border-black/5 pt-24">
+          <button 
+            onClick={() => setPage('home')}
+            className="text-sm tracking-[0.5em] uppercase opacity-40 hover:opacity-100 transition-opacity border-b border-black/20 pb-2 text-black"
+          >
+            Back to Main
+          </button>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
 export default function App() {
   const [lang, setLang] = useState<Language>('KR');
   const [page, setPage] = useState<Page>('home');
@@ -2332,7 +2538,6 @@ export default function App() {
   const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
   const [adminEditingItem, setAdminEditingItem] = useState<ArchiveItem | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isLangOpen, setIsLangOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const t = translations[lang];
 
@@ -2399,6 +2604,7 @@ export default function App() {
             <a href={page === 'home' ? "#about" : "#"} onClick={(e) => { if (page !== 'home') { e.preventDefault(); setPage('home'); setTimeout(() => { const el = document.getElementById('about'); if (el) el.scrollIntoView({ behavior: 'smooth' }); }, 100); } }} className="hover:opacity-100 transition-opacity">{t.nav.about}</a>
             <button onClick={() => setPage('philosophy')} className={`hover:opacity-100 transition-opacity ${page === 'philosophy' ? 'opacity-100 font-bold' : ''}`}>{t.nav.philosophy}</button>
             <button onClick={() => setPage('art')} className={`hover:opacity-100 transition-opacity ${page === 'art' ? 'opacity-100 font-bold' : ''}`}>{t.nav.art}</button>
+            <button onClick={() => setPage('poetryCollection')} className={`hover:opacity-100 transition-opacity ${page === 'poetryCollection' ? 'opacity-100 font-bold' : ''}`}>{t.nav.poetryCollection}</button>
             <button onClick={() => setPage('tea')} className={`hover:opacity-100 transition-opacity ${page === 'tea' ? 'opacity-100 font-bold' : ''}`}>{t.nav.tea}</button>
             <button onClick={() => setPage('archive')} className={`hover:opacity-100 transition-opacity ${page === 'archive' ? 'opacity-100 font-bold' : ''}`}>{t.nav.archive}</button>
             <button onClick={() => setPage('contact')} className={`hover:opacity-100 transition-opacity ${page === 'contact' ? 'opacity-100 font-bold' : ''}`}>{t.nav.contact}</button>
@@ -2406,35 +2612,20 @@ export default function App() {
         </div>
 
         <div className="flex items-center gap-6">
-          <div className="relative">
-            <button 
-              onClick={(e) => { e.stopPropagation(); setIsLangOpen(!isLangOpen); }}
-              className="flex items-center gap-2 text-lg tracking-widest opacity-70 hover:opacity-100 transition-opacity font-medium"
-            >
-              <Globe size={20} />
-              {lang}
-              <ChevronDown size={18} className={`transition-transform duration-300 ${isLangOpen ? 'rotate-180' : ''}`} />
-            </button>
-            <AnimatePresence>
-              {isLangOpen && (
-                <motion.div 
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 10 }}
-                  className="absolute right-0 mt-4 w-40 bg-white border border-gray-100 shadow-2xl py-2 z-[60]"
-                >
-                  {(['KR', 'TC', 'EN'] as Language[]).map((l) => (
-                    <button
-                      key={l}
-                      onClick={() => { setLang(l); setIsLangOpen(false); }}
-                      className={`w-full text-left px-6 py-4 text-sm tracking-widest hover:bg-gray-50 transition-colors ${lang === l ? 'font-bold text-black' : 'text-gray-500'}`}
-                    >
-                      {l === 'KR' ? '한국어' : l === 'TC' ? '繁體中文' : 'English'}
-                    </button>
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
+          <div className="flex items-center gap-4">
+            {(['KR', 'TC', 'EN'] as Language[]).map((l) => (
+              <button
+                key={l}
+                onClick={() => setLang(l)}
+                className={`flex flex-col items-center gap-1 transition-all duration-300 ${lang === l ? 'opacity-100 scale-110' : 'opacity-40 hover:opacity-70 scale-95'}`}
+                title={l === 'KR' ? '한국어' : l === 'TC' ? '繁體中文' : 'English'}
+              >
+                <span className="text-2xl md:text-3xl leading-none">
+                  {l === 'KR' ? '🇰🇷' : l === 'TC' ? '🇹🇼' : '🇺🇸'}
+                </span>
+                <span className="text-[10px] tracking-[0.1em] font-bold uppercase">{l}</span>
+              </button>
+            ))}
           </div>
           <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="md:hidden opacity-70 hover:opacity-100">
             {isMenuOpen ? <X size={28} /> : <Menu size={28} />}
@@ -2454,17 +2645,21 @@ export default function App() {
             <a href="#about" onClick={() => { setIsMenuOpen(false); setPage('home'); setTimeout(() => { const el = document.getElementById('about'); if (el) el.scrollIntoView({ behavior: 'smooth' }); }, 100); }}>{t.nav.about}</a>
             <button onClick={() => { setIsMenuOpen(false); setPage('philosophy'); }}>{t.nav.philosophy}</button>
             <button onClick={() => { setIsMenuOpen(false); setPage('art'); }}>{t.nav.art}</button>
+            <button onClick={() => { setIsMenuOpen(false); setPage('poetryCollection'); }}>{t.nav.poetryCollection}</button>
             <button onClick={() => { setIsMenuOpen(false); setPage('tea'); }}>{t.nav.tea}</button>
             <button onClick={() => { setIsMenuOpen(false); setPage('archive'); }}>{t.nav.archive}</button>
             <button onClick={() => { setIsMenuOpen(false); setPage('contact'); }}>{t.nav.contact}</button>
-            <div className="flex gap-6 mt-12">
+            <div className="flex gap-10 mt-12">
               {(['KR', 'TC', 'EN'] as Language[]).map((l) => (
                 <button
                   key={l}
                   onClick={() => { setLang(l); setIsMenuOpen(false); }}
-                  className={`text-lg ${lang === l ? 'font-bold' : 'opacity-40'}`}
+                  className={`flex flex-col items-center gap-2 transition-all ${lang === l ? 'scale-125' : 'opacity-40'}`}
                 >
-                  {l}
+                  <span className="text-5xl">
+                    {l === 'KR' ? '🇰🇷' : l === 'TC' ? '🇹🇼' : '🇺🇸'}
+                  </span>
+                  <span className="text-xs font-bold uppercase">{l}</span>
                 </button>
               ))}
             </div>
@@ -2562,6 +2757,8 @@ export default function App() {
           <ArtDetailPage key="art" t={t} setPage={setPage} siteSettings={siteSettings} />
         ) : page === 'tea' ? (
           <TeaDetailPage key="tea" t={t} setPage={setPage} currentTeaImage={currentTeaImage} siteSettings={siteSettings} />
+        ) : page === 'poetryCollection' ? (
+          <PoetryCollectionPage key="poetryCollection" t={t} setPage={setPage} />
         ) : page === 'archive' ? (
           <ArchivePage 
             key="archive" 
