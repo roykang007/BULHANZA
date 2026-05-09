@@ -13,17 +13,17 @@ const logoImg = 'logo.png';
 const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?auto=format&fit=crop&q=80&w=1000';
 
 type Language = 'KR' | 'TC' | 'EN';
-type Page = 'home' | 'tea' | 'archive' | 'contact' | 'philosophy' | 'admin' | 'art' | 'poetryCollection';
-type Category = 'poetry' | 'calligraphy' | 'painting' | 'carving';
+type Page = 'home' | 'tea' | 'contact' | 'philosophy' | 'admin' | 'art' | 'poetryCollection';
 
 interface ArchiveItem {
   id: string;
   title: string;
   content: string;
   summary: string;
-  category: Category;
   image_url: string;
   created_at: string;
+  poetry_collection_name?: string;
+  language?: Language;
 }
 
 interface SiteSettings {
@@ -93,13 +93,6 @@ interface Content {
     closing: string;
     final: string;
   };
-  archive: {
-    title: string;
-    poetry: string;
-    calligraphy: string;
-    painting: string;
-    carving: string;
-  };
   poetryCollection: {
     title: string;
     categories: {
@@ -125,7 +118,6 @@ interface Content {
     philosophy: string;
     art: string;
     tea: string;
-    archive: string;
     poetryCollection: string;
     contact: string;
   };
@@ -256,13 +248,6 @@ const translations: Record<Language, Content> = {
       closing: "누가 차를 다 알 수 있으랴",
       final: "“불한선차는 제품이 아니라 철학의 구현이다.”"
     },
-    archive: {
-      title: "Archive",
-      poetry: "시(詩)",
-      calligraphy: "서(書)",
-      painting: "화(畫)",
-      carving: "각(刻)"
-    },
     poetryCollection: {
       title: "라석시집 (Lasok Poetry Collection)",
       categories: {
@@ -304,7 +289,6 @@ const translations: Record<Language, Content> = {
       philosophy: "심물철학",
       art: "물파공간",
       tea: "불한선차",
-      archive: "아카이브",
       poetryCollection: "라석시집",
       contact: "문의"
     }
@@ -425,13 +409,6 @@ const translations: Record<Language, Content> = {
       closing: "誰能盡知茶乎",
       final: "“弗寒仙茶非產品，乃哲學之體現。”"
     },
-    archive: {
-      title: "檔案",
-      poetry: "詩",
-      calligraphy: "書",
-      painting: "畫",
-      carving: "刻"
-    },
     poetryCollection: {
       title: "羅石詩集 (Lasok Poetry Collection)",
       categories: {
@@ -473,7 +450,6 @@ const translations: Record<Language, Content> = {
       philosophy: "心物哲學",
       art: "物波空間",
       tea: "弗寒仙茶",
-      archive: "檔案",
       poetryCollection: "羅石詩集",
       contact: "聯絡"
     }
@@ -594,13 +570,6 @@ const translations: Record<Language, Content> = {
       closing: "Who can fully know tea?",
       final: "“Bulhan Tea is not a product, but an embodiment of philosophy.”"
     },
-    archive: {
-      title: "Archive",
-      poetry: "Poetry",
-      calligraphy: "Calligraphy",
-      painting: "Painting",
-      carving: "Carving"
-    },
     poetryCollection: {
       title: "Lasok Poetry Collection",
       categories: {
@@ -642,7 +611,6 @@ const translations: Record<Language, Content> = {
       philosophy: "Philosophy",
       art: "MULPAISM",
       tea: "Tea",
-      archive: "Archive",
       poetryCollection: "Collection",
       contact: "Contact"
     }
@@ -1257,192 +1225,8 @@ const TeaDetailPage = ({ t, setPage, currentTeaImage, siteSettings }: { t: any; 
   </motion.div>
 );
 
-const ArchivePage = ({ t, setPage, archiveItems, selectedArchiveItem, setSelectedArchiveItem, onEdit }: { t: any; setPage: (p: Page) => void; archiveItems: ArchiveItem[]; selectedArchiveItem: ArchiveItem | null; setSelectedArchiveItem: (i: ArchiveItem | null) => void; onEdit?: (item: ArchiveItem) => void }) => {
-  const [filter, setFilter] = useState<Category | 'all'>('all');
-  const filteredItems = filter === 'all' ? archiveItems : archiveItems.filter(item => item.category === filter);
 
-  if (selectedArchiveItem) {
-    return (
-      <motion.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="min-h-screen pt-32 px-6 md:px-24 bg-[#fdfdfd] pb-32"
-      >
-        <div className="max-w-5xl mx-auto">
-          <button 
-            onClick={() => setSelectedArchiveItem(null)}
-            className="flex items-center gap-2 text-sm tracking-widest opacity-40 hover:opacity-100 transition-opacity mb-16 group"
-          >
-            <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" /> BACK TO ARCHIVE
-          </button>
-          
-          <article className="space-y-16">
-            {/* Newspaper Masthead Style Header */}
-            <div className="border-y-2 border-black py-12 space-y-8 text-center">
-              <div className="flex justify-between items-center text-[10px] tracking-[0.5em] uppercase opacity-50 px-4">
-                <span>Vol. {new Date(selectedArchiveItem.created_at).getFullYear()}</span>
-                <span className="font-bold">{selectedArchiveItem.category}</span>
-                <span>{new Date(selectedArchiveItem.created_at).toLocaleDateString()}</span>
-              </div>
-              <h1 className="text-[50px] font-serif leading-none tracking-tight px-4">
-                {selectedArchiveItem.title}
-              </h1>
-              <div className="w-24 h-px bg-black mx-auto" />
-              <p className="max-w-2xl mx-auto text-xl font-serif italic opacity-60 px-4">
-                {selectedArchiveItem.summary}
-              </p>
-            </div>
-
-            <div className="aspect-[21/9] overflow-hidden bg-gray-100">
-              <img 
-                src={selectedArchiveItem.image_url || DEFAULT_IMAGE} 
-                alt={selectedArchiveItem.title}
-                referrerPolicy="no-referrer"
-                className="w-full h-full object-cover grayscale contrast-125"
-              />
-            </div>
-
-            <div className="font-serif leading-[1.2] tracking-wide opacity-90 text-lg md:text-xl whitespace-pre-wrap max-w-none">
-              <ReactMarkdown 
-                remarkPlugins={[remarkGfm, remarkBreaks]}
-                components={{
-                  img: ({ node, ...props }) => (
-                    <img 
-                      {...props} 
-                      className="max-w-full h-auto my-12 mx-auto block shadow-xl border border-black/5" 
-                      referrerPolicy="no-referrer" 
-                    />
-                  ),
-                  p: ({ children }) => <p className="mb-4">{children}</p>,
-                  h1: ({ children }) => <h1 className="text-3xl font-bold my-6">{children}</h1>,
-                  h2: ({ children }) => <h2 className="text-2xl font-bold my-4">{children}</h2>,
-                  ul: ({ children }) => <ul className="list-disc ml-6 my-4">{children}</ul>,
-                  ol: ({ children }) => <ol className="list-decimal ml-6 my-4">{children}</ol>,
-                  li: ({ children }) => <li className="mb-2">{children}</li>
-                }}
-              >
-                {selectedArchiveItem.content}
-              </ReactMarkdown>
-            </div>
-
-            <div className="border-t border-black/10 pt-12 flex justify-between items-center">
-              <div className="text-[10px] tracking-[0.5em] uppercase opacity-30">End of Article</div>
-              {onEdit && (
-                <button 
-                  onClick={() => onEdit(selectedArchiveItem)}
-                  className="text-[10px] tracking-[0.3em] uppercase opacity-40 hover:opacity-100 transition-opacity flex items-center gap-2 border border-black/10 px-4 py-2 rounded"
-                >
-                  <Edit2 size={12} /> EDIT THIS ARTICLE
-                </button>
-              )}
-            </div>
-          </article>
-        </div>
-      </motion.div>
-    );
-  }
-
-  return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="min-h-screen pt-32 px-6 md:px-24 bg-[#fdfdfd]"
-    >
-      <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-32">
-          <h2 className="text-5xl md:text-8xl font-serif mb-12 tracking-[0.1em]">{t.archive.title}</h2>
-          <div className="flex flex-wrap justify-center gap-8 text-[16px] tracking-[0.4em] uppercase opacity-40">
-            {(['all', 'poetry', 'calligraphy', 'painting', 'carving'] as const).map((cat) => (
-              <button 
-                key={cat}
-                onClick={() => setFilter(cat)}
-                className={`hover:opacity-100 transition-all duration-500 relative py-2 ${filter === cat ? 'opacity-100 font-bold' : ''}`}
-              >
-                {cat === 'all' ? 'All Collections' : t.archive[cat as keyof typeof t.archive]}
-                {filter === cat && (
-                  <motion.div 
-                    layoutId="activeFilter"
-                    className="absolute bottom-0 left-0 right-0 h-px bg-black"
-                  />
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {filteredItems.length === 0 ? (
-          <div className="text-center py-48 opacity-20 font-serif tracking-[0.5em] text-sm uppercase">
-            No records found in this category
-          </div>
-        ) : (
-          <div className="flex flex-col gap-12 pb-32">
-            {filteredItems.map((item) => (
-              <motion.div 
-                key={item.id}
-                layoutId={item.id}
-                className="group flex flex-col md:flex-row gap-8 pb-12 border-b border-black/5 items-start"
-              >
-                <div 
-                  onClick={() => setSelectedArchiveItem(item)}
-                  className="w-full md:w-48 aspect-[4/3] overflow-hidden bg-gray-100 cursor-pointer relative shrink-0"
-                >
-                  <img 
-                    src={item.image_url || DEFAULT_IMAGE} 
-                    alt={item.title}
-                    referrerPolicy="no-referrer"
-                    className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-1000 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-500" />
-                </div>
-                <div className="flex-1 space-y-3">
-                  <div className="flex justify-between items-start">
-                    <h3 
-                      onClick={() => setSelectedArchiveItem(item)}
-                      className="text-xl md:text-3xl font-serif tracking-tight leading-tight cursor-pointer hover:text-gray-600 transition-colors"
-                    >
-                      {item.title}
-                    </h3>
-                    {onEdit && (
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); onEdit(item); }}
-                        className="text-[10px] tracking-[0.3em] uppercase opacity-20 hover:opacity-100 transition-opacity p-2"
-                        title="Edit Article"
-                      >
-                        <Edit2 size={16} />
-                      </button>
-                    )}
-                  </div>
-                  <div className="text-blue-600 font-serif text-xs tracking-widest font-medium">
-                    [{t.archive[item.category as keyof typeof t.archive] || item.category}]
-                  </div>
-                  <p className="text-base font-serif opacity-60 line-clamp-2 leading-relaxed text-justify">
-                    {item.summary}
-                  </p>
-                  <div className="pt-1">
-                    <span className="text-[10px] tracking-[0.2em] uppercase opacity-30 font-mono">
-                      {new Date(item.created_at).toLocaleDateString()}
-                    </span>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        )}
-      </div>
-      <div className="pb-24 text-center">
-        <button 
-          onClick={() => setPage('home')}
-          className="text-sm tracking-[0.5em] uppercase opacity-40 hover:opacity-100 transition-opacity border-b border-black/20 pb-2"
-        >
-          Back to Main
-        </button>
-      </div>
-    </motion.div>
-  );
-};
-
+// ArchivePage removed as requested
 const ArtistEditor = ({ 
   artist, 
   onSave, 
@@ -1612,7 +1396,7 @@ const AdminDashboard = ({
   const [editingItem, setEditingItem] = useState<ArchiveItem | null>(initialEditingItem || null);
   const [isUploading, setIsUploading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [activeTab, setActiveTab] = useState<'archive' | 'settings' | 'artists'>('archive');
+  const [activeTab, setActiveTab] = useState<'poetry' | 'settings' | 'artists'>('poetry');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
   const contentImageInputRef = useRef<HTMLInputElement>(null);
@@ -1624,15 +1408,16 @@ const AdminDashboard = ({
     title: initialEditingItem?.title || '',
     content: initialEditingItem?.content || '',
     summary: initialEditingItem?.summary || '',
-    category: (initialEditingItem?.category || 'poetry') as Category,
-    image_url: initialEditingItem?.image_url || ''
+    image_url: initialEditingItem?.image_url || '',
+    poetry_collection_name: initialEditingItem?.poetry_collection_name || '',
+    language: initialEditingItem?.language || 'KR'
   });
 
   const [settingsData, setSettingsData] = useState<Partial<SiteSettings>>({
     logo_url: siteSettings?.logo_url || '',
     hero_bg_url: siteSettings?.hero_bg_url || '',
     tea_detail_url: siteSettings?.tea_detail_url || '',
-    artists: (siteSettings?.artists && siteSettings.artists.length > 0) ? siteSettings.artists : translations.KR.artDetail.artists
+    artists: siteSettings?.artists || translations.KR.artDetail.artists
   });
 
   const [editingArtistIdx, setEditingArtistIdx] = useState<number | null>(null);
@@ -1645,7 +1430,7 @@ const AdminDashboard = ({
         logo_url: siteSettings.logo_url || '',
         hero_bg_url: siteSettings.hero_bg_url || '',
         tea_detail_url: siteSettings.tea_detail_url || '',
-        artists: (siteSettings.artists && siteSettings.artists.length > 0) ? siteSettings.artists : translations.KR.artDetail.artists
+        artists: siteSettings.artists || translations.KR.artDetail.artists
       });
       isInitialSync.current = false;
     }
@@ -1658,11 +1443,12 @@ const AdminDashboard = ({
         title: initialEditingItem.title,
         content: initialEditingItem.content,
         summary: initialEditingItem.summary,
-        category: initialEditingItem.category,
-        image_url: initialEditingItem.image_url
+        image_url: initialEditingItem.image_url,
+        poetry_collection_name: initialEditingItem.poetry_collection_name || '',
+        language: initialEditingItem.language || 'KR'
       });
       setIsAdding(false);
-      setActiveTab('archive');
+      setActiveTab('poetry');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }, [initialEditingItem]);
@@ -1699,57 +1485,95 @@ const AdminDashboard = ({
     }
   };
 
-  const saveSettings = async () => {
-    if (!settingsData.logo_url && !settingsData.hero_bg_url && !settingsData.tea_detail_url && (!settingsData.artists || settingsData.artists.length === 0)) {
+  const saveSettings = async (customSettings?: Partial<SiteSettings>) => {
+    // Merge with current siteSettings to avoid overwriting with undefined
+    const activeSettings = {
+      logo_url: customSettings?.logo_url ?? settingsData.logo_url ?? siteSettings?.logo_url,
+      hero_bg_url: customSettings?.hero_bg_url ?? settingsData.hero_bg_url ?? siteSettings?.hero_bg_url,
+      tea_detail_url: customSettings?.tea_detail_url ?? settingsData.tea_detail_url ?? siteSettings?.tea_detail_url,
+      artists: customSettings?.artists ?? settingsData.artists ?? siteSettings?.artists
+    };
+
+    if (!activeSettings.logo_url && !activeSettings.hero_bg_url && !activeSettings.tea_detail_url && (!activeSettings.artists || activeSettings.artists.length === 0)) {
       alert("No settings to save.");
       return;
     }
     
     setIsUploading(true);
     try {
-      // Explicitly define the payload to match DB columns
       const payload = {
-        logo_url: settingsData.logo_url,
-        hero_bg_url: settingsData.hero_bg_url,
-        tea_detail_url: settingsData.tea_detail_url,
-        artists: settingsData.artists
+        logo_url: activeSettings.logo_url || '',
+        hero_bg_url: activeSettings.hero_bg_url || '',
+        tea_detail_url: activeSettings.tea_detail_url || '',
+        artists: activeSettings.artists || []
       };
 
       if (siteSettings?.id) {
-        const { error } = await supabase
+        const { error, data } = await supabase
           .from('site_settings')
           .update(payload)
-          .eq('id', siteSettings.id);
-        
-        if (!error) {
-          setSiteSettings(prev => prev ? { ...prev, ...settingsData } : null);
-          setShowSuccess(true);
-          setTimeout(() => setShowSuccess(false), 2000);
-        } else {
-          console.error("Supabase Save Error:", error);
-          if (error.message.includes("artists")) {
-            alert("Database Error: 'artists' column missing. Please add a JSONB column named 'artists' to the 'site_settings' table.");
-          } else {
-            alert(`Failed to save: ${error.message}`);
-          }
-        }
-      } else {
-        // Create new if somehow missing
-        const { data, error } = await supabase
-          .from('site_settings')
-          .insert([payload])
+          .eq('id', siteSettings.id)
           .select()
           .single();
         
         if (!error && data) {
           setSiteSettings(data);
+          // Sync local state with the newly saved data
+          setSettingsData({
+            logo_url: data.logo_url,
+            hero_bg_url: data.hero_bg_url,
+            tea_detail_url: data.tea_detail_url,
+            artists: data.artists
+          });
           setShowSuccess(true);
           setTimeout(() => setShowSuccess(false), 2000);
         } else if (error) {
-          console.error("Supabase Create Error:", error);
-          if (error.message.includes("artists")) {
-            alert("Database Error: 'artists' column missing. Please add a JSONB column named 'artists' to the 'site_settings' table.");
-          } else {
+          console.error("Supabase Save Error:", error);
+          alert(`Failed to save: ${error.message}`);
+        }
+      } else {
+        // Check if any record exists before inserting to prevent duplicates
+        const { data: existing } = await supabase.from('site_settings').select('id').limit(1);
+        
+        if (existing && existing.length > 0) {
+          const { data: updated, error: updateErr } = await supabase
+            .from('site_settings')
+            .update(payload)
+            .eq('id', existing[0].id)
+            .select()
+            .single();
+          
+          if (!updateErr && updated) {
+            setSiteSettings(updated);
+            setSettingsData({
+              logo_url: updated.logo_url,
+              hero_bg_url: updated.hero_bg_url,
+              tea_detail_url: updated.tea_detail_url,
+              artists: updated.artists
+            });
+            setShowSuccess(true);
+            setTimeout(() => setShowSuccess(false), 2000);
+          }
+        } else {
+          // Truly no record, insert new
+          const { data, error } = await supabase
+            .from('site_settings')
+            .insert([payload])
+            .select()
+            .single();
+          
+          if (!error && data) {
+            setSiteSettings(data);
+            setSettingsData({
+              logo_url: data.logo_url,
+              hero_bg_url: data.hero_bg_url,
+              tea_detail_url: data.tea_detail_url,
+              artists: data.artists
+            });
+            setShowSuccess(true);
+            setTimeout(() => setShowSuccess(false), 2000);
+          } else if (error) {
+            console.error("Supabase Create Error:", error);
             alert(`Failed to create settings: ${error.message}`);
           }
         }
@@ -1857,33 +1681,53 @@ const AdminDashboard = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsUploading(true);
     
-    const submissionData = {
-      ...formData,
-      image_url: formData.image_url.trim() || DEFAULT_IMAGE
-    };
+    try {
+      const submissionData = {
+        ...formData,
+        category: 'poetry', // Hidden default to satisfy DB constraint
+        image_url: formData.image_url.trim() || DEFAULT_IMAGE,
+        poetry_collection_name: formData.poetry_collection_name || undefined,
+        language: formData.language || 'KR'
+      };
 
-    if (editingItem) {
-      const { error } = await supabase
-        .from('archive_items')
-        .update(submissionData)
-        .eq('id', editingItem.id);
-      if (!error) {
+      if (editingItem) {
+        const { error } = await supabase
+          .from('archive_items')
+          .update(submissionData)
+          .eq('id', editingItem.id);
+        
+        if (error) throw error;
+        
         setArchiveItems(prev => prev.map(item => item.id === editingItem.id ? { ...item, ...submissionData } : item));
         setEditingItem(null);
         if (onClearEdit) onClearEdit();
-      }
-    } else {
-      const { data, error } = await supabase
-        .from('archive_items')
-        .insert([submissionData])
-        .select();
-      if (!error && data) {
+        
+        setShowSuccess(true);
+        setTimeout(() => setShowSuccess(false), 2000);
+      } else {
+        const { data, error } = await supabase
+          .from('archive_items')
+          .insert([submissionData])
+          .select();
+        
+        if (error) throw error;
+        if (!data) throw new Error("No data returned from insert");
+
         setArchiveItems(prev => [data[0], ...prev]);
         setIsAdding(false);
+        
+        setShowSuccess(true);
+        setTimeout(() => setShowSuccess(false), 2000);
       }
+      setFormData({ title: '', content: '', summary: '', image_url: '', poetry_collection_name: '', language: 'KR' });
+    } catch (err: any) {
+      console.error("Save Error:", err);
+      alert(`저장에 실패했습니다: ${err.message || String(err)}`);
+    } finally {
+      setIsUploading(false);
     }
-    setFormData({ title: '', content: '', summary: '', category: 'poetry', image_url: '' });
   };
 
   const deleteItem = async (id: string) => {
@@ -1922,10 +1766,10 @@ const AdminDashboard = ({
           </div>
           <div className="flex gap-4">
             <button 
-              onClick={() => setActiveTab('archive')}
-              className={`px-6 py-3 text-[10px] tracking-[0.3em] uppercase transition-all ${activeTab === 'archive' ? 'bg-black text-white' : 'bg-white text-black border border-black/10'}`}
+              onClick={() => setActiveTab('poetry')}
+              className={`px-6 py-3 text-[10px] tracking-[0.3em] uppercase transition-all ${activeTab === 'poetry' ? 'bg-black text-white' : 'bg-white text-black border border-black/10'}`}
             >
-              Archive
+              Poetry Collections
             </button>
             <button 
               onClick={() => setActiveTab('settings')}
@@ -2000,7 +1844,7 @@ const AdminDashboard = ({
               </div>
 
               <button 
-                onClick={saveSettings}
+                onClick={() => saveSettings()}
                 className="w-full bg-black text-white py-6 text-[10px] tracking-[0.5em] uppercase hover:bg-gray-800 transition-all"
               >
                 Save Site Settings
@@ -2020,9 +1864,11 @@ const AdminDashboard = ({
               </div>
               <button 
                 onClick={() => {
+                  const currentArtists = settingsData.artists || siteSettings?.artists || translations.KR.artDetail.artists;
                   const newArtist: Artist = { name: '', title: '', bio: '', image: '', works: [] };
-                  setSettingsData(prev => ({ ...prev, artists: [...(prev.artists || []), newArtist] }));
-                  setEditingArtistIdx((settingsData.artists || []).length);
+                  const newArtists = [...currentArtists, newArtist];
+                  setSettingsData(prev => ({ ...prev, artists: newArtists }));
+                  setEditingArtistIdx(currentArtists.length);
                 }}
                 className="bg-black text-white px-8 py-4 text-[10px] tracking-[0.4em] uppercase hover:bg-gray-800 transition-all active:scale-95 flex items-center gap-2"
               >
@@ -2060,9 +1906,12 @@ const AdminDashboard = ({
                     <button 
                       onClick={() => {
                         if (confirm('Are you sure you want to remove this artist?')) {
-                          const newArtists = [...(settingsData.artists || [])];
+                          const currentArtists = settingsData.artists || siteSettings?.artists || translations.KR.artDetail.artists;
+                          const newArtists = [...currentArtists];
                           newArtists.splice(idx, 1);
-                          setSettingsData({ ...settingsData, artists: newArtists });
+                          setSettingsData(prev => ({ ...prev, artists: newArtists }));
+                          // Auto-save on removal
+                          saveSettings({ artists: newArtists });
                         }
                       }}
                       className="text-[9px] tracking-[0.3em] uppercase font-bold text-red-600 hover:opacity-70 flex items-center gap-2 ml-auto"
@@ -2078,10 +1927,14 @@ const AdminDashboard = ({
               <ArtistEditor 
                 artist={settingsData.artists![editingArtistIdx]} 
                 onSave={(updated) => {
-                  const newArtists = [...(settingsData.artists || [])];
+                  const currentArtists = settingsData.artists || siteSettings?.artists || translations.KR.artDetail.artists;
+                  const newArtists = [...currentArtists];
                   newArtists[editingArtistIdx] = updated;
-                  setSettingsData({ ...settingsData, artists: newArtists });
+                  
+                  // Update local state and trigger save
+                  setSettingsData(prev => ({ ...prev, artists: newArtists }));
                   setEditingArtistIdx(null);
+                  saveSettings({ artists: newArtists });
                 }}
                 onClose={() => setEditingArtistIdx(null)}
                 isUploading={isUploading}
@@ -2090,7 +1943,7 @@ const AdminDashboard = ({
             )}
 
             <button 
-              onClick={saveSettings}
+              onClick={() => saveSettings()}
               className="w-full bg-black text-white py-6 text-[10px] tracking-[0.5em] uppercase hover:bg-gray-800 transition-all font-bold"
             >
               Save Roster to Database
@@ -2120,11 +1973,12 @@ const AdminDashboard = ({
                       title: '', 
                       content: '', 
                       summary: '', 
-                      category: 'poetry', 
-                      image_url: siteSettings?.logo_url || logoImg 
+                      image_url: siteSettings?.logo_url || logoImg,
+                      poetry_collection_name: '',
+                      language: 'KR'
                     });
                   } else {
-                    setFormData({ title: '', content: '', summary: '', category: 'poetry', image_url: '' });
+                    setFormData({ title: '', content: '', summary: '', image_url: '', poetry_collection_name: '', language: 'KR' });
                   }
                 }}
                 className="flex items-center gap-3 bg-black text-white px-8 py-4 text-[10px] tracking-[0.4em] uppercase hover:bg-gray-800 transition-all active:scale-95"
@@ -2144,60 +1998,70 @@ const AdminDashboard = ({
                 {/* ... existing form content ... */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                   <div className="space-y-4">
-                    <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">Article Title</label>
+                    <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">Poem Title</label>
                     <input 
                       required
                       value={formData.title}
                       onChange={e => setFormData({...formData, title: e.target.value})}
-                      placeholder="Enter headline..."
+                      placeholder="Enter poem title..."
                       className="w-full border-b border-gray-300 py-4 text-2xl outline-none focus:border-black transition-colors font-serif placeholder:text-gray-300 text-black"
                     />
                   </div>
                   <div className="space-y-4">
-                    <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">Category</label>
+                    <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">Language Group</label>
                     <select 
-                      value={formData.category}
-                      onChange={e => setFormData({...formData, category: e.target.value as Category})}
+                      value={formData.language}
+                      onChange={e => setFormData({...formData, language: e.target.value as Language})}
                       className="w-full border-b border-gray-300 py-4 text-xl outline-none focus:border-black transition-colors font-serif bg-transparent cursor-pointer text-black"
                     >
-                      <option value="poetry" className="text-black">Poetry (詩)</option>
-                      <option value="calligraphy" className="text-black">Calligraphy (書)</option>
-                      <option value="painting" className="text-black">Painting (畫)</option>
-                      <option value="carving" className="text-black">Carving (刻)</option>
+                      <option value="KR">한국어 (KR)</option>
+                      <option value="TC">繁體中文 (TC)</option>
+                      <option value="EN">English (EN)</option>
                     </select>
                   </div>
                 </div>
-                
-                <div className="space-y-4">
-                  <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">Cover Image</label>
-                  <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
-                    <input 
-                      value={formData.image_url}
-                      onChange={e => setFormData({...formData, image_url: e.target.value})}
-                      placeholder="Image URL or upload..."
-                      className="flex-1 border-b border-gray-300 py-4 outline-none focus:border-black transition-colors font-serif text-black placeholder:text-gray-300"
-                    />
-                    <input 
-                      type="file" 
-                      ref={coverInputRef}
-                      onChange={handleCoverUpload}
-                      accept="image/*"
-                      className="hidden"
-                    />
-                    <button 
-                      type="button"
-                      disabled={isUploading}
-                      onClick={() => coverInputRef.current?.click()}
-                      className="flex items-center gap-2 px-6 py-3 border border-black/10 text-[10px] tracking-[0.2em] uppercase hover:bg-gray-50 transition-all disabled:opacity-50"
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-12 pt-8">
+                  <div className="space-y-4">
+                    <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">Poetry Collection Selection</label>
+                    <select 
+                      required
+                      value={formData.poetry_collection_name}
+                      onChange={e => setFormData({...formData, poetry_collection_name: e.target.value})}
+                      className="w-full border-b border-gray-300 py-4 text-xl outline-none focus:border-black transition-colors font-serif bg-transparent cursor-pointer text-black"
                     >
-                      <Upload size={14} /> {isUploading ? 'Uploading...' : 'Upload File'}
-                    </button>
+                      <option value="">Select a collection...</option>
+                      {translations[formData.language as Language || 'KR'].poetryCollection[formData.language as Language || 'KR'].map((colName: string) => (
+                        <option key={colName} value={colName}>{colName}</option>
+                      ))}
+                    </select>
                   </div>
-                  {formData.image_url && (
-                    <div className="mt-4 w-40 h-24 overflow-hidden border border-black/5">
-                      <img src={formData.image_url} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  <div className="space-y-4">
+                    <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">Background Representative Image</label>
+                    <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
+                      <input 
+                        value={formData.image_url}
+                        onChange={e => setFormData({...formData, image_url: e.target.value})}
+                        placeholder="Image URL or upload..."
+                        className="flex-1 border-b border-gray-300 py-4 outline-none focus:border-black transition-colors font-serif text-black placeholder:text-gray-300"
+                      />
+                      <input 
+                        type="file" 
+                        ref={coverInputRef}
+                        onChange={handleCoverUpload}
+                        accept="image/*"
+                        className="hidden"
+                      />
+                      <button 
+                        type="button"
+                        disabled={isUploading}
+                        onClick={() => coverInputRef.current?.click()}
+                        className="flex items-center gap-2 px-6 py-3 border border-black/10 text-[10px] tracking-[0.2em] uppercase hover:bg-gray-50 transition-all disabled:opacity-50"
+                      >
+                        <Upload size={14} /> {isUploading ? 'Uploading...' : 'Upload File'}
+                      </button>
                     </div>
-                  )}
+                  </div>
                 </div>
 
                 <div className="space-y-4">
@@ -2208,7 +2072,7 @@ const AdminDashboard = ({
                     onChange={e => setFormData({...formData, summary: e.target.value})}
                     rows={2}
                     placeholder="A short introduction..."
-                    className="w-full border-b border-gray-300 py-4 text-lg outline-none focus:border-black transition-colors font-serif resize-none italic text-black placeholder:text-gray-300"
+                    className="w-full border-b border-gray-300 py-4 text-lg outline-none focus:border-black transition-colors font-serif resize-none italic text-black placeholder:text-gray-300 leading-tight"
                   />
                 </div>
 
@@ -2238,14 +2102,14 @@ const AdminDashboard = ({
                     value={formData.content}
                     onChange={e => setFormData({...formData, content: e.target.value})}
                     rows={12}
-                    placeholder="Write the full article here... You can use Markdown."
-                    className="w-full border border-gray-200 p-8 outline-none focus:border-black transition-colors font-serif leading-relaxed text-lg text-black placeholder:text-gray-300"
+                    placeholder="Write the full poem here..."
+                    className="w-full border border-gray-200 p-8 outline-none focus:border-black transition-colors font-serif leading-[1.1] text-lg text-black placeholder:text-gray-300"
                   />
                 </div>
 
                 <div className="flex gap-4">
                   <button type="submit" className="flex-1 bg-black text-white py-6 text-[10px] tracking-[0.5em] uppercase hover:bg-gray-800 transition-all">
-                    {editingItem ? 'Save Changes' : 'Publish to Archive'}
+                    {editingItem ? 'Save Changes' : 'Publish Poem'}
                   </button>
                   {editingItem && (
                     <button 
@@ -2253,9 +2117,16 @@ const AdminDashboard = ({
                       onClick={() => { 
                         setEditingItem(null); 
                         if (onClearEdit) onClearEdit();
-                        setFormData({title:'', content:'', summary:'', category:'poetry', image_url:''}); 
+                        setFormData({ 
+                          title: '', 
+                          content: '', 
+                          summary: '', 
+                          image_url: '', 
+                          poetry_collection_name: '', 
+                          language: 'KR' 
+                        }); 
                       }}
-                      className="px-12 border border-black/10 text-[10px] tracking-[0.5em] uppercase hover:bg-gray-50 transition-all"
+                      className="px-12 border border-black/10 text-[10px] tracking-[0.5em] uppercase hover:bg-gray-50 transition-all font-bold"
                     >
                       Cancel
                     </button>
@@ -2265,18 +2136,23 @@ const AdminDashboard = ({
             )}
 
             <div className="bg-white shadow-2xl border border-black/5 overflow-hidden">
-              <div className="p-8 bg-gray-50 border-b border-black/5 flex justify-between items-center">
-                <span className="text-[10px] tracking-[0.5em] uppercase opacity-40">Database Records</span>
-                <span className="text-[10px] tracking-[0.5em] uppercase opacity-40">{archiveItems.length} Total</span>
+              <div className="p-8 bg-gray-50 border-b border-black/5 flex justify-between items-center overflow-x-auto">
+                <div className="flex gap-4 items-center">
+                   <span className="text-[10px] tracking-[0.5em] uppercase opacity-40">Database Records</span>
+                   <span className="text-[10px] tracking-[0.5em] uppercase opacity-40">{archiveItems.length} Total</span>
+                </div>
+                <div className="text-[9px] tracking-[0.2em] font-mono opacity-30 whitespace-nowrap">
+                  Collections: {archiveItems.filter(i => i.poetry_collection_name).length} entries
+                </div>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="text-[9px] tracking-[0.5em] uppercase opacity-30 border-b border-black/5">
                       <th className="px-8 py-6 font-bold">Preview</th>
-                      <th className="px-8 py-6 font-bold">Headline</th>
-                      <th className="px-8 py-6 font-bold">Category</th>
-                      <th className="px-8 py-6 font-bold">Date</th>
+                      <th className="px-8 py-6 font-bold">Title</th>
+                      <th className="px-8 py-6 font-bold">Collection</th>
+                      <th className="px-8 py-6 font-bold">Lang</th>
                       <th className="px-8 py-6 font-bold text-right">Actions</th>
                     </tr>
                   </thead>
@@ -2293,10 +2169,10 @@ const AdminDashboard = ({
                           <div className="text-[10px] opacity-30 line-clamp-1 mt-1">{item.summary}</div>
                         </td>
                         <td className="px-8 py-6">
-                          <span className="text-[9px] tracking-[0.3em] uppercase opacity-60 border border-black/10 px-3 py-1 rounded-full">{item.category}</span>
+                          <span className="text-[9px] tracking-[0.3em] uppercase opacity-60 border border-black/10 px-3 py-1 rounded-full">{item.poetry_collection_name || 'Individual'}</span>
                         </td>
                         <td className="px-8 py-6 text-[10px] opacity-40 font-mono">
-                          {new Date(item.created_at).toLocaleDateString()}
+                          {item.language}
                         </td>
                         <td className="px-8 py-6 text-right">
                           <div className="flex justify-end gap-6">
@@ -2307,13 +2183,14 @@ const AdminDashboard = ({
                                   title: item.title,
                                   content: item.content,
                                   summary: item.summary,
-                                  category: item.category,
-                                  image_url: item.image_url
+                                  image_url: item.image_url,
+                                  poetry_collection_name: item.poetry_collection_name || '',
+                                  language: item.language || 'KR'
                                 });
                                 window.scrollTo({ top: 0, behavior: 'smooth' });
                               }}
                               className="text-gray-400 hover:text-black transition-colors p-2"
-                              title="Edit Article"
+                              title="Edit Poem"
                             >
                               <Edit2 size={16} />
                             </button>
@@ -2336,7 +2213,7 @@ const AdminDashboard = ({
                               <button 
                                 onClick={() => setDeleteConfirmId(item.id)}
                                 className="text-gray-400 hover:text-red-600 transition-colors p-2"
-                                title="Delete Article"
+                                title="Delete Poem"
                               >
                                 <Trash2 size={16} />
                               </button>
@@ -2411,9 +2288,16 @@ const ContactPage = ({ t, setPage }: { t: any; setPage: (p: Page) => void }) => 
   </motion.div>
 );
 
-const PoetryCollectionPage = ({ t, setPage }: { t: any; setPage: (p: Page) => void }) => {
+const PoetryCollectionPage = ({ t, setPage, archiveItems }: { t: any; setPage: (p: Page) => void; archiveItems: ArchiveItem[] }) => {
   const [activeLang, setActiveLang] = useState<Language>('KR');
+  const [selectedCollection, setSelectedCollection] = useState<string | null>(null);
+  const [readingPoem, setReadingPoem] = useState<ArchiveItem | null>(null);
   const collections = t.poetryCollection[activeLang];
+
+  const collectionPoems = archiveItems.filter(item => 
+    item.poetry_collection_name === selectedCollection && 
+    item.language === activeLang
+  );
 
   return (
     <motion.div 
@@ -2422,102 +2306,235 @@ const PoetryCollectionPage = ({ t, setPage }: { t: any; setPage: (p: Page) => vo
       exit={{ opacity: 0 }}
       className="min-h-screen pt-32 px-6 md:px-24 bg-[#fdfdfd] flex flex-col items-center"
     >
-      <div className="max-w-5xl w-full">
-        <div className="text-center mb-24">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="flex justify-center mb-8"
-          >
-            <BookOpen className="opacity-10" size={64} strokeWidth={0.5} />
-          </motion.div>
-          <motion.h1 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-[60px] font-serif mb-12 tracking-tight text-black"
-          >
-            {t.poetryCollection.title}
-          </motion.h1>
-          
-          <div className="flex justify-center gap-4 mb-16">
-            {(['KR', 'TC', 'EN'] as const).map((langKey) => (
-              <button 
-                key={langKey}
-                onClick={() => setActiveLang(langKey)}
-                className={`px-6 py-2 text-lg font-serif transition-all duration-300 rounded shadow-sm border ${
-                  activeLang === langKey 
-                    ? 'bg-[#2c3e50] text-white border-[#2c3e50] shadow-md' 
-                    : 'bg-[#e5e1d8] text-black border-black/10 hover:bg-[#d8d3c9]'
-                }`}
-              >
-                [{t.poetryCollection.categories[langKey]}]
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-12 pb-32">
-          {/* List Section */}
-          <div className="md:col-span-6 bg-[#f9f7f2] p-12 shadow-sm border border-black/5 relative min-h-[600px]">
-            <div className="mb-12">
-              <h2 className="text-3xl font-serif text-black border-b border-black/10 pb-4 inline-block mb-8">
-                {activeLang === 'KR' ? '한국어 시집 목록' : activeLang === 'TC' ? '中文 詩集 目錄' : 'Poetry Collection List'}
-              </h2>
-              
-              <div className="space-y-6">
-                {collections.map((item: string, idx: number) => (
-                  <div key={idx} className="flex items-center justify-between group">
-                    <span className="text-2xl font-serif text-black opacity-80 group-hover:opacity-100 transition-opacity">
-                      {item}
-                    </span>
-                    <button className="px-4 py-1 border border-black/20 text-xs tracking-widest hover:bg-black hover:text-white transition-all duration-300">
-                      보기
+      <div className="max-w-6xl w-full">
+        <AnimatePresence mode="wait">
+          {!selectedCollection ? (
+            <motion.div 
+              key="list"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+            >
+              <div className="text-center mb-24">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="flex justify-center mb-8"
+                >
+                  <BookOpen className="opacity-10" size={64} strokeWidth={0.5} />
+                </motion.div>
+                <motion.h1 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-[60px] font-serif mb-12 tracking-tight text-black"
+                >
+                  {t.poetryCollection.title}
+                </motion.h1>
+                
+                <div className="flex justify-center gap-4 mb-16">
+                  {(['KR', 'TC', 'EN'] as const).map((langKey) => (
+                    <button 
+                      key={langKey}
+                      onClick={() => setActiveLang(langKey)}
+                      className={`px-6 py-2 text-lg font-serif transition-all duration-300 rounded shadow-sm border ${
+                        activeLang === langKey 
+                          ? 'bg-[#2c3e50] text-white border-[#2c3e50] shadow-md' 
+                          : 'bg-[#e5e1d8] text-black border-black/10 hover:bg-[#d8d3c9]'
+                      }`}
+                    >
+                      [{t.poetryCollection.categories[langKey]}]
                     </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-            
-            {/* Decorative element like in the image */}
-            <div className="absolute bottom-8 right-8 opacity-5">
-               <BookOpen size={120} />
-            </div>
-          </div>
-
-          {/* Image Section */}
-          <div className="md:col-span-6 space-y-6">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="aspect-[3/4] bg-[#f0ede6] overflow-hidden shadow-md">
-                <img 
-                  src="https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&q=80&w=600" 
-                  alt="Book" 
-                  className="w-full h-full object-cover grayscale opacity-80"
-                  referrerPolicy="no-referrer"
-                />
-              </div>
-              <div className="aspect-[3/4] pt-12">
-                <div className="bg-[#e5e1d8] p-4 shadow-inner">
-                  <img 
-                    src="https://images.unsplash.com/photo-1512418490979-92798ccc13a0?auto=format&fit=crop&q=80&w=600" 
-                    alt="Ink" 
-                    className="w-full h-full object-cover rounded-sm"
-                    referrerPolicy="no-referrer"
-                  />
+                  ))}
                 </div>
               </div>
-            </div>
-            <div className="aspect-[16/9] bg-[#e5e1d8] overflow-hidden shadow-md">
-              <img 
-                src="https://images.unsplash.com/photo-1490127252417-7c393f993ee4?auto=format&fit=crop&q=80&w=1200" 
-                alt="Scroll" 
-                className="w-full h-full object-cover opacity-60 mix-blend-multiply"
-                referrerPolicy="no-referrer"
-              />
-            </div>
-          </div>
-        </div>
 
-        <div className="pb-24 text-center border-t border-black/5 pt-24">
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-12 pb-32">
+                {/* List Section */}
+                <div className="md:col-span-6 bg-[#f9f7f2] p-12 shadow-sm border border-black/5 relative min-h-[600px]">
+                  <div className="mb-12">
+                    <h2 className="text-3xl font-serif text-black border-b border-black/10 pb-4 inline-block mb-8">
+                      {activeLang === 'KR' ? '한국어 시집 목록' : activeLang === 'TC' ? '中文 詩集 目錄' : 'Poetry Collection List'}
+                    </h2>
+                    
+                    <div className="space-y-6">
+                      {collections.map((item: string, idx: number) => (
+                        <div key={idx} className="flex items-center justify-between group">
+                          <span className="text-2xl font-serif text-black opacity-80 group-hover:opacity-100 transition-opacity">
+                            {item}
+                          </span>
+                          <button 
+                            onClick={() => setSelectedCollection(item)}
+                            className="px-4 py-1 border border-black/20 text-xs tracking-widest hover:bg-black hover:text-white transition-all duration-300"
+                          >
+                            보기
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div className="absolute bottom-8 right-8 opacity-5">
+                    <BookOpen size={120} />
+                  </div>
+                </div>
+
+                {/* Image Section */}
+                <div className="md:col-span-6 space-y-6">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="aspect-[3/4] bg-[#f0ede6] overflow-hidden shadow-md">
+                      <img 
+                        src="https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&q=80&w=600" 
+                        alt="Book" 
+                        className="w-full h-full object-cover grayscale opacity-80"
+                        referrerPolicy="no-referrer"
+                      />
+                    </div>
+                    <div className="aspect-[3/4] pt-12">
+                      <div className="bg-[#e5e1d8] p-4 shadow-inner">
+                        <img 
+                          src="https://images.unsplash.com/photo-1512418490979-92798ccc13a0?auto=format&fit=crop&q=80&w=600" 
+                          alt="Ink" 
+                          className="w-full h-full object-cover rounded-sm"
+                          referrerPolicy="no-referrer"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="aspect-[16/9] bg-[#e5e1d8] overflow-hidden shadow-md">
+                    <img 
+                      src="https://images.unsplash.com/photo-1490127252417-7c393f993ee4?auto=format&fit=crop&q=80&w=1200" 
+                      alt="Scroll" 
+                      className="w-full h-full object-cover opacity-60 mix-blend-multiply"
+                      referrerPolicy="no-referrer"
+                    />
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div 
+              key="detail"
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.98 }}
+              className="pb-32 w-full"
+            >
+              <div className="flex items-center gap-4 mb-16">
+                <button 
+                  onClick={() => {
+                    setSelectedCollection(null);
+                    setReadingPoem(null);
+                  }}
+                  className="flex items-center gap-2 text-xs tracking-widest opacity-40 hover:opacity-100 transition-opacity uppercase font-bold"
+                >
+                  <ArrowLeft size={16} /> Back to List
+                </button>
+              </div>
+
+              <div className="text-center mb-16">
+                <h1 className="text-5xl font-serif mb-4 text-black">{selectedCollection}</h1>
+                <div className="w-12 h-px bg-black/10 mx-auto" />
+              </div>
+
+              {/* Simplified vertical list of poems */}
+              <div className="mb-24 flex flex-col items-center">
+                <div className="w-full max-w-4xl border-y border-black/5 py-12">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-2">
+                    {collectionPoems.map((poem, idx) => (
+                      <button
+                        key={poem.id}
+                        onClick={() => setReadingPoem(poem)}
+                        className={`w-full flex items-center justify-between py-3 px-4 transition-all duration-300 group border-b border-black/[0.03] ${
+                          readingPoem?.id === poem.id 
+                            ? 'bg-black text-white border-black' 
+                            : 'hover:bg-black/5 text-black border-transparent'
+                        }`}
+                      >
+                        <div className="flex items-center gap-6 overflow-hidden">
+                          <span className={`text-[10px] tracking-[0.2em] font-bold opacity-30 italic ${readingPoem?.id === poem.id ? 'text-white' : 'text-black'}`}>
+                            {(idx + 1).toString().padStart(2, '0')}
+                          </span>
+                          <span className={`text-base font-serif truncate ${readingPoem?.id === poem.id ? 'text-white opacity-100' : 'text-black opacity-80 group-hover:opacity-100'}`}>
+                            {poem.title}
+                          </span>
+                        </div>
+                        <div className={`w-4 h-px transition-all duration-500 shrink-0 ${readingPoem?.id === poem.id ? 'bg-white/40 w-8' : 'bg-black/10 group-hover:w-8'}`} />
+                      </button>
+                    ))}
+                  </div>
+                  {collectionPoems.length === 0 && (
+                    <div className="w-full py-12 text-center opacity-30 italic font-serif">No poems found in this collection.</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Reading Section with Background Image */}
+              <AnimatePresence mode="wait">
+                {readingPoem ? (
+                  <motion.div 
+                    key={readingPoem.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    className="relative min-h-[600px] border border-black/5 bg-[#fcfaf4] overflow-hidden shadow-2xl"
+                  >
+                    {/* Background Representative Image */}
+                    <div className="absolute inset-0 z-0 scale-105">
+                       <img 
+                        src={readingPoem.image_url || "https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&q=80&w=1200"}
+                        alt="Poem Background"
+                        className="w-full h-full object-cover opacity-[0.04] grayscale brightness-50"
+                        referrerPolicy="no-referrer"
+                      />
+                    </div>
+
+                    <div className="relative z-10 p-12 md:p-24 max-w-4xl mx-auto flex flex-col items-center">
+                      <div className="text-center mb-16">
+                        <h2 className="text-4xl md:text-6xl font-serif text-black mb-8 leading-tight">{readingPoem.title}</h2>
+                        <div className="w-24 h-px bg-black/10 mx-auto" />
+                      </div>
+
+                      <div className="w-full prose prose-pre:bg-transparent prose-pre:p-0 prose-pre:text-black prose-p:my-0 prose-div:my-0 max-w-none">
+                        <div className="markdown-body font-serif text-xl md:text-2xl leading-[1.1] text-black/90 whitespace-pre-wrap text-center">
+                          <ReactMarkdown 
+                            remarkPlugins={[remarkGfm]}
+                            components={{
+                              p: ({ children }) => <div className="mb-0 leading-[1.1]">{children}</div>,
+                              br: () => <br className="hidden" />
+                            }}
+                          >
+                            {readingPoem.content}
+                          </ReactMarkdown>
+                        </div>
+                      </div>
+
+                      <div className="mt-24 pt-12 border-t border-black/5 w-full text-center">
+                        <p className="text-xs tracking-[0.4em] uppercase opacity-30 font-bold">Lasok Poetry Collection</p>
+                      </div>
+                    </div>
+                  </motion.div>
+                ) : (
+                  <div className="relative h-[400px] border border-dashed border-black/10 flex flex-col items-center justify-center text-center p-12 bg-[#faf9f6]">
+                     <div className="absolute inset-x-0 bottom-0 top-0 overflow-hidden opacity-[0.03]">
+                        <img 
+                          src="https://images.unsplash.com/photo-1490127252417-7c393f993ee4?auto=format&fit=crop&q=80&w=1200" 
+                          alt="Scroll decor" 
+                          className="w-full h-full object-cover"
+                          referrerPolicy="no-referrer"
+                        />
+                     </div>
+                     <BookOpen className="opacity-10 mb-6" size={80} strokeWidth={0.5} />
+                     <p className="text-2xl font-serif italic opacity-30 relative z-10 px-4">
+                        {activeLang === 'KR' ? '위에 있는 시집 목록에서 작품을 선택하여 읽어보세요.' : 'Select a poem from the list above to read.'}
+                     </p>
+                  </div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <div className="pb-24 text-center border-t border-black/5 pt-24 mt-12">
           <button 
             onClick={() => setPage('home')}
             className="text-sm tracking-[0.5em] uppercase opacity-40 hover:opacity-100 transition-opacity border-b border-black/20 pb-2 text-black"
@@ -2555,15 +2572,23 @@ export default function App() {
   // Fetch Site Settings and Archive Items
   useEffect(() => {
     const initData = async () => {
-      // Fetch Settings
-      const { data: settings, error: settingsError } = await supabase
+      // Fetch Settings - Resiliently pick one and cleanup duplicates
+      const { data: settingsList, error: settingsError } = await supabase
         .from('site_settings')
         .select('*')
-        .single();
+        .order('id', { ascending: true });
       
-      if (!settingsError && settings) {
-        setSiteSettings(settings);
-      } else if (settingsError && settingsError.code === 'PGRST116') {
+      if (!settingsError && settingsList && settingsList.length > 0) {
+        setSiteSettings(settingsList[0]);
+        
+        // Cleanup: if multiple rows exist, remove the redundant ones to prevent future confusion
+        if (settingsList.length > 1) {
+          const idsToDelete = settingsList.slice(1).map((s: SiteSettings) => s.id);
+          supabase.from('site_settings').delete().in('id', idsToDelete).then(({ error }: { error: any }) => {
+            if (!error) console.log("Cleaned up duplicate site_settings records.");
+          });
+        }
+      } else if (!settingsError && (settingsList === null || settingsList.length === 0)) {
         // No settings found, create initial
         const { data: newSettings } = await supabase
           .from('site_settings')
@@ -2576,6 +2601,8 @@ export default function App() {
           .select()
           .single();
         if (newSettings) setSiteSettings(newSettings);
+      } else if (settingsError) {
+        console.error("Settings Fetch Error:", settingsError);
       }
 
       // Fetch Archive
@@ -2606,7 +2633,6 @@ export default function App() {
             <button onClick={() => setPage('art')} className={`hover:opacity-100 transition-opacity ${page === 'art' ? 'opacity-100 font-bold' : ''}`}>{t.nav.art}</button>
             <button onClick={() => setPage('poetryCollection')} className={`hover:opacity-100 transition-opacity ${page === 'poetryCollection' ? 'opacity-100 font-bold' : ''}`}>{t.nav.poetryCollection}</button>
             <button onClick={() => setPage('tea')} className={`hover:opacity-100 transition-opacity ${page === 'tea' ? 'opacity-100 font-bold' : ''}`}>{t.nav.tea}</button>
-            <button onClick={() => setPage('archive')} className={`hover:opacity-100 transition-opacity ${page === 'archive' ? 'opacity-100 font-bold' : ''}`}>{t.nav.archive}</button>
             <button onClick={() => setPage('contact')} className={`hover:opacity-100 transition-opacity ${page === 'contact' ? 'opacity-100 font-bold' : ''}`}>{t.nav.contact}</button>
           </div>
         </div>
@@ -2647,7 +2673,6 @@ export default function App() {
             <button onClick={() => { setIsMenuOpen(false); setPage('art'); }}>{t.nav.art}</button>
             <button onClick={() => { setIsMenuOpen(false); setPage('poetryCollection'); }}>{t.nav.poetryCollection}</button>
             <button onClick={() => { setIsMenuOpen(false); setPage('tea'); }}>{t.nav.tea}</button>
-            <button onClick={() => { setIsMenuOpen(false); setPage('archive'); }}>{t.nav.archive}</button>
             <button onClick={() => { setIsMenuOpen(false); setPage('contact'); }}>{t.nav.contact}</button>
             <div className="flex gap-10 mt-12">
               {(['KR', 'TC', 'EN'] as Language[]).map((l) => (
@@ -2758,20 +2783,7 @@ export default function App() {
         ) : page === 'tea' ? (
           <TeaDetailPage key="tea" t={t} setPage={setPage} currentTeaImage={currentTeaImage} siteSettings={siteSettings} />
         ) : page === 'poetryCollection' ? (
-          <PoetryCollectionPage key="poetryCollection" t={t} setPage={setPage} />
-        ) : page === 'archive' ? (
-          <ArchivePage 
-            key="archive" 
-            t={t} 
-            setPage={setPage} 
-            archiveItems={archiveItems} 
-            selectedArchiveItem={selectedArchiveItem} 
-            setSelectedArchiveItem={setSelectedArchiveItem} 
-            onEdit={(item) => {
-              setAdminEditingItem(item);
-              setPage('admin');
-            }}
-          />
+          <PoetryCollectionPage key="poetryCollection" t={t} setPage={setPage} archiveItems={archiveItems} />
         ) : page === 'admin' ? (
           <AdminDashboard 
             key="admin" 

@@ -27,4 +27,11 @@
     text-align: justify;
     text-justify: inter-word;
   }
+
+  /* Remove spacing gaps in markdown for poems */
+  .markdown-body p,
+  .markdown-body div {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+  }
 }
