@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Menu, X, Plus, Trash2, Edit2, ArrowLeft, Newspaper, Image as ImageIcon, Upload, ChevronLeft, ChevronRight, BookOpen } from 'lucide-react';
+import { Menu, X, Plus, Trash2, Edit2, ArrowLeft, Newspaper, Image as ImageIcon, Upload, ChevronLeft, ChevronRight, BookOpen, Settings } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
@@ -8,12 +8,12 @@ import { supabase } from './lib/supabase';
 import { SAMPLE_ARCHIVE_ITEMS } from './lib/seedData';
 
 const bulhansunchaImg = 'https://images.unsplash.com/photo-1594631252845-29fc4cc8cde9?auto=format&fit=crop&q=80&w=1920';
-const mountainsImg = 'mountains.jpg';
-const logoImg = 'logo.png';
-const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?auto=format&fit=crop&q=80&w=1000';
+const mountainsImg = '/assets/mountains.jpg';
+const logoImg = '/assets/logo.png';
+const DEFAULT_IMAGE = '/assets/logo.png';
 
 type Language = 'KR' | 'TC' | 'EN';
-type Page = 'home' | 'tea' | 'contact' | 'philosophy' | 'admin' | 'art' | 'poetryCollection';
+type Page = 'home' | 'tea' | 'contact' | 'philosophy' | 'admin' | 'art' | 'poetryCollection' | 'dashboard' | 'archive' | 'collection' | 'artist' | 'about';
 
 interface ArchiveItem {
   id: string;
@@ -1973,7 +1973,7 @@ const AdminDashboard = ({
                       title: '', 
                       content: '', 
                       summary: '', 
-                      image_url: siteSettings?.logo_url || logoImg,
+                      image_url: siteSettings?.logo_url || DEFAULT_IMAGE,
                       poetry_collection_name: '',
                       language: 'KR'
                     });
@@ -2481,7 +2481,7 @@ const PoetryCollectionPage = ({ t, setPage, archiveItems }: { t: any; setPage: (
                     {/* Background Representative Image */}
                     <div className="absolute inset-0 z-0 scale-105">
                        <img 
-                        src={readingPoem.image_url || "https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&q=80&w=1200"}
+                        src={readingPoem.image_url || DEFAULT_IMAGE}
                         alt="Poem Background"
                         className="w-full h-full object-cover opacity-[0.04] grayscale brightness-50"
                         referrerPolicy="no-referrer"
@@ -2558,9 +2558,18 @@ export default function App() {
   const [scrolled, setScrolled] = useState(false);
   const t = translations[lang];
 
-  // Dynamic assets from settings or fallback
-  const currentLogo = siteSettings?.logo_url || 'logo.png';
-  const currentHeroBg = siteSettings?.hero_bg_url || 'mountains.jpg';
+  // Dynamic assets from settings or fallback - handle legacy database values
+  const getAssetUrl = (url: string | undefined, fallback: string) => {
+    if (!url) return fallback;
+    // If it's a legacy filename without path, prepend /assets/
+    if (url === 'logo.png' || url === 'mountains.jpg' || url === 'hero-bg.jpg') {
+      return `/assets/${url}`;
+    }
+    return url;
+  };
+
+  const currentLogo = getAssetUrl(siteSettings?.logo_url, '/assets/logo.png');
+  const currentHeroBg = getAssetUrl(siteSettings?.hero_bg_url, '/assets/hero-bg.jpg');
   const currentTeaImage = siteSettings?.tea_detail_url || 'https://images.unsplash.com/photo-1594631252845-29fc4cc8cde9?auto=format&fit=crop&q=80&w=1920';
 
   useEffect(() => {
@@ -2593,8 +2602,8 @@ export default function App() {
         const { data: newSettings } = await supabase
           .from('site_settings')
           .insert([{ 
-            logo_url: 'logo.png', 
-            hero_bg_url: 'mountains.jpg', 
+            logo_url: '/assets/logo.png', 
+            hero_bg_url: '/assets/hero-bg.jpg', 
             tea_detail_url: 'https://images.unsplash.com/photo-1594631252845-29fc4cc8cde9?auto=format&fit=crop&q=80&w=1920',
             artists: translations.KR.artDetail.artists
           }])
@@ -2622,39 +2631,58 @@ export default function App() {
   return (
     <div className="font-sans selection:bg-black selection:text-white">
       {/* Navigation */}
-      <nav className={`fixed top-0 left-0 w-full z-50 transition-all duration-500 px-6 py-6 flex justify-between items-center ${scrolled ? 'bg-white/80 backdrop-blur-md py-4' : 'bg-transparent'}`}>
-        <div className="flex items-center gap-8">
-          <button onClick={() => setPage('home')} className="flex items-center">
-            <img src={currentLogo} alt="Bulhanza Logo" className="h-12 md:h-16 w-auto object-contain" referrerPolicy="no-referrer" />
+      <nav className={`fixed top-0 left-0 w-full z-50 transition-all duration-500 px-6 py-6 flex justify-between items-center ${scrolled ? 'bg-white/80 backdrop-blur-md py-4 shadow-sm' : 'bg-transparent'}`}>
+        <div className="flex items-center gap-12">
+          <button onClick={() => setPage('home')} className="flex items-center group">
+            <img 
+              src={currentLogo} 
+              alt="Bulhanza Logo" 
+              className={`h-12 md:h-16 w-auto object-contain transition-all duration-500 ${(page === 'home' && !scrolled) ? 'invert brightness-200' : ''}`} 
+              referrerPolicy="no-referrer"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                if (target.src !== window.location.origin + '/assets/logo.png') {
+                  target.src = '/assets/logo.png';
+                }
+              }}
+            />
           </button>
-          <div className="hidden md:flex gap-8 text-lg tracking-widest uppercase opacity-70 font-medium">
-            <a href={page === 'home' ? "#about" : "#"} onClick={(e) => { if (page !== 'home') { e.preventDefault(); setPage('home'); setTimeout(() => { const el = document.getElementById('about'); if (el) el.scrollIntoView({ behavior: 'smooth' }); }, 100); } }} className="hover:opacity-100 transition-opacity">{t.nav.about}</a>
-            <button onClick={() => setPage('philosophy')} className={`hover:opacity-100 transition-opacity ${page === 'philosophy' ? 'opacity-100 font-bold' : ''}`}>{t.nav.philosophy}</button>
-            <button onClick={() => setPage('art')} className={`hover:opacity-100 transition-opacity ${page === 'art' ? 'opacity-100 font-bold' : ''}`}>{t.nav.art}</button>
-            <button onClick={() => setPage('poetryCollection')} className={`hover:opacity-100 transition-opacity ${page === 'poetryCollection' ? 'opacity-100 font-bold' : ''}`}>{t.nav.poetryCollection}</button>
-            <button onClick={() => setPage('tea')} className={`hover:opacity-100 transition-opacity ${page === 'tea' ? 'opacity-100 font-bold' : ''}`}>{t.nav.tea}</button>
-            <button onClick={() => setPage('contact')} className={`hover:opacity-100 transition-opacity ${page === 'contact' ? 'opacity-100 font-bold' : ''}`}>{t.nav.contact}</button>
+          <div className={`hidden md:flex gap-12 text-[15px] md:text-[16px] tracking-[0.3em] uppercase font-medium transition-colors duration-500 ${(page === 'home' && !scrolled) ? 'text-white' : 'text-black'}`}>
+            <a href={page === 'home' ? "#about" : "#"} onClick={(e) => { if (page !== 'home') { e.preventDefault(); setPage('home'); setTimeout(() => { const el = document.getElementById('about'); if (el) el.scrollIntoView({ behavior: 'smooth' }); }, 100); } }} className="hover:opacity-100 transition-opacity opacity-70 italic">{t.nav.about}</a>
+            <button onClick={() => setPage('philosophy')} className={`hover:opacity-100 transition-opacity opacity-70 ${page === 'philosophy' ? 'opacity-100 font-bold border-b-2 border-current pb-1' : ''}`}>{t.nav.philosophy}</button>
+            <button onClick={() => setPage('art')} className={`hover:opacity-100 transition-opacity opacity-70 ${page === 'art' ? 'opacity-100 font-bold border-b-2 border-current pb-1' : ''}`}>{t.nav.art}</button>
+            <button onClick={() => setPage('poetryCollection')} className={`hover:opacity-100 transition-opacity opacity-70 ${page === 'poetryCollection' ? 'opacity-100 font-bold border-b-2 border-current pb-1' : ''}`}>{t.nav.poetryCollection}</button>
+            <button onClick={() => setPage('tea')} className={`hover:opacity-100 transition-opacity opacity-70 ${page === 'tea' ? 'opacity-100 font-bold border-b-2 border-current pb-1' : ''}`}>{t.nav.tea}</button>
+            <button onClick={() => setPage('contact')} className={`hover:opacity-100 transition-opacity opacity-70 ${page === 'contact' ? 'opacity-100 font-bold border-b-2 border-current pb-1' : ''}`}>{t.nav.contact}</button>
           </div>
         </div>
 
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-4">
+        <div className="flex items-center gap-10">
+          <div className="flex items-center gap-6">
             {(['KR', 'TC', 'EN'] as Language[]).map((l) => (
               <button
                 key={l}
                 onClick={() => setLang(l)}
-                className={`flex flex-col items-center gap-1 transition-all duration-300 ${lang === l ? 'opacity-100 scale-110' : 'opacity-40 hover:opacity-70 scale-95'}`}
+                className={`text-[14px] md:text-[15px] font-bold tracking-[0.1em] transition-all duration-500 ${(page === 'home' && !scrolled) ? 'text-white' : 'text-black'} ${lang === l ? 'opacity-100 scale-110 underline underline-offset-4' : 'opacity-30 hover:opacity-70 scale-95'}`}
                 title={l === 'KR' ? '한국어' : l === 'TC' ? '繁體中文' : 'English'}
               >
-                <span className="text-2xl md:text-3xl leading-none">
-                  {l === 'KR' ? '🇰🇷' : l === 'TC' ? '🇹🇼' : '🇺🇸'}
-                </span>
-                <span className="text-[10px] tracking-[0.1em] font-bold uppercase">{l}</span>
+                {l === 'TC' ? 'CN' : l}
               </button>
             ))}
           </div>
-          <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="md:hidden opacity-70 hover:opacity-100">
+          <button 
+            onClick={() => setIsMenuOpen(!isMenuOpen)} 
+            className={`md:hidden transition-colors duration-500 ${(page === 'home' && !scrolled) ? 'text-white' : 'text-black'} opacity-70 hover:opacity-100`}
+          >
             {isMenuOpen ? <X size={28} /> : <Menu size={28} />}
+          </button>
+          
+          <button 
+                onClick={() => setPage('dashboard')}
+                className={`hidden md:block transition-colors duration-500 ${(page === 'home' && !scrolled) ? 'text-white' : 'text-black'} opacity-40 hover:opacity-100`}
+                title="Admin Dashboard"
+              >
+            <Settings size={18} />
           </button>
         </div>
       </nav>
@@ -2674,17 +2702,14 @@ export default function App() {
             <button onClick={() => { setIsMenuOpen(false); setPage('poetryCollection'); }}>{t.nav.poetryCollection}</button>
             <button onClick={() => { setIsMenuOpen(false); setPage('tea'); }}>{t.nav.tea}</button>
             <button onClick={() => { setIsMenuOpen(false); setPage('contact'); }}>{t.nav.contact}</button>
-            <div className="flex gap-10 mt-12">
+            <div className="flex gap-12 mt-12">
               {(['KR', 'TC', 'EN'] as Language[]).map((l) => (
                 <button
                   key={l}
                   onClick={() => { setLang(l); setIsMenuOpen(false); }}
-                  className={`flex flex-col items-center gap-2 transition-all ${lang === l ? 'scale-125' : 'opacity-40'}`}
+                  className={`text-2xl font-bold transition-all ${lang === l ? 'scale-125' : 'opacity-40'}`}
                 >
-                  <span className="text-5xl">
-                    {l === 'KR' ? '🇰🇷' : l === 'TC' ? '🇹🇼' : '🇺🇸'}
-                  </span>
-                  <span className="text-xs font-bold uppercase">{l}</span>
+                  {l === 'TC' ? 'CN' : l}
                 </button>
               ))}
             </div>
@@ -2696,85 +2721,322 @@ export default function App() {
         {page === 'home' ? (
           <motion.div key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             {/* Hero Section */}
-            <header className="relative h-screen flex flex-col items-center justify-center text-center px-6 overflow-hidden group/hero">
+            <header className="relative h-[100vh] flex flex-col items-center justify-center text-center px-6 overflow-hidden group/hero bg-black">
               <div className="absolute inset-0 z-0">
-                <img 
-                  src={currentHeroBg} 
-                  alt="Mountains" 
-                  className="w-full h-full object-cover opacity-20 grayscale group-hover/hero:scale-105 transition-transform duration-[10s] ease-out"
-                  referrerPolicy="no-referrer"
-                />
-                <div className="absolute inset-0 bg-gradient-to-b from-white via-transparent to-white" />
+                <motion.div 
+                  initial={{ scale: 1.1, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ duration: 2.5, ease: "easeOut" }}
+                  className="w-full h-full"
+                >
+                  <img 
+                    src={currentHeroBg} 
+                    alt="Hero Background" 
+                    className="w-full h-full object-cover opacity-60 grayscale brightness-75 group-hover/hero:scale-105 transition-transform duration-[15s] ease-out"
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1490127252417-7c393f993ee4?auto=format&fit=crop&q=80&w=1920';
+                    }}
+                  />
+                </motion.div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-black/60" />
+                
+                {/* Modern subtle patterns */}
+                <div className="absolute inset-0 opacity-[0.05] pointer-events-none mix-blend-overlay">
+                  <div className="absolute inset-0 border-[40px] border-white/10 m-12 md:m-24" />
+                </div>
               </div>
-              <div className="absolute inset-0 opacity-[0.03] pointer-events-none z-10">
+
+              {/* Sophisticated light wave animation */}
+              <div className="absolute inset-0 opacity-[0.08] pointer-events-none z-10 overflow-hidden">
                 <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
                   <motion.path
-                    d="M0 50 Q 25 40, 50 50 T 100 50"
+                    d="M-10 50 Q 25 40, 50 50 T 110 50"
                     fill="none"
-                    stroke="black"
-                    strokeWidth="0.1"
+                    stroke="white"
+                    strokeWidth="0.05"
                     animate={{
                       d: [
-                        "M0 50 Q 25 40, 50 50 T 100 50",
-                        "M0 50 Q 25 60, 50 50 T 100 50",
-                        "M0 50 Q 25 40, 50 50 T 100 50"
+                        "M-10 50 Q 25 40, 50 50 T 110 50",
+                        "M-10 50 Q 25 70, 50 50 T 110 50",
+                        "M-10 50 Q 25 40, 50 50 T 110 50"
                       ]
                     }}
-                    transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+                    transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
                   />
                 </svg>
               </div>
 
               <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 2, ease: "easeOut" }}
-                className="z-20"
+                initial={{ opacity: 0, y: 40 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 2, ease: [0.16, 1, 0.3, 1] }}
+                className="z-20 relative max-w-[90vw] md:max-w-4xl"
               >
-                <h1 className="text-[60px] font-serif mb-8 tracking-[0.3em] leading-tight drop-shadow-sm w-[700px] mx-auto">
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 0.4 }}
+                  transition={{ delay: 0.5, duration: 1.5 }}
+                  className="text-[10px] md:text-[12px] tracking-[0.8em] uppercase font-bold text-white mb-8 block"
+                >
+                  Mind & Matter / Mulpaism
+                </motion.div>
+                <h1 className="text-[40px] md:text-[80px] font-serif mb-10 tracking-[0.1em] md:tracking-[0.25em] leading-tight text-white drop-shadow-2xl font-light">
                   {t.hero.title}
                 </h1>
-                <p className="text-lg md:text-xl font-serif tracking-widest opacity-60 max-w-2xl mx-auto leading-relaxed">
+                <p className="text-base md:text-xl font-serif tracking-[0.2em] opacity-80 text-white max-w-2xl mx-auto leading-relaxed italic border-t border-white/10 pt-10">
                   {t.hero.subtitle}
                 </p>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 2, duration: 1 }}
-                className="absolute bottom-12 left-1/2 -translate-x-1/2 z-20"
-              >
-                <div className="w-px h-16 bg-black/20 animate-pulse" />
+                
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 1.2, duration: 1.5 }}
+                  className="mt-16"
+                >
+                  <button 
+                    onClick={() => {
+                      const el = document.getElementById('philosophy');
+                      if (el) el.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                    className="group flex flex-col items-center gap-4 mx-auto"
+                  >
+                    <span className="text-[9px] tracking-[0.6em] uppercase text-white opacity-40 group-hover:opacity-100 transition-opacity">Explore</span>
+                    <div className="w-px h-12 bg-white/20 group-hover:h-20 transition-all duration-700 ease-out" />
+                  </button>
+                </motion.div>
               </motion.div>
             </header>
 
-            {/* Content Sections */}
-            <Section id="philosophy" title={t.philosophy.title} text={t.philosophy.text} onMore={() => setPage('philosophy')} />
-            
-            <div className="h-px bg-black/5 mx-24" />
-
-            <Section id="art" title={t.art.title} text={t.art.text} onMore={() => setPage('art')} />
-
-            <div className="h-px bg-black/5 mx-24" />
-
-            <Section id="tea" title={t.tea.title} text={t.tea.text} onMore={() => setPage('tea')} />
-
-            {/* About Section */}
-            <section id="about" className="min-h-screen bg-[#1a1a1a] text-white flex flex-col justify-center px-6 md:px-24 py-24">
-              <motion.div
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                viewport={{ once: true }}
-                transition={{ duration: 1.5 }}
-                className="max-w-4xl"
-              >
-                <h2 className="text-sm tracking-[0.5em] uppercase opacity-40 mb-12">About Bulhanza</h2>
-                <p className="text-2xl md:text-4xl font-serif leading-relaxed tracking-wide opacity-80">
-                  {t.about.text}
-                </p>
-              </motion.div>
+            {/* Enhanced Philosophy Section */}
+            <section id="philosophy" className="relative min-h-[120vh] bg-white flex flex-col items-center justify-center py-32 overflow-hidden">
+              <div className="absolute top-20 left-10 md:left-24 opacity-[0.03] select-none pointer-events-none">
+                <span className="text-[15vw] md:text-[20vw] font-serif leading-none">心物</span>
+              </div>
+              <div className="absolute bottom-20 right-10 md:right-24 opacity-[0.03] select-none pointer-events-none">
+                <span className="text-[15vw] md:text-[20vw] font-serif leading-none">哲學</span>
+              </div>
+              
+              <div className="container mx-auto px-6 md:px-24 grid md:grid-cols-2 gap-20 items-center relative z-10">
+                <motion.div
+                  initial={{ opacity: 0, x: -50 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 1.2, ease: "easeOut" }}
+                  className="space-y-12"
+                >
+                  <div className="space-y-4">
+                    <span className="text-xs tracking-[0.5em] uppercase opacity-40 font-bold block">Section 01</span>
+                    <h2 className="text-[40px] md:text-[64px] font-serif tracking-widest leading-tight">
+                      {t.philosophy.title}
+                    </h2>
+                  </div>
+                  <p className="text-xl md:text-2xl font-serif leading-relaxed tracking-wide opacity-80 italic">
+                    {t.philosophy.text}
+                  </p>
+                  <div className="pt-8">
+                    <button 
+                      onClick={() => setPage('philosophy')}
+                      className="group relative inline-flex items-center gap-6 text-sm tracking-[0.6em] uppercase font-bold"
+                    >
+                      <span className="relative z-10">Read More</span>
+                      <div className="w-12 h-px bg-black group-hover:w-24 transition-all duration-500" />
+                    </button>
+                  </div>
+                </motion.div>
+                
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 1.5, ease: "easeOut" }}
+                  className="relative aspect-[3/4] md:aspect-square"
+                >
+                  <div className="absolute -inset-4 border border-black/5 -rotate-3" />
+                  <div className="absolute -inset-4 border border-black/5 rotate-3" />
+                  <img 
+                    src="https://images.unsplash.com/photo-1518640467707-6811f4a6ab73?auto=format&fit=crop&q=80&w=1000" 
+                    alt="Philosophy" 
+                    className="w-full h-full object-cover grayscale brightness-95"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="absolute inset-0 bg-white/10 mix-blend-overlay" />
+                </motion.div>
+              </div>
             </section>
+
+            {/* Enhanced Art Section */}
+            <section id="art" className="relative min-h-[120vh] bg-[#111] text-white py-32 flex items-center overflow-hidden">
+               {/* Background noise and texture */}
+              <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')]" />
+              
+              <div className="container mx-auto px-6 md:px-24 relative z-10">
+                <div className="grid md:grid-cols-12 gap-12 items-end">
+                  <div className="md:col-span-7">
+                    <motion.div
+                      initial={{ opacity: 0, y: 30 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 1 }}
+                      className="relative pb-20"
+                    >
+                      <img 
+                        src="https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&q=80&w=1200" 
+                        alt="Art Space" 
+                        className="w-full h-[60vh] object-cover grayscale opacity-50 contrast-125"
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="absolute -bottom-10 -right-10 md:-right-20 bg-white text-black p-12 md:p-16 max-w-md shadow-2xl">
+                        <span className="text-xs tracking-[0.4em] uppercase opacity-40 mb-6 block font-bold">Concept 02</span>
+                        <h2 className="text-[32px] md:text-[48px] font-serif tracking-[0.2em] mb-8 leading-tight">
+                          {t.art.title}
+                        </h2>
+                        <p className="text-lg font-serif tracking-widest opacity-70 leading-relaxed mb-8">
+                          {t.art.text}
+                        </p>
+                        <button 
+                          onClick={() => setPage('art')}
+                          className="text-xs tracking-[0.5em] uppercase font-bold border-b border-black pb-2 hover:opacity-50 transition-opacity"
+                        >
+                          Enter Space
+                        </button>
+                      </div>
+                    </motion.div>
+                  </div>
+                  
+                  <div className="md:col-span-5 md:pl-20 mt-20 md:mt-0">
+                    <motion.div
+                      initial={{ opacity: 0, y: 50 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 1.2, delay: 0.3 }}
+                      className="space-y-16"
+                    >
+                      <div className="w-px h-32 bg-white/20" />
+                      <div className="space-y-6">
+                        <p className="text-sm tracking-[0.3em] font-serif leading-loose opacity-60">
+                          {lang === 'KR' ? '예술은 형태가 아니라 파동입니다. 그 파동이 마음에 닿을 때 비로소 작품은 생명을 얻습니다. 고요한 공간 속에서 울려 퍼지는 내면의 소리에 집중해 보십시오.' : 
+                           lang === 'TC' ? '藝術非形也，乃波也。波動入心，則生共鳴。於寂靜之境，聽內心之音。' :
+                           'Art is not a form, but a wave. When it reaches the mind, it resonates and comes to life. Focus on the inner sound echoing in the silent space.'}
+                        </p>
+                        <div className="grid grid-cols-2 gap-4 opacity-40">
+                          <img src="https://images.unsplash.com/photo-1549490349-8643362247b5?auto=format&fit=crop&q=80&w=300" className="w-full aspect-square object-cover grayscale" referrerPolicy="no-referrer" />
+                          <img src="https://images.unsplash.com/photo-1518640467707-6811f4a6ab73?auto=format&fit=crop&q=80&w=300" className="w-full aspect-square object-cover grayscale" referrerPolicy="no-referrer" />
+                        </div>
+                      </div>
+                    </motion.div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Enhanced Tea Section */}
+            <section id="tea" className="relative min-h-screen bg-white flex items-center justify-center py-32 overflow-hidden">
+              <div className="absolute inset-0 md:left-[50%] overflow-hidden">
+                <img 
+                  src="/assets/tea_image.jpg" 
+                  alt="Tea" 
+                  className="w-full h-full object-cover grayscale opacity-[0.15] md:grayscale-0 md:opacity-100 transition-all duration-[5s] hover:scale-105"
+                  referrerPolicy="no-referrer"
+                />
+              </div>
+              
+              <div className="container mx-auto px-6 md:px-24 relative z-10">
+                <div className="max-w-xl bg-white/90 backdrop-blur-sm md:bg-white p-10 md:p-20 shadow-xl md:shadow-none border border-black/5">
+                  <motion.div
+                    initial={{ opacity: 0, x: -30 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 1 }}
+                    className="space-y-12"
+                  >
+                    <div className="space-y-6">
+                      <span className="text-[10px] tracking-[0.5em] uppercase font-bold opacity-40">The Essence 03</span>
+                      <h2 className="text-[40px] md:text-[64px] font-serif tracking-[0.15em] leading-tight">
+                        {t.tea.title}
+                      </h2>
+                    </div>
+                    
+                    <div className="w-12 h-px bg-black/40" />
+                    
+                    <p className="text-lg md:text-xl font-serif tracking-widest leading-relaxed opacity-80 italic">
+                      {t.tea.text}
+                    </p>
+                    
+                    <div className="pt-8">
+                      <button 
+                        onClick={() => setPage('tea')}
+                        className="text-xs tracking-[0.5em] uppercase font-bold px-10 py-5 bg-black text-white hover:bg-black/80 transition-all shadow-lg hover:shadow-black/20"
+                      >
+                        Discover Tea
+                      </button>
+                    </div>
+                  </motion.div>
+                </div>
+              </div>
+              
+              {/* Decorative text */}
+              <div className="absolute top-24 right-24 hidden lg:block select-none pointer-events-none opacity-5">
+                <span className="text-[120px] font-serif vertical-rl tracking-[0.5em]">弗寒仙茶</span>
+              </div>
+            </section>
+
+            {/* Enhanced About Section */}
+            <section id="about" className="relative min-h-screen bg-[#0a0a0a] text-white py-40 overflow-hidden">
+              <div className="container mx-auto px-6 md:px-24 flex flex-col items-center">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 1.5 }}
+                  className="max-w-5xl text-center space-y-20 relative"
+                >
+                  <div className="space-y-10">
+                    <h2 className="text-[10px] md:text-[12px] tracking-[1em] uppercase font-bold opacity-30 text-white">Behind the Silence</h2>
+                    <p className="text-[40px] leading-[56px] font-serif tracking-wide text-white font-light">
+                      {t.about.text}
+                    </p>
+                  </div>
+                  
+                  <div className="grid md:grid-cols-3 gap-12 pt-20 border-t border-white/5">
+                    <div className="space-y-4">
+                      <h4 className="text-[11px] tracking-[0.4em] uppercase font-bold opacity-30">Our Mission</h4>
+                      <p className="text-sm font-serif opacity-60 leading-relaxed tracking-[0.1em]">
+                        {lang === 'KR' ? '보이지 않는 것의 가치를 글과 그림, 그리고 차의 울림으로 전달합니다.' : 
+                         lang === 'TC' ? '透過筆、畫與茶的迴響，傳達無形之物的價值。' :
+                         'Conveying the value of the invisible through writing, painting, and the resonance of tea.'}
+                      </p>
+                    </div>
+                    <div className="space-y-4">
+                      <h4 className="text-[11px] tracking-[0.4em] uppercase font-bold opacity-30">The Philosophy</h4>
+                      <p className="text-sm font-serif opacity-60 leading-relaxed tracking-[0.1em]">
+                        {lang === 'KR' ? '심물철학은 마음과 사물이 하나임을 깨닫는 사유의 정점입니다.' : 
+                         lang === 'TC' ? '心物哲學是領悟心與物合一的思想巔峰。' :
+                         'Mind-Matter philosophy is the pinnacle of thought that realizes mind and matter are one.'}
+                      </p>
+                    </div>
+                    <div className="space-y-4">
+                      <h4 className="text-[11px] tracking-[0.4em] uppercase font-bold opacity-30">The Space</h4>
+                      <p className="text-sm font-serif opacity-60 leading-relaxed tracking-[0.1em]">
+                        {lang === 'KR' ? '물파공간은 그 사유가 예술로 형상화되는 거룩한 장소입니다.' : 
+                         lang === 'TC' ? '物波空間是將那種思維具象化為藝術的神聖場所。' :
+                         'Mulpa Space is a sacred place where such thoughts are shaped into art.'}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="pt-32 opacity-10 flex flex-col items-center gap-10">
+                     <div className="w-[2px] h-[36px] bg-white" />
+                     <img src="/assets/logo.png" alt="Bulhanza Logo" className="h-16 w-auto invert" referrerPolicy="no-referrer" />
+                  </div>
+                </motion.div>
+              </div>
+              
+              {/* Animated subtle shapes */}
+              <div className="absolute top-1/2 left-0 w-96 h-96 bg-white opacity-[0.01] rounded-full blur-[100px] -translate-x-1/2" />
+              <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-white opacity-[0.015] rounded-full blur-[120px] translate-x-1/3 translate-y-1/3" />
+            </section>
+
           </motion.div>
         ) : page === 'philosophy' ? (
           <PhilosophyPage key="philosophy" t={t} setPage={setPage} />
