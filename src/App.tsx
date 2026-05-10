@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Menu, X, Plus, Trash2, Edit2, ArrowLeft, Newspaper, Image as ImageIcon, Upload, ChevronLeft, ChevronRight, BookOpen, Settings } from 'lucide-react';
+import { Menu, X, Plus, Trash2, Edit2, ArrowLeft, Newspaper, Image as ImageIcon, Upload, ChevronLeft, ChevronRight, BookOpen, Settings, ChevronDown } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
@@ -87,10 +87,54 @@ interface Content {
   };
   tea: { title: string; text: string };
   teaDetail: {
-    headline: string;
-    core: string;
-    experience: string;
-    closing: string;
+    hero: {
+      title: string;
+      subtitle: string;
+      description: string;
+    };
+    features: {
+      title: string;
+      description: string;
+      items: {
+        title: string;
+        desc: string;
+      }[];
+    };
+    philosophy: {
+      title: string;
+      items: {
+        name: string;
+        desc: string;
+      }[];
+    };
+    invention: {
+      title: string;
+      author: string;
+      desc: string;
+      benefits: {
+        title: string;
+        desc: string;
+      }[];
+    };
+    innovation: {
+      title: string;
+      subtitle: string;
+      desc: string;
+    };
+    storage: {
+      title: string;
+      subtitle: string;
+      items: {
+        title: string;
+        desc: string;
+      }[];
+    };
+    usage: {
+      title: string;
+      desc: string;
+    };
+    pricing: string;
+    quote: string;
     final: string;
   };
   poetryCollection: {
@@ -242,11 +286,59 @@ const translations: Record<Language, Content> = {
       text: "차를 안다는 것은 차를 모른다는 것을 아는 데 있다. 불한선차는 알기 위한 차가 아니라 깨닫기 위한 차다."
     },
     teaDetail: {
-      headline: "불한선차(弗寒仙茶)\n알 수 없음 속에 깨닫는 차",
-      core: "이 차는 맛으로 정의되지 않는다.\n향으로도 설명되지 않는다.\n마음과 사물이 만나는 자리에서\n차는 비로소 드러난다.",
-      experience: "마시지 말고 머물러라\n느끼려 하지 말고 두어라\n차는 스스로 다가온다",
-      closing: "누가 차를 다 알 수 있으랴",
-      final: "“불한선차는 제품이 아니라 철학의 구현이다.”"
+      hero: {
+        title: "불한선차(弗寒仙茶): 2036",
+        subtitle: "천년의 양생, 한 알의 과학으로 깨어나다",
+        description: "과학과 양생이 빚은 바이오 티(Bio-Tea) 레볼루션. 사춘생 소장의 '사씨 보이차 스타틴' 발명과 천년의 양생 지혜."
+      },
+      features: {
+        title: "천년의 시간을 한 알의 과학으로 응축하다",
+        description: "불한선차는 단순한 기호 음료가 아닙니다. 동양의 수천 년 양생(養生) 지혜와 현대 생명과학 기술을 융합하여 탄생한 새로운 카테고리, '바이오-티(Bio-Tea)' 차까오(茶膏)입니다.",
+        items: [
+          { title: "과학적 검증", desc: "사춘생 소장의 '사씨 보이차 스타틴' 규명으로 입증된 우주인의 음료." },
+          { title: "제형의 혁신", desc: "20kg의 보이차를 1kg의 차고(茶膏)로 농축하여 환(丸)으로 정제." },
+          { title: "보관의 미학", desc: "숨 쉬는 도자 호리병을 통한 자연 숙성과 휴대 이동의 안성맞춤." }
+        ]
+      },
+      philosophy: {
+        title: "브랜드 철학: 불한(弗寒)과 선(仙), 차(茶) 미학",
+        items: [
+          { name: "불한(弗寒)", desc: "'차갑지도 뜨겁지도 않다'. 음양의 조화를 이루어 몸이 과열되거나 막히지 않는 건강한 중정(中正)의 상태. 자연스러운 항상성(Homeostasis)의 회복." },
+          { name: "선(仙)", desc: "신비주의가 아닌 '청심선화법(淸心仙化法)'. 마음을 맑게 하고 자연의 이치에 순응하여 삶의 질을 높이는 수행적 태도." },
+          { name: "차(茶)", desc: "보이차 전통의 정수인 차까오(茶膏)를 현대 생활에 간편한 환(丸)의 형태로 정제함으로써 휴대성을 높인 고품격의 차." }
+        ]
+      },
+      invention: {
+        title: "핵심 발명: '사씨 보이차 스타틴(Xie's Pu-erh Tea Statins)'",
+        author: "사춘생 소장",
+        desc: "숙성된 보이차 내에서 인체에 유익한 천연 스타틴계 화합물을 최초로 규명.",
+        benefits: [
+          { title: "대사 조절", desc: "체내 대사 활동 촉진 및 조절" },
+          { title: "체질 개선", desc: "불균형한 신체 리듬을 바로잡음" },
+          { title: "소화 보조", desc: "위장 기능을 돕고 소화를 촉진" }
+        ]
+      },
+      innovation: {
+        title: "보이차의 혁신: 차고(茶膏)의 정수, 환(丸)으로 다시 태어나다",
+        subtitle: "한 알의 차(丸)로 천년의 차맥을 잇다",
+        desc: "번거로운 다구(茶具)와 우림 과정 없이, 바쁜 현대인이 일상 속에서 가장 간편하게 섭취할 수 있는 고품격 차 양생법."
+      },
+      storage: {
+        title: "보관의 미학: 숨 쉬는 도자 호리병",
+        subtitle: "도자 호리병: 생명을 담는 그릇",
+        items: [
+          { title: "숨 쉬는 소재", desc: "플라스틱이나 금속과 달리, 도자의 미세한 기공이 차가 숨 쉬게 하여 변질을 막습니다." },
+          { title: "자연 숙성", desc: "시간이 지날수록 보이차의 풍미와 효능이 안정되고 맛이 깊어집니다." },
+          { title: "상징성", desc: "기운을 모으는 호리병 형상은 생명을 담는 그릇이자 이동성을 상징합니다." }
+        ]
+      },
+      usage: {
+        title: "음용 방법: 일상 속의 간편한 양생",
+        desc: "1일 1~2환을 권장합니다. 하루 한 두알, 따뜻한 물에 녹여 드시거나 가족과 벗들 함께 드십시오. 휴대하기 편한 호리병으로 언제 어디서나 품격을 유지할 수 있습니다."
+      },
+      pricing: "공급가: 198,000원",
+      quote: "차는 동방문화의 정수이자 품격입니다. 우리는 단순히 차를 파는것이 아니라, 자연의 질서로 돌아가 생명을 기르는 지혜를 제안합니다.",
+      final: "사춘생 소장의 과학적 발명과 한국의 차마고도 문경 불한령의 정신이 만나, 한국 차 문화의 새로운 기준을 제시합니다."
     },
     poetryCollection: {
       title: "라석시집 (Lasok Poetry Collection)",
@@ -403,11 +495,59 @@ const translations: Record<Language, Content> = {
       text: "知茶者，知其不可知。 弗寒仙茶， 非為知而飲， 乃為覺而存。"
     },
     teaDetail: {
-      headline: "弗寒仙茶\n靜於不知之茶",
-      core: "此茶，不以味定，\n亦不以香述。\n心物相會之際，\n茶乃顯現。",
-      experience: "勿飲而止\n勿求而任\n茶自來矣",
-      closing: "誰能盡知茶乎",
-      final: "“弗寒仙茶非產品，乃哲學之體現。”"
+      hero: {
+        title: "弗寒仙茶 (Bulhan Suncha)",
+        subtitle: "科學與養生締造的 Bio-Tea 革命",
+        description: "謝春生所長的 '謝氏普洱茶他汀' 發明與千年的養生智慧相結合而誕生。"
+      },
+      features: {
+        title: "將千年的時間濃縮為一丸科學",
+        description: "弗寒仙茶不僅僅是簡單的嗜好飲料。它是融合了東方數千年的養生智慧與現代生命科學技術而誕生的高級 'Bio-Tea 茶膏'。",
+        items: [
+          { title: "科學驗證", desc: "謝春生所長的 '謝氏普洱茶他汀' 鑒定所證實的宇航員飲品。" },
+          { title: "劑型創新", desc: "將 20kg 普洱茶濃縮為 1kg 茶膏，精製成丸劑。" },
+          { title: "保存美學", desc: "通過透氣的陶瓷葫蘆瓶進行自然熟成，完美適配攜帶移動。" }
+        ]
+      },
+      philosophy: {
+        title: "品牌哲學：弗寒、仙、茶美學",
+        items: [
+          { name: "弗寒", desc: "'不冷不熱'。達到陰陽調和，使身體不致過熱或阻塞的健康中正狀態。恢復自然恆常性（Homeostasis）。" },
+          { name: "仙", desc: "並非神秘主義，而是 '清心仙化法'。淨化心靈，順應自然之理，提升生活品質的修行態度。" },
+          { name: "茶", desc: "將普洱茶傳統之精華——茶膏，精製成現代生活中簡便的丸劑形態，提升攜帶性的高規格茶。" }
+        ]
+      },
+      invention: {
+        title: "核心發明：'謝氏普洱茶他汀'",
+        author: "謝春生所長",
+        desc: "首次在熟成普洱茶中鑒定出對人體有益的天然他汀類化合物。",
+        benefits: [
+          { title: "代謝調節", desc: "促進及調節體內代謝活動" },
+          { title: "體質改善", desc: "糾正失衡的身體律動" },
+          { title: "助消化", desc: "輔助胃腸功能，促進消化" }
+        ]
+      },
+      innovation: {
+        title: "普洱茶的創新：茶膏之精華，重生為丸",
+        subtitle: "一丸千年 (One Pellet, A Thousand Years!)",
+        desc: "無需繁瑣的茶具與沖泡過程，是忙碌的現代人在日常生活中最簡便攝取的高規格茶養生法。"
+      },
+      storage: {
+        title: "保存美學：會呼吸的陶瓷葫蘆瓶",
+        subtitle: "陶瓷葫蘆：生命之器",
+        items: [
+          { title: "透氣材質", desc: "陶瓷的微孔讓茶呼吸，防止變質並加深風味。" },
+          { title: "自然熟成", desc: "隨著時間流逝，普洱茶的風味與功效趨於穩定，味道愈發深厚。" },
+          { title: "象徵性", desc: "匯聚氣息的葫蘆形狀是盛載生命的容器，也象徵著便攜性。" }
+        ]
+      },
+      usage: {
+        title: "飲用方法：日常生活中的簡便養生",
+        desc: "建議每日 1~2 丸。每日一兩丸，溶解於溫水中飲用或與家人好友一同分享。攜帶方便的葫蘆瓶讓您隨時隨地保持高雅品味。"
+      },
+      pricing: "供應價：198,000 韓元",
+      quote: "茶是東方文化的精髓與格調。我們不僅是在賣茶，而是提出了回歸自然秩序、滋養生命的智慧。",
+      final: "謝春生所長的科學發明與韓國茶馬古道聞慶弗寒嶺的精神相結合，為韓國茶文化樹立了新標準。"
     },
     poetryCollection: {
       title: "羅石詩集 (Lasok Poetry Collection)",
@@ -564,11 +704,59 @@ const translations: Record<Language, Content> = {
       text: "To know tea is to know that it cannot be fully known. Bulhan Tea is not for knowing. It is for dwelling."
     },
     teaDetail: {
-      headline: "Bulhan Immortal Tea,\nA Tea Beyond Knowing",
-      core: "This tea is not defined by taste,\nnor described by aroma.\nIt reveals itself\nwhere mind and matter meet.",
-      experience: "Do not try to drink it.\nDo not try to grasp it.\nLet it come to you.",
-      closing: "Who can fully know tea?",
-      final: "“Bulhan Tea is not a product, but an embodiment of philosophy.”"
+      hero: {
+        title: "Bulhan Suncha: 2036",
+        subtitle: "Millennium of Wellness, Awakened by Science",
+        description: "A Bio-Tea Revolution of Science and Wellness. Director Xie Chun-sheng's invention of 'Xie's Pu-erh Tea Statins' meets a thousand years of wisdom."
+      },
+      features: {
+        title: "Condensing a Millennium into a Single Pellet",
+        description: "Bulhan Suncha is not just a favorite beverage. It is a new category, 'Bio-Tea Paste (Cha-go)', created by fusing thousands of years of Oriental wellness wisdom with modern life science technology.",
+        items: [
+          { title: "Scientific Validation", desc: "An astronaut's drink proven by the identification of 'Xie's Pu-erh Tea Statins' by Director Xie." },
+          { title: "Form Innovation", desc: "20kg of premium Pu-erh tea concentrated into 1kg of tea paste (Cha-go) and refined into pellets." },
+          { title: "Aesthetics of Storage", desc: "Natural aging through breathing ceramic gourd bottles, perfect for portability." }
+        ]
+      },
+      philosophy: {
+        title: "Philosophy: Bulhan, Seon, and Tea Aesthetics",
+        items: [
+          { name: "Bulhan", desc: "'Neither cold nor hot'. A healthy state of balance where the body is not overheated or blocked. Restoring natural homeostasis." },
+          { name: "Seon", desc: "A meditative attitude of clearing the mind and conforming to the laws of nature to improve quality of life." },
+          { name: "Tea", desc: "High-quality tea made portable by refining the essence of traditional Pu-erh tea paste into simple modern pellets." }
+        ]
+      },
+      invention: {
+        title: "Core Invention: 'Xie's Pu-erh Tea Statins'",
+        author: "Director Xie Chun-sheng",
+        desc: "First identification of beneficial natural statin compounds in aged Pu-erh tea.",
+        benefits: [
+          { title: "Metabolic Regulation", desc: "Promotion and regulation of metabolic activities." },
+          { title: "Constitution Improvement", desc: "Correcting imbalanced physical rhythms." },
+          { title: "Digestion Aid", desc: "Assisting gastrointestinal function and promoting digestion." }
+        ]
+      },
+      innovation: {
+        title: "Innovation: Essence of Tea Paste, Reborn as Pellet",
+        subtitle: "One Pellet, A Thousand Years of Tea Lineage",
+        desc: "A high-quality tea wellness method that allows busy modern people to easily consume tea without cumbersome tea tools or brewing processes."
+      },
+      storage: {
+        title: "Aesthetics of Storage: Breathing Ceramic Gourd",
+        subtitle: "Ceramic Gourd: A Vessel of Life",
+        items: [
+          { title: "Breathing Material", desc: "Unlike plastic or metal, micro-pores in the ceramic allow the tea to breathe, preventing spoilage." },
+          { title: "Natural Aging", desc: "Flavor and efficacy stabilize and deepen as time passes." },
+          { title: "Symbolism", desc: "The gourd shape, which gathers energy, represents a vessel of life and portability." }
+        ]
+      },
+      usage: {
+        title: "How to Use: Simple Wellness in Daily Life",
+        desc: "1-2 pellets a day recommended. Dissolve 1-2 pellets in warm water or enjoy with family and friends. Maintain elegance anywhere with the portable gourd bottle."
+      },
+      pricing: "Price: 198,000 KRW",
+      quote: "Tea is the essence and dignity of Oriental culture. We do not just sell tea; we propose the wisdom of nurturing life by returning to the order of nature.",
+      final: "Director Xie's scientific invention meets the spirit of Bulhan-ryeong in Mungyeong, establishing a new standard for Korean tea culture."
     },
     poetryCollection: {
       title: "Lasok Poetry Collection",
@@ -1134,96 +1322,298 @@ const ImageSlider = ({ images, speed = 3 }: { images: string[]; speed: number })
   );
 };
 
-const TeaDetailPage = ({ t, setPage, currentTeaImage, siteSettings }: { t: any; setPage: (p: Page) => void; currentTeaImage: string; siteSettings: SiteSettings | null }) => (
-  <motion.div 
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    exit={{ opacity: 0 }}
-    className="bg-[#fdfdfd]"
-  >
-    {/* Hero Section */}
-    <header className="relative h-[80vh] flex flex-col items-center justify-center text-center px-6 overflow-hidden">
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 1.5 }}
-        className="z-10"
-      >
-        <h1 className="text-4xl md:text-6xl font-serif mb-6 tracking-[0.2em] leading-tight whitespace-pre-line">
-          {t.teaDetail.headline}
-        </h1>
-      </motion.div>
-    </header>
+const TeaDetailPage = ({ t, setPage, currentTeaImage, siteSettings }: { t: any; setPage: (p: Page) => void; currentTeaImage: string; siteSettings: SiteSettings | null }) => {
+  const tea = t.teaDetail;
+  
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="bg-[#fcfbf9] text-[#1a1a1a] selection:bg-black selection:text-white"
+    >
+      {/* Hero Section */}
+      <header className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden py-24">
+        <div className="absolute inset-0 z-0">
+          <img 
+            src={currentTeaImage} 
+            alt="Bulhan Suncha" 
+            className="w-full h-full object-cover grayscale opacity-[0.1] scale-110"
+            referrerPolicy="no-referrer"
+          />
+        </div>
+        
+        <div className="container mx-auto px-6 relative z-10 flex flex-col items-center text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1.2 }}
+            className="space-y-8 max-w-4xl"
+          >
+            <div className="inline-block px-4 py-1 border border-black/10 rounded-full text-[10px] tracking-[0.4em] uppercase font-bold mb-4">
+              Bio-Tea Revolution
+            </div>
+            <h1 className="text-5xl md:text-8xl font-serif tracking-tighter leading-none mb-6">
+              {tea.hero.title}
+            </h1>
+            <p className="text-xl md:text-2xl font-serif tracking-widest opacity-60 max-w-2xl mx-auto italic">
+              {tea.hero.subtitle}
+            </p>
+            <div className="w-12 h-px bg-black/20 mx-auto my-12" />
+            <p className="text-lg md:text-xl font-serif leading-relaxed tracking-wide opacity-80 max-w-2xl mx-auto">
+              {tea.hero.description}
+            </p>
+          </motion.div>
+        </div>
+        
+        <div className="absolute bottom-12 left-1/2 -translate-x-1/2 opacity-20 animate-bounce">
+          <ChevronDown size={32} />
+        </div>
+      </header>
 
-    {/* Core Description */}
-    <section className="py-32 px-6 md:px-24 flex flex-col md:flex-row items-center gap-16">
-      <div className="flex-1">
-        <motion.p 
-          initial={{ opacity: 0, x: -20 }}
-          whileInView={{ opacity: 1, x: 0 }}
-          viewport={{ once: true }}
-          className="text-2xl md:text-3xl font-serif leading-relaxed tracking-widest whitespace-pre-line opacity-80"
+      {/* Science & Discovery Section */}
+      <section className="py-32 bg-white overflow-hidden">
+        <div className="container mx-auto px-6 md:px-24">
+          <div className="grid lg:grid-cols-2 gap-24 items-center">
+            <motion.div
+              initial={{ opacity: 0, x: -50 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 1 }}
+              className="space-y-12"
+            >
+              <div className="space-y-4">
+                <span className="text-[10px] tracking-[0.5em] uppercase font-bold opacity-30">The Discovery</span>
+                <h2 className="text-4xl md:text-6xl font-serif leading-tight">
+                  {tea.invention.title}
+                </h2>
+              </div>
+              
+              <div className="space-y-6">
+                <p className="text-xl font-serif italic opacity-60">By {tea.invention.author}</p>
+                <p className="text-lg md:text-xl leading-relaxed opacity-80">
+                  {tea.invention.desc}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-8">
+                {tea.invention.benefits.map((benefit: any, idx: number) => (
+                  <div key={idx} className="space-y-4 p-6 bg-[#f9f9f9] border border-black/5 hover:border-black/20 transition-all">
+                    <h4 className="text-xs tracking-widest font-bold uppercase">{benefit.title}</h4>
+                    <p className="text-xs opacity-50 leading-relaxed font-serif">{benefit.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 1.5 }}
+              className="relative aspect-square"
+            >
+              <div className="absolute inset-0 border border-black/5 -rotate-3" />
+              <img 
+                src="https://images.unsplash.com/photo-1576086213369-97a306d36557?auto=format&fit=crop&q=80&w=1000" 
+                alt="Science Discovery" 
+                className="w-full h-full object-cover grayscale brightness-90"
+                referrerPolicy="no-referrer"
+              />
+              <div className="absolute -bottom-10 -right-10 w-48 h-48 bg-black p-8 flex items-center justify-center text-white text-center">
+                <p className="text-[9px] tracking-[0.3em] font-bold uppercase leading-relaxed">Verified for Space Exploration</p>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* Process Section - 20kg to 1kg */}
+      <section className="py-32 bg-[#1a1a1a] text-white">
+        <div className="container mx-auto px-6 md:px-24">
+          <div className="max-w-4xl mx-auto text-center space-y-16">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="space-y-6"
+            >
+              <h2 className="text-3xl md:text-5xl font-serif tracking-widest leading-tight">
+                {tea.features.title}
+              </h2>
+              <p className="text-lg md:text-xl font-serif opacity-50 tracking-widest">
+                {tea.features.description}
+              </p>
+            </motion.div>
+
+            <div className="grid md:grid-cols-3 gap-12 text-left">
+              {tea.features.items.map((item: any, idx: number) => (
+                <motion.div
+                  key={idx}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: idx * 0.2 }}
+                  className="space-y-6 p-8 border border-white/5 hover:bg-white/5 transition-all group"
+                >
+                  <div className="w-8 h-8 rounded-full border border-white/20 flex items-center justify-center text-[10px] group-hover:bg-white group-hover:text-black transition-all">
+                    0{idx + 1}
+                  </div>
+                  <h3 className="text-xl font-serif tracking-widest">{item.title}</h3>
+                  <p className="text-sm opacity-40 leading-relaxed font-light">{item.desc}</p>
+                </motion.div>
+              ))}
+            </div>
+            
+            <div className="pt-24 opacity-10">
+               <p className="text-7xl md:text-[120px] font-serif leading-none tracking-tighter">20KG → 1KG</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Philosophy Section */}
+      <section className="py-32 bg-white">
+        <div className="container mx-auto px-6 md:px-24">
+          <div className="grid lg:grid-cols-2 gap-24 items-start">
+            <div className="sticky top-32 space-y-8">
+              <span className="text-[10px] tracking-[0.5em] uppercase font-bold opacity-30">Brand Essence</span>
+              <h2 className="text-5xl md:text-7xl font-serif leading-tight">
+                {tea.philosophy.title}
+              </h2>
+              <div className="w-12 h-px bg-black" />
+            </div>
+
+            <div className="space-y-24">
+              {tea.philosophy.items.map((item: any, idx: number) => (
+                <motion.div
+                  key={idx}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  className="space-y-8 pb-12 border-b border-black/5 last:border-0"
+                >
+                  <h3 className="text-3xl md:text-4xl font-serif tracking-widest">{item.name}</h3>
+                  <p className="text-lg md:text-xl font-serif leading-relaxed opacity-60 tracking-wide">
+                    {item.desc}
+                  </p>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Storage Section */}
+      <section className="py-32 bg-[#f9f9f9]">
+        <div className="container mx-auto px-6 md:px-24">
+          <div className="grid md:grid-cols-2 gap-20 items-center">
+            <motion.div
+               initial={{ opacity: 0, scale: 0.95 }}
+               whileInView={{ opacity: 1, scale: 1 }}
+               viewport={{ once: true }}
+               className="relative aspect-[3/4] md:aspect-square group overflow-hidden"
+            >
+              <img 
+                src="/assets/ceramic_gourd_new.jpg" 
+                alt="Ceramic Gourd" 
+                className="w-full h-full object-cover grayscale transition-all duration-[3s] group-hover:scale-110"
+                referrerPolicy="no-referrer"
+              />
+              <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-all duration-[2s]" />
+            </motion.div>
+
+            <div className="space-y-16">
+              <div className="space-y-4">
+                <span className="text-[10px] tracking-[0.5em] uppercase font-bold opacity-30">{tea.storage.subtitle}</span>
+                <h2 className="text-4xl md:text-6xl font-serif leading-tight">
+                  {tea.storage.title}
+                </h2>
+              </div>
+
+              <div className="space-y-10">
+                {tea.storage.items.map((item: any, idx: number) => (
+                  <motion.div
+                    key={idx}
+                    initial={{ opacity: 0, x: 20 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: idx * 0.1 }}
+                    className="flex gap-8 group"
+                  >
+                    <div className="text-xs font-mono opacity-20 group-hover:opacity-100 transition-opacity">0{idx + 1}</div>
+                    <div className="space-y-2">
+                       <h4 className="text-lg font-serif tracking-widest">{item.title}</h4>
+                       <p className="text-sm font-serif opacity-50 leading-relaxed">{item.desc}</p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Final Section */}
+      <section className="py-48 bg-white border-b border-black/5">
+        <div className="container mx-auto px-6 text-center max-w-4xl space-y-20">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="space-y-12"
+          >
+            <p className="text-2xl md:text-4xl font-serif leading-[1.6] tracking-widest opacity-80 italic">
+              "{tea.quote}"
+            </p>
+            <div className="tracking-[0.4em] uppercase font-bold opacity-30" style={{ color: '#081473', fontSize: '23px', lineHeight: '18px', fontFamily: 'Times New Roman' }}>— Son Lasok Ph.D.</div>
+          </motion.div>
+
+          <div className="space-y-10">
+            <h3 className="text-2xl md:text-3xl font-serif tracking-[0.3em] font-light">
+               {tea.final}
+            </h3>
+            <p className="text-xl md:text-2xl font-serif font-bold tracking-[0.2em] pt-12">
+               {tea.pricing}
+            </p>
+          </div>
+
+          <div className="pt-24 space-y-8">
+            <h4 className="text-[10px] tracking-[0.5em] uppercase font-bold opacity-30">{tea.usage.title}</h4>
+            <p className="text-lg font-serif opacity-60 leading-relaxed tracking-wide max-w-xl mx-auto">
+              {tea.usage.desc}
+            </p>
+          </div>
+
+          <motion.div 
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="pt-24"
+          >
+            <img 
+              src="/assets/tea_usage_bottom.jpg" 
+              alt="Tea Usage" 
+              className="w-full max-w-4xl mx-auto rounded-lg shadow-2xl grayscale hover:grayscale-0 transition-all duration-1000"
+              referrerPolicy="no-referrer"
+            />
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Back Button */}
+      <div className="py-24 text-center">
+        <button 
+          onClick={() => setPage('home')}
+          className="group relative inline-flex flex-col items-center gap-4"
         >
-          {t.teaDetail.core}
-        </motion.p>
+          <span className="text-xs tracking-[0.6em] uppercase font-bold opacity-40 group-hover:opacity-100 transition-opacity">Back to Main</span>
+          <div className="w-12 h-px bg-black opacity-20 group-hover:opacity-100 group-hover:w-24 transition-all duration-500" />
+        </button>
       </div>
-      <div className="flex-1 w-full h-[500px] overflow-hidden shadow-2xl">
-        <img 
-          src={currentTeaImage} 
-          alt="Bulhansuncha Tea"
-          referrerPolicy="no-referrer"
-          className="w-full h-full object-cover hover:scale-105 transition-all duration-1000"
-        />
-      </div>
-    </section>
-
-    {/* Experience Description */}
-    <section className="py-32 px-6 md:px-24 bg-[#1a1a1a] text-white text-center">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        whileInView={{ opacity: 1, scale: 1 }}
-        viewport={{ once: true }}
-        className="max-w-3xl mx-auto"
-      >
-        <p className="text-2xl md:text-4xl font-serif leading-loose tracking-[0.2em] whitespace-pre-line opacity-90">
-          {t.teaDetail.experience}
-        </p>
-      </motion.div>
-    </section>
-
-    {/* Closing & Final */}
-    <section className="py-48 px-6 text-center">
-      <motion.div
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true }}
-        className="max-w-2xl mx-auto"
-      >
-        <ImageSlider 
-          images={siteSettings?.tea_slider_images || []} 
-          speed={siteSettings?.tea_slider_speed || 3} 
-        />
-        <h3 className="text-3xl md:text-5xl font-serif tracking-[0.3em] mb-24 opacity-80 whitespace-nowrap">
-          {t.teaDetail.closing}
-        </h3>
-        <div className="w-16 h-px bg-black/20 mx-auto mb-24" />
-        <p className="text-xl md:text-3xl font-serif tracking-widest leading-relaxed opacity-60">
-          {t.teaDetail.final}
-        </p>
-      </motion.div>
-    </section>
-
-    {/* Back Button */}
-    <div className="pb-24 text-center">
-      <button 
-        onClick={() => setPage('home')}
-        className="text-sm tracking-[0.5em] uppercase opacity-40 hover:opacity-100 transition-opacity border-b border-black/20 pb-2"
-      >
-        Back to Main
-      </button>
-    </div>
-  </motion.div>
-);
+    </motion.div>
+  );
+};
 
 
 // ArchivePage removed as requested
