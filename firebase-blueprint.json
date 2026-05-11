@@ -1,0 +1,59 @@
+{
+  "entities": {
+    "SiteSettings": {
+      "title": "Site Settings",
+      "description": "Global settings for the application layout and contact info",
+      "type": "object",
+      "properties": {
+        "logo_url": { "type": "string" },
+        "hero_bg_url": { "type": "string" },
+        "tea_detail_url": { "type": "string" },
+        "hero_title": { "type": "string" },
+        "hero_subtitle": { "type": "string" },
+        "tea_slider_images": { 
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "tea_slider_speed": { "type": "number" },
+        "artists": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "role": { "type": "string" },
+              "bio": { "type": "string" },
+              "image": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "ArchiveItem": {
+      "title": "Archive Item",
+      "description": "Art, poetry, or other archival items",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "summary": { "type": "string" },
+        "content": { "type": "string" },
+        "category": { "type": "string" },
+        "image_url": { "type": "string" },
+        "poetry_collection_name": { "type": "string" },
+        "language": { "type": "string", "enum": ["KR", "TC", "EN"] },
+        "created_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "category", "language"]
+    }
+  },
+  "firestore": {
+    "site_settings": {
+      "schema": "SiteSettings",
+      "description": "Collection containing global site settings (usually just one document)"
+    },
+    "archive_items": {
+      "schema": "ArchiveItem",
+      "description": "Collection of all archival items"
+    }
+  }
+}

@@ -7,9 +7,9 @@ import remarkBreaks from 'remark-breaks';
 import { supabase } from './lib/supabase';
 import { SAMPLE_ARCHIVE_ITEMS } from './lib/seedData';
 
-const bulhansunchaImg = 'https://images.unsplash.com/photo-1594631252845-29fc4cc8cde9?auto=format&fit=crop&q=80&w=1920';
-const mountainsImg = '/assets/mountains.jpg';
-const logoImg = '/assets/logo.png';
+const bulhansunchaImg = '/assets/tea_detail_bg_new.jpg';
+const mountainsImg = '/assets/hero_bg_custom.jpg';
+const logoImg = '/assets/logo_custom.jpg';
 const DEFAULT_IMAGE = '/assets/logo.png';
 
 type Language = 'KR' | 'TC' | 'EN';
@@ -22,7 +22,7 @@ interface ArchiveItem {
   summary: string;
   image_url: string;
   created_at: string;
-  poetry_collection_name?: string;
+  poetry_collection_name?: string | null;
   language?: Language;
 }
 
@@ -336,8 +336,8 @@ const translations: Record<Language, Content> = {
         title: "음용 방법: 일상 속의 간편한 양생",
         desc: "1일 1~2환을 권장합니다. 하루 한 두알, 따뜻한 물에 녹여 드시거나 가족과 벗들 함께 드십시오. 휴대하기 편한 호리병으로 언제 어디서나 품격을 유지할 수 있습니다."
       },
-      pricing: "공급가: 198,000원",
-      quote: "차는 동방문화의 정수이자 품격입니다. 우리는 단순히 차를 파는것이 아니라, 자연의 질서로 돌아가 생명을 기르는 지혜를 제안합니다.",
+      pricing: "",
+      quote: "차는\n 동방문화의 정수이자 품격입니다. 과도한 가공을 배제하고 시간과 자연이 빚어낸 정수만을 전하겠습니다.",
       final: "사춘생 소장의 과학적 발명과 한국의 차마고도 문경 불한령의 정신이 만나, 한국 차 문화의 새로운 기준을 제시합니다."
     },
     poetryCollection: {
@@ -754,8 +754,8 @@ const translations: Record<Language, Content> = {
         title: "How to Use: Simple Wellness in Daily Life",
         desc: "1-2 pellets a day recommended. Dissolve 1-2 pellets in warm water or enjoy with family and friends. Maintain elegance anywhere with the portable gourd bottle."
       },
-      pricing: "Price: 198,000 KRW",
-      quote: "Tea is the essence and dignity of Oriental culture. We do not just sell tea; we propose the wisdom of nurturing life by returning to the order of nature.",
+      pricing: "",
+      quote: "Tea is\n the essence and dignity of Oriental culture. We will deliver only the essence created by time and nature, excluding excessive processing.",
       final: "Director Xie's scientific invention meets the spirit of Bulhan-ryeong in Mungyeong, establishing a new standard for Korean tea culture."
     },
     poetryCollection: {
@@ -1415,7 +1415,7 @@ const TeaDetailPage = ({ t, setPage, currentTeaImage, siteSettings }: { t: any; 
             >
               <div className="absolute inset-0 border border-black/5 -rotate-3" />
               <img 
-                src="https://images.unsplash.com/photo-1576086213369-97a306d36557?auto=format&fit=crop&q=80&w=1000" 
+                src="/assets/science_discovery_new.jpg" 
                 alt="Science Discovery" 
                 className="w-full h-full object-cover grayscale brightness-90"
                 referrerPolicy="no-referrer"
@@ -1573,9 +1573,6 @@ const TeaDetailPage = ({ t, setPage, currentTeaImage, siteSettings }: { t: any; 
             <h3 className="text-2xl md:text-3xl font-serif tracking-[0.3em] font-light">
                {tea.final}
             </h3>
-            <p className="text-xl md:text-2xl font-serif font-bold tracking-[0.2em] pt-12">
-               {tea.pricing}
-            </p>
           </div>
 
           <div className="pt-24 space-y-8">
@@ -1891,6 +1888,11 @@ const AdminDashboard = ({
     
     setIsUploading(true);
     try {
+      if (!supabase) {
+        alert("Supabase 설정이 되어 있지 않습니다. .env 파일이나 호스팅 환경 변수를 확인해주세요.");
+        return;
+      }
+      
       const payload = {
         logo_url: activeSettings.logo_url || '',
         hero_bg_url: activeSettings.hero_bg_url || '',
@@ -1908,7 +1910,6 @@ const AdminDashboard = ({
         
         if (!error && data) {
           setSiteSettings(data);
-          // Sync local state with the newly saved data
           setSettingsData({
             logo_url: data.logo_url,
             hero_bg_url: data.hero_bg_url,
@@ -1919,10 +1920,9 @@ const AdminDashboard = ({
           setTimeout(() => setShowSuccess(false), 2000);
         } else if (error) {
           console.error("Supabase Save Error:", error);
-          alert(`Failed to save: ${error.message}`);
+          alert(`저장 실패: ${error.message}`);
         }
       } else {
-        // Check if any record exists before inserting to prevent duplicates
         const { data: existing } = await supabase.from('site_settings').select('id').limit(1);
         
         if (existing && existing.length > 0) {
@@ -1943,9 +1943,10 @@ const AdminDashboard = ({
             });
             setShowSuccess(true);
             setTimeout(() => setShowSuccess(false), 2000);
+          } else if (updateErr) {
+            alert(`업데이트 실패: ${updateErr.message}`);
           }
         } else {
-          // Truly no record, insert new
           const { data, error } = await supabase
             .from('site_settings')
             .insert([payload])
@@ -1964,19 +1965,23 @@ const AdminDashboard = ({
             setTimeout(() => setShowSuccess(false), 2000);
           } else if (error) {
             console.error("Supabase Create Error:", error);
-            alert(`Failed to create settings: ${error.message}`);
+            alert(`생성 실패: ${error.message}`);
           }
         }
       }
     } catch (err: any) {
       console.error("Error saving settings:", err);
-      alert("Failed to save settings. Error: " + (err.message || String(err)));
+      alert("설정 저장 중 오류가 발생했습니다: " + (err.message || "알 수 없는 오류"));
     } finally {
       setIsUploading(false);
     }
   };
 
   const seedArchive = async () => {
+    if (!supabase) {
+      alert("DB 연결 정보가 없습니다.");
+      return;
+    }
     if (!confirm("모든 샘플 데이터를 아카이브에 추가하시겠습니까?")) return;
     setIsUploading(true);
     try {
@@ -1986,14 +1991,14 @@ const AdminDashboard = ({
         .select();
       
       if (!error && data) {
-        setArchiveItems(prev => [...data, ...prev]);
+        setArchiveItems(prev => [...data as ArchiveItem[], ...prev]);
         alert("샘플 데이터가 성공적으로 복구되었습니다.");
       } else {
         throw error;
       }
     } catch (err) {
       console.error("Seeding failed:", err);
-      alert("데이터 복구에 실패했습니다. DB 테이블이 생성되어 있는지 확인해주세요.");
+      alert("데이터 복구에 실패했습니다.");
     } finally {
       setIsUploading(false);
     }
@@ -2075,10 +2080,12 @@ const AdminDashboard = ({
     
     try {
       const submissionData = {
-        ...formData,
-        category: 'poetry', // Hidden default to satisfy DB constraint
+        title: formData.title,
+        content: formData.content,
+        summary: formData.summary,
+        category: 'poetry', // Hidden default to satisfy logic
         image_url: formData.image_url.trim() || DEFAULT_IMAGE,
-        poetry_collection_name: formData.poetry_collection_name || undefined,
+        poetry_collection_name: formData.poetry_collection_name || null,
         language: formData.language || 'KR'
       };
 
@@ -2105,7 +2112,7 @@ const AdminDashboard = ({
         if (error) throw error;
         if (!data) throw new Error("No data returned from insert");
 
-        setArchiveItems(prev => [data[0], ...prev]);
+        setArchiveItems(prev => [data[0] as ArchiveItem, ...prev]);
         setIsAdding(false);
         
         setShowSuccess(true);
@@ -2121,6 +2128,7 @@ const AdminDashboard = ({
   };
 
   const deleteItem = async (id: string) => {
+    if (!supabase) return;
     try {
       const { error } = await supabase.from('archive_items').delete().eq('id', id);
       if (error) throw error;
@@ -2128,7 +2136,7 @@ const AdminDashboard = ({
       setDeleteConfirmId(null);
     } catch (err) {
       console.error("Delete failed:", err);
-      alert("Failed to delete item. Please check your connection.");
+      alert("삭제에 실패했습니다.");
     }
   };
 
@@ -2968,9 +2976,15 @@ export default function App() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Fetch Site Settings and Archive Items
+  // Reset scroll to top on page change
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    setIsMenuOpen(false); // Close mobile menu on navigation as well
+  }, [page]);
+
   useEffect(() => {
     const initData = async () => {
+      if (!supabase) return;
       // Fetch Settings - Resiliently pick one and cleanup duplicates
       const { data: settingsList, error: settingsError } = await supabase
         .from('site_settings')
@@ -2992,9 +3006,9 @@ export default function App() {
         const { data: newSettings } = await supabase
           .from('site_settings')
           .insert([{ 
-            logo_url: '/assets/logo.png', 
-            hero_bg_url: '/assets/hero-bg.jpg', 
-            tea_detail_url: 'https://images.unsplash.com/photo-1594631252845-29fc4cc8cde9?auto=format&fit=crop&q=80&w=1920',
+            logo_url: '/assets/logo_custom.jpg', 
+            hero_bg_url: '/assets/hero_bg_custom.jpg', 
+            tea_detail_url: '/assets/tea_detail_bg_new.jpg',
             artists: translations.KR.artDetail.artists
           }])
           .select()
@@ -3011,7 +3025,7 @@ export default function App() {
         .order('created_at', { ascending: false });
       
       if (!archiveError && archive) {
-        setArchiveItems(archive);
+        setArchiveItems(archive as ArchiveItem[]);
       }
     };
 
