@@ -7,13 +7,13 @@ import remarkBreaks from 'remark-breaks';
 import { supabase } from './lib/supabase';
 import { SAMPLE_ARCHIVE_ITEMS } from './lib/seedData';
 
-const bulhansunchaImg = '/assets/tea_detail_bg_new.jpg';
-const mountainsImg = '/assets/hero_bg_custom.jpg';
-const logoImg = '/assets/logo_custom.jpg';
+const bulhansunchaImg = '/assets/bulhansuncha_v2.jpg';
+const mountainsImg = '/assets/mountains_v2.jpg';
+const logoImg = '/assets/logo_v2.jpg';
 const DEFAULT_IMAGE = '/assets/logo.png';
 
 type Language = 'KR' | 'TC' | 'EN';
-type Page = 'home' | 'tea' | 'contact' | 'philosophy' | 'admin' | 'art' | 'poetryCollection' | 'dashboard' | 'archive' | 'collection' | 'artist' | 'about';
+type Page = 'home' | 'tea' | 'journey' | 'contact' | 'philosophy' | 'admin' | 'art' | 'poetryCollection' | 'dashboard' | 'archive' | 'collection' | 'artist' | 'about';
 
 interface ArchiveItem {
   id: string;
@@ -21,7 +21,7 @@ interface ArchiveItem {
   content: string;
   summary: string;
   image_url: string;
-  created_at: string;
+  created_at?: string;
   poetry_collection_name?: string | null;
   language?: Language;
 }
@@ -39,6 +39,9 @@ interface SiteSettings {
 interface Work {
   title: string;
   image: string;
+  size?: string;
+  introduction?: string;
+  criticism?: string;
 }
 
 interface Artist {
@@ -67,8 +70,9 @@ interface Content {
     subtitle: string;
     tabs: {
       intro: string;
-      philosophy: string;
+      mulpaism: string;
       artist: string;
+      philosophy: string;
     };
     intro: string;
     principles: {
@@ -161,8 +165,9 @@ interface Content {
     about: string;
     philosophy: string;
     art: string;
-    tea: string;
     poetryCollection: string;
+    tea: string;
+    journey: string;
     contact: string;
   };
 }
@@ -209,8 +214,9 @@ const translations: Record<Language, Content> = {
       subtitle: "21세기의 새로운 예술철학",
       tabs: {
         intro: "소개",
-        philosophy: "물파주의",
-        artist: "작가"
+        mulpaism: "물파주의",
+        artist: "작가",
+        philosophy: "물파철학"
       },
       intro: "물파미학은 마음(心)과 사물(物)이 분리되어 있지 않다는 '심물철학(心物哲學)'을 바탕으로, 예술을 단순한 대상의 재현이나 내면의 표현이 아니라 '마음과 사물이 만나 일으키는 파동(波)의 응축과 공명'으로 보는 새로운 예술철학입니다.",
       principles: [
@@ -287,7 +293,7 @@ const translations: Record<Language, Content> = {
     },
     teaDetail: {
       hero: {
-        title: "불한선차(弗寒仙茶): 2036",
+        title: "불한선차(弗寒仙茶)",
         subtitle: "천년의 양생, 한 알의 과학으로 깨어나다",
         description: "과학과 양생이 빚은 바이오 티(Bio-Tea) 레볼루션. 사춘생 소장의 '사씨 보이차 스타틴' 발명과 천년의 양생 지혜."
       },
@@ -348,10 +354,10 @@ const translations: Record<Language, Content> = {
         EN: "영문"
       },
       KR: [
-        "1. 라석시전집", "2. 라석심물시집", "3. 라석심물철학시집", "4. 라석천자문시집", "5. 라석역학시집", "6. 라석화답시집", "7. 불한시사합작시집"
+        "1. 라석시전집", "2. 라석심물시집", "3. 라석심물철학시집", "4. 라석천자문시집", "5. 라석역학시집", "6. 라석화답시집", "7. 불한시사합작시집", "물파철학", "불한선차 시", "라석여정 - 활동사진", "라석여정 - 언론보도"
       ],
       TC: [
-        "1. 羅石東夷文詩集", "2. 羅石心物詩集", "3. 羅石心物哲學詩集", "4. 羅石和答詩集", "5. 羅石道德經詩集"
+        "1. 羅石東夷文詩集", "2. 羅石心物詩集", "3. 羅石心物哲學詩集", "4. 羅石和答詩集", "5. 羅石道德經詩集", "物波哲學", "弗寒仙茶 詩", "羅石旅程 - 活動照片", "羅石旅程 - 媒體報導"
       ],
       EN: [
         "1. Lasok's Complete Poetry Collection",
@@ -361,7 +367,11 @@ const translations: Record<Language, Content> = {
         "5. Lasok's I Ching Poetry Collection",
         "6. Lasok's Responsive Poetry Collection",
         "7. Bulhan Poetry Society Collaborative Poetry Collection",
-        "8. Lasok's Tao Te Ching Poetry Collection"
+        "8. Lasok's Tao Te Ching Poetry Collection",
+        "Mulpa Philosophy",
+        "Bulhan Seoncha Poem",
+        "Lasok Journey - Activity Photos",
+        "Lasok Journey - Media Press"
       ]
     },
     contact: {
@@ -380,8 +390,9 @@ const translations: Record<Language, Content> = {
       about: "소개",
       philosophy: "심물철학",
       art: "물파공간",
-      tea: "불한선차",
       poetryCollection: "라석시집",
+      tea: "불한선차",
+      journey: "라석여정",
       contact: "문의"
     }
   },
@@ -418,8 +429,9 @@ const translations: Record<Language, Content> = {
       subtitle: "21世紀的新藝術哲學",
       tabs: {
         intro: "介紹",
-        philosophy: "物波主義",
-        artist: "作家"
+        mulpaism: "物波主義",
+        artist: "作家",
+        philosophy: "物波哲學"
       },
       intro: "物波美學以「心物哲學」為基礎，認為心與物並非分離。藝術並非單純的對象再現或內在表現，而是「心與物相遇所產生的波動（波）之凝聚與共鳴」。",
       principles: [
@@ -557,10 +569,10 @@ const translations: Record<Language, Content> = {
         EN: "英文"
       },
       KR: [
-        "1. 라석시전집", "2. 라석심물시집", "3. 라석심물철학시집", "4. 라석천자문시집", "5. 라석역학시집", "6. 라석화답시집", "7. 불한시사합작시집"
+        "1. 라석시전집", "2. 라석심물시집", "3. 라석심물철학시집", "4. 라석천자문시집", "5. 라석역학시집", "6. 라석화답시집", "7. 불한시사합작시집", "물파철학", "불한선차 시", "라석여정 - 활동사진", "라석여정 - 언론보도"
       ],
       TC: [
-        "1. 羅石東夷文詩集", "2. 羅石心物詩集", "3. 羅石心物哲學詩集", "4. 羅石和答詩集", "5. 羅石道德經詩集"
+        "1. 羅石東夷文詩集", "2. 羅石心物詩集", "3. 羅石心物哲學詩集", "4. 羅石和答詩集", "5. 羅石道德經詩集", "物波哲學", "弗寒仙茶 詩", "羅石旅程 - 活動照片", "羅石旅程 - 媒體報導"
       ],
       EN: [
         "1. Lasok's Complete Poetry Collection",
@@ -570,7 +582,11 @@ const translations: Record<Language, Content> = {
         "5. Lasok's I Ching Poetry Collection",
         "6. Lasok's Responsive Poetry Collection",
         "7. Bulhan Poetry Society Collaborative Poetry Collection",
-        "8. Lasok's Tao Te Ching Poetry Collection"
+        "8. Lasok's Tao Te Ching Poetry Collection",
+        "Mulpa Philosophy",
+        "Bulhan Seoncha Poem",
+        "Lasok Journey - Activity Photos",
+        "Lasok Journey - Media Press"
       ]
     },
     contact: {
@@ -589,8 +605,9 @@ const translations: Record<Language, Content> = {
       about: "關於",
       philosophy: "心物哲學",
       art: "物波空間",
-      tea: "弗寒仙茶",
       poetryCollection: "羅石詩集",
+      tea: "弗寒仙茶",
+      journey: "羅石旅程",
       contact: "聯絡"
     }
   },
@@ -628,8 +645,9 @@ const translations: Record<Language, Content> = {
       intro: "Based on 'Mind-Matter Philosophy' which posits that mind (心) and matter (物) are inseparable, Mulpa Aesthetics views art not as mere representation or expression, but as the 'condensation and resonance of waves (波) created when mind and matter meet.'",
       tabs: {
         intro: "Intro",
-        philosophy: "Mulpaism",
-        artist: "Artist"
+        mulpaism: "Mulpaism",
+        artist: "Artist",
+        philosophy: "Mulpa Philosophy"
       },
       principles: [
         {
@@ -705,7 +723,7 @@ const translations: Record<Language, Content> = {
     },
     teaDetail: {
       hero: {
-        title: "Bulhan Suncha: 2036",
+        title: "Bulhan Suncha",
         subtitle: "Millennium of Wellness, Awakened by Science",
         description: "A Bio-Tea Revolution of Science and Wellness. Director Xie Chun-sheng's invention of 'Xie's Pu-erh Tea Statins' meets a thousand years of wisdom."
       },
@@ -766,10 +784,10 @@ const translations: Record<Language, Content> = {
         EN: "English"
       },
       KR: [
-        "1. 라석시전집", "2. 라석심물시집", "3. 라석심물철학시집", "4. 라석천자문시집", "5. 라석역학시집", "6. 라석화답시집", "7. 불한시사합작시집"
+        "1. 라석시전집", "2. 라석심물시집", "3. 라석심물철학시집", "4. 라석천자문시집", "5. 라석역학시집", "6. 라석화답시집", "7. 불한시사합작시집", "물파철학", "불한선차 시", "라석여정 - 활동사진", "라석여정 - 언론보도"
       ],
       TC: [
-        "1. 羅石東夷文詩集", "2. 羅石心物詩集", "3. 羅石心物哲學詩集", "4. 羅石和答詩集", "5. 羅石道德經詩集"
+        "1. 羅石東夷文詩集", "2. 羅石心物詩集", "3. 羅石心物哲學詩集", "4. 羅石和答詩集", "5. 羅石道德經詩集", "物波哲學", "弗寒仙茶 詩", "羅石旅程 - 活動照片", "羅石旅程 - 媒體報導"
       ],
       EN: [
         "1. Lasok's Complete Poetry Collection",
@@ -779,7 +797,11 @@ const translations: Record<Language, Content> = {
         "5. Lasok's I Ching Poetry Collection",
         "6. Lasok's Responsive Poetry Collection",
         "7. Bulhan Poetry Society Collaborative Poetry Collection",
-        "8. Lasok's Tao Te Ching Poetry Collection"
+        "8. Lasok's Tao Te Ching Poetry Collection",
+        "Mulpa Philosophy",
+        "Bulhan Seoncha Poem",
+        "Lasok Journey - Activity Photos",
+        "Lasok Journey - Media Press"
       ]
     },
     contact: {
@@ -798,8 +820,9 @@ const translations: Record<Language, Content> = {
       about: "About",
       philosophy: "Philosophy",
       art: "MULPAISM",
-      tea: "Tea",
       poetryCollection: "Collection",
+      tea: "Tea",
+      journey: "Journey",
       contact: "Contact"
     }
   }
@@ -952,11 +975,38 @@ const PhilosophyPage = ({ t, setPage }: { t: any; setPage: (p: Page) => void }) 
   </motion.div>
 );
 
-const ArtDetailPage = ({ t, setPage, siteSettings }: { t: any; setPage: (p: Page) => void; siteSettings: SiteSettings | null }) => {
-  const [activeTab, setActiveTab] = useState<'intro' | 'mulpaism' | 'artist'>('intro');
+const ArtDetailPage = ({ t, setPage, siteSettings, archiveItems }: { t: any; setPage: (p: Page) => void; siteSettings: SiteSettings | null; archiveItems: ArchiveItem[] }) => {
+  const [activeTab, setActiveTab] = useState<'intro' | 'mulpaism' | 'artist' | 'philosophy'>('intro');
   const [galleryState, setGalleryState] = useState<{ artist: Artist; index: number } | null>(null);
+  const [readingItem, setReadingItem] = useState<ArchiveItem | null>(null);
 
   const artists = siteSettings?.artists || t.artDetail.artists || [];
+  const activeLang = t.nav.about === '소개' ? 'KR' : t.nav.about === '關於' ? 'TC' : 'EN';
+  
+  const philosophyItems = archiveItems.filter(item => {
+    const colName = item.poetry_collection_name;
+    const isPhilosophyCollection = colName === '물파철학' || colName === '物波哲學' || colName === 'Mulpa Philosophy';
+    return isPhilosophyCollection && item.language === activeLang;
+  });
+
+  let displayPhilosophyItems = philosophyItems;
+  if (displayPhilosophyItems.length === 0) {
+    displayPhilosophyItems = DEFAULT_PHILOSOPHY_ITEMS.filter(item => item.language === activeLang);
+  }
+
+  useEffect(() => {
+    if (activeTab === 'philosophy') {
+      if (displayPhilosophyItems.length > 0) {
+        if (!readingItem || !displayPhilosophyItems.some(item => item.id === readingItem.id)) {
+          setReadingItem(displayPhilosophyItems[0]);
+        }
+      } else {
+        setReadingItem(null);
+      }
+    } else {
+      setReadingItem(null);
+    }
+  }, [activeTab, activeLang, displayPhilosophyItems]);
 
   return (
     <motion.div 
@@ -1003,13 +1053,19 @@ const ArtDetailPage = ({ t, setPage, siteSettings }: { t: any; setPage: (p: Page
             onClick={() => setActiveTab('mulpaism')}
             className={`text-[16px] leading-[18px] tracking-[0.4em] uppercase transition-all pb-2 border-b ${activeTab === 'mulpaism' ? 'border-black opacity-100 font-bold' : 'border-transparent opacity-40 hover:opacity-100'}`}
           >
-            {t.artDetail.tabs.philosophy}
+            {t.artDetail.tabs.mulpaism}
           </button>
           <button 
             onClick={() => setActiveTab('artist')}
             className={`text-[16px] leading-[18px] tracking-[0.4em] uppercase transition-all pb-2 border-b ${activeTab === 'artist' ? 'border-black opacity-100 font-bold' : 'border-transparent opacity-40 hover:opacity-100'}`}
           >
             {t.artDetail.tabs.artist}
+          </button>
+          <button 
+            onClick={() => setActiveTab('philosophy')}
+            className={`text-[16px] leading-[18px] tracking-[0.4em] uppercase transition-all pb-2 border-b ${activeTab === 'philosophy' ? 'border-black opacity-100 font-bold' : 'border-transparent opacity-40 hover:opacity-100'}`}
+          >
+            {t.artDetail.tabs.philosophy}
           </button>
         </div>
       </nav>
@@ -1118,71 +1174,126 @@ const ArtDetailPage = ({ t, setPage, siteSettings }: { t: any; setPage: (p: Page
               />
             </div>
           </motion.div>
-        ) : (
+        ) : activeTab === 'artist' ? (
           <motion.div
             key="artist"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="py-32 px-6 md:px-24 max-w-7xl mx-auto"
+            className="py-20 md:py-32 px-4 md:px-8 max-w-5xl mx-auto space-y-36"
           >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-              {artists.map((artist: Artist, idx: number) => (
-                <motion.div 
-                  key={idx}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: idx * 0.1 }}
-                  className="bg-white border border-black/5 p-8 flex flex-col space-y-8 group hover:shadow-2xl transition-all duration-500"
-                >
-                  {/* Profile Header */}
-                  <div className="flex gap-6 items-center">
-                    <div className="w-24 h-24 shrink-0 overflow-hidden bg-gray-50 border border-black/5">
-                      <img 
-                        src={artist.image} 
-                        alt={artist.name} 
-                        className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700" 
-                        referrerPolicy="no-referrer"
-                      />
-                    </div>
-                    <div className="space-y-1 overflow-hidden">
-                      <h3 className="text-xl md:text-2xl font-serif text-black whitespace-nowrap">{artist.name}</h3>
-                      <p className="text-[10px] tracking-[0.3em] uppercase opacity-40 font-bold text-black truncate">{artist.title}</p>
-                    </div>
-                  </div>
+            {artists.map((artist: Artist, idx: number) => (
+              <motion.div 
+                key={idx}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-100px" }}
+                transition={{ duration: 1 }}
+                className="border-b border-black/5 pb-28 last:border-b-0 last:pb-0"
+              >
+                {/* 1. 작가명 (Artist Name) & 타이틀 */}
+                <div className="text-center space-y-3 mb-8">
+                  <h3 className="text-3xl md:text-5xl font-serif tracking-[0.2em] font-light text-black">
+                    {artist.name}
+                  </h3>
+                  <p className="text-[10px] md:text-xs uppercase tracking-[0.4em] text-slate-400 font-bold">
+                    {artist.title}
+                  </p>
+                </div>
 
-                  {/* Bio */}
-                  <div className="flex-1">
-                    <div className="w-8 h-px bg-black/10 mb-6" />
-                    <p className="text-sm font-serif leading-relaxed opacity-60 text-justify text-black min-h-[100px]">
-                      {artist.bio}
-                    </p>
-                  </div>
+                {/* 2. 작가 프로필 (Artist Profile / Bio) */}
+                <div className="max-w-2xl mx-auto text-center px-4 md:px-0 mb-12">
+                  <div className="w-12 h-[2px] bg-black/10 mx-auto mb-8" />
+                  <p className="text-sm md:text-base font-serif leading-loose text-slate-600 whitespace-pre-line text-justify md:text-center">
+                    {artist.bio}
+                  </p>
+                </div>
 
-                  {/* Works Grid */}
-                  <div className="space-y-4">
-                    <p className="text-[8px] tracking-[0.4em] uppercase opacity-30 font-bold">Featured Works</p>
-                    <div className="grid grid-cols-4 gap-2">
-                      {artist.works.slice(0, 4).map((work, wIdx) => (
+                {/* 3. 작가의 사진 (이미지 크게 표현) */}
+                <div className="w-full max-w-4xl mx-auto mb-20 px-2">
+                  <div className="aspect-[4/3] sm:aspect-[16/10] overflow-hidden bg-slate-50 border border-black/5 relative group shadow-sm transition-all duration-700 hover:shadow-md">
+                    <img 
+                      src={artist.image} 
+                      alt={artist.name} 
+                      className="w-full h-full object-cover grayscale brightness-95 group-hover:grayscale-0 group-hover:scale-[1.01] transition-all duration-[1.2s]" 
+                      referrerPolicy="no-referrer"
+                    />
+                  </div>
+                  <p className="text-[9px] tracking-[0.3em] font-mono text-slate-300 text-center uppercase mt-3">
+                    Artist Portrait — {artist.name}
+                  </p>
+                </div>
+
+                {/* 4. Works (각 작품이미지 / 작품명, 크기 / 작품소개 / 비평글) */}
+                <div className="space-y-16 mt-28 pt-16 border-t border-black/[0.04]">
+                  <div className="text-center mb-16">
+                    <span className="text-[10px] tracking-[0.6em] uppercase font-semibold text-slate-400">WORKS</span>
+                  </div>
+                  <div className="space-y-32 max-w-4xl mx-auto">
+                    {artist.works.map((work, wIdx) => (
+                      <motion.div 
+                        key={wIdx} 
+                        initial={{ opacity: 0, y: 30 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true, margin: "-100px" }}
+                        transition={{ duration: 1 }}
+                        className="grid grid-cols-1 md:grid-cols-12 gap-12 items-start border-b border-black/[0.03] pb-24 last:border-0 last:pb-0 group"
+                      >
+                        {/* 작품 이미지 */}
                         <div 
-                          key={wIdx} 
-                          className="aspect-square overflow-hidden bg-gray-50 cursor-pointer"
                           onClick={() => setGalleryState({ artist, index: wIdx })}
+                          className="md:col-span-7 aspect-[4/3] sm:aspect-[16/12] overflow-hidden bg-[#fdfdfd] border border-black/5 flex items-center justify-center p-6 relative group cursor-pointer shadow-sm hover:shadow-lg transition-all duration-750"
                         >
                           <img 
                             src={work.image} 
                             alt={work.title} 
-                            className="w-full h-full object-cover grayscale hover:grayscale-0 hover:scale-110 transition-all duration-500" 
+                            className="max-h-full max-w-full object-contain transition-transform duration-[1s] group-hover:scale-[1.03]" 
                             referrerPolicy="no-referrer"
                           />
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/[0.01] transition-colors" />
                         </div>
-                      ))}
-                    </div>
+                        {/* 작품 상세 정보 */}
+                        <div className="md:col-span-5 space-y-6 flex flex-col pt-2 h-full justify-between select-text cursor-default">
+                          <div className="space-y-4">
+                            <div className="space-y-2">
+                              <h4 
+                                onClick={() => setGalleryState({ artist, index: wIdx })}
+                                className="text-2xl font-serif text-black tracking-tight leading-snug cursor-pointer hover:text-[#5c4033] transition-colors"
+                              >
+                                {work.title}
+                              </h4>
+                              {work.size && (
+                                <p className="text-[11px] font-mono tracking-widest text-[#a89f91] uppercase">
+                                  {work.size}
+                                </p>
+                              )}
+                            </div>
+                            
+                            {work.introduction && (
+                              <div className="space-y-2 border-t border-black/5 pt-4">
+                                <span className="text-[9px] tracking-[0.2em] uppercase font-bold text-[#b5a690] block">작품 소개 / Introduction</span>
+                                <p className="text-sm font-serif text-slate-700 leading-relaxed whitespace-pre-line text-justify">
+                                  {work.introduction}
+                                </p>
+                              </div>
+                            )}
+
+                            {work.criticism && (
+                              <div className="space-y-2 border-t border-black/5 pt-4">
+                                <span className="text-[9px] tracking-[0.2em] uppercase font-bold text-[#b5a690] block">비평 / Commentary</span>
+                                <p className="text-xs font-serif text-slate-500 leading-relaxed whitespace-pre-line italic text-justify bg-gray-50/50 p-4 border-l-2 border-[#d3c2b0]">
+                                  {work.criticism}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
                   </div>
-                </motion.div>
-              ))}
-            </div>
+                </div>
+              </motion.div>
+            ))}
 
             {/* Modal for Work Viewing with Slider */}
             <AnimatePresence>
@@ -1245,27 +1356,171 @@ const ArtDetailPage = ({ t, setPage, siteSettings }: { t: any; setPage: (p: Page
                         exit={{ opacity: 0, scale: 1.05 }}
                         transition={{ duration: 0.3 }}
                         src={galleryState.artist.works[galleryState.index].image}
-                        className="max-w-full max-h-[80vh] object-contain shadow-2xl"
+                        className="max-w-full max-h-[70vh] object-contain shadow-2xl"
                         referrerPolicy="no-referrer"
                       />
                     </div>
 
                     {/* Meta Info */}
-                    <div className="text-center mt-8 space-y-2">
-                      <h4 className="text-white text-xl md:text-2xl font-serif">
+                    <div className="text-center mt-6 max-w-2xl px-6 space-y-3 pb-8 text-white select-text">
+                      <h4 className="text-2xl font-serif tracking-wide text-white">
                         {galleryState.artist.works[galleryState.index].title}
                       </h4>
-                      <p className="text-white/40 text-[10px] tracking-[0.4em] uppercase font-bold">
-                        {galleryState.artist.name}
-                      </p>
-                      <p className="text-white/20 text-[9px] font-mono">
-                        {galleryState.index + 1} / {galleryState.artist.works.length}
-                      </p>
+                      {galleryState.artist.works[galleryState.index].size && (
+                        <p className="text-xs font-mono text-white/40 tracking-widest uppercase">
+                          {galleryState.artist.works[galleryState.index].size}
+                        </p>
+                      )}
+                      
+                      {galleryState.artist.works[galleryState.index].introduction && (
+                        <p className="text-xs font-serif text-white/70 leading-relaxed max-w-prose mx-auto text-center">
+                          {galleryState.artist.works[galleryState.index].introduction}
+                        </p>
+                      )}
+                      {galleryState.artist.works[galleryState.index].criticism && (
+                        <div className="pt-3 border-t border-white/10 max-w-prose mx-auto text-justify">
+                          <span className="text-[8px] tracking-[0.2em] uppercase font-bold text-white/30 block mb-1 text-center">Commentary</span>
+                          <p className="text-[11px] italic font-serif text-white/50 leading-relaxed">
+                            {galleryState.artist.works[galleryState.index].criticism}
+                          </p>
+                        </div>
+                      )}
+                      
+                      <div className="pt-4">
+                        <span className="text-[9px] tracking-[0.4em] uppercase text-white/40 font-bold block">
+                          {galleryState.artist.name}
+                        </span>
+                        <span className="text-[9px] text-white/20 font-mono">
+                          {galleryState.index + 1} / {galleryState.artist.works.length}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </motion.div>
               )}
             </AnimatePresence>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="philosophy"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="py-16 px-6 md:px-24 max-w-7xl mx-auto"
+          >
+            <div className="text-center mb-16 space-y-4">
+              <span className="text-[10px] tracking-[0.5em] uppercase font-bold opacity-30">MULPA PHILOSOPHY</span>
+              <h2 className="text-3xl md:text-5xl font-serif tracking-tight text-black">
+                {t.artDetail.tabs.philosophy}
+              </h2>
+              <div className="w-12 h-px bg-black/10 mx-auto pt-4" />
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+              {/* Left Column: Title list */}
+              <div className="lg:col-span-4 bg-white p-6 border border-black/5 shadow-sm rounded flex flex-col h-[600px]">
+                <h3 className="text-xs font-bold tracking-[0.3em] uppercase opacity-40 mb-6 border-b border-black/5 pb-3">
+                  {activeLang === 'KR' ? '철학 글 목차' : activeLang === 'TC' ? '哲學 文章 目錄' : 'Table of Contents'} ({displayPhilosophyItems.length})
+                </h3>
+                <div className="flex-1 overflow-y-auto pr-2 space-y-3 scrollbar-hide">
+                  {displayPhilosophyItems.map((item, idx) => (
+                    <button
+                      key={item.id}
+                      onClick={() => setReadingItem(item)}
+                      className={`w-full flex items-center justify-between p-4 transition-all duration-300 text-left border rounded ${
+                        readingItem?.id === item.id
+                          ? 'bg-[#1a1a1a] text-white border-black shadow'
+                          : 'bg-[#faf9f6] text-black border-black/5 hover:border-black/20 hover:bg-[#f6f4ed]'
+                      }`}
+                    >
+                      <div className="flex items-center gap-4 min-w-0 pr-2">
+                        <span className={`text-[10px] font-mono opacity-40 ${readingItem?.id === item.id ? 'text-white' : 'text-black'}`}>
+                          {(idx + 1).toString().padStart(2, '0')}
+                        </span>
+                        <span className="font-serif text-base truncate">
+                          {item.title}
+                        </span>
+                      </div>
+                      <div className={`w-3 h-px transition-all duration-300 shrink-0 ${readingItem?.id === item.id ? 'bg-white/40 w-6' : 'bg-black/10'}`} />
+                    </button>
+                  ))}
+                  {displayPhilosophyItems.length === 0 && (
+                    <div className="text-center py-12 text-slate-400 font-serif italic text-sm">
+                      {activeLang === 'KR' ? '내용을 준비 중입니다.' : activeLang === 'TC' ? '內容準備中。' : 'Coming soon.'}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Right Column: Reading view styled like the declaration/manifesto box */}
+              <div className="lg:col-span-8">
+                {readingItem ? (
+                  <motion.div
+                    key={readingItem.id}
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                    className="bg-white border border-black/5 p-8 md:p-12 shadow-sm rounded relative min-h-[600px] flex flex-col justify-between overflow-hidden"
+                  >
+                    <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
+                      <BookOpen size={160} strokeWidth={0.5} />
+                    </div>
+
+                    <div className="relative z-10 space-y-8 pr-4">
+                      <div className="border-b border-black/5 pb-6">
+                        <h3 className="text-2xl md:text-3xl font-serif text-black leading-tight mb-2">
+                          {readingItem.title}
+                        </h3>
+                        {readingItem.summary && (
+                          <p className="text-xs tracking-widest uppercase opacity-40 font-mono mt-2">
+                            {readingItem.summary}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Manifesto style view with custom typography and spacing */}
+                      <div className="font-serif text-base md:text-lg leading-loose text-black/80 whitespace-pre-wrap pl-4 border-l-2 border-black/10">
+                        <ReactMarkdown 
+                          remarkPlugins={[remarkGfm, remarkBreaks]}
+                          components={{
+                            p: ({ children }) => <div className="mb-6 text-justify leading-relaxed">{children}</div>,
+                          }}
+                        >
+                          {readingItem.content}
+                        </ReactMarkdown>
+                      </div>
+                    </div>
+
+                    {readingItem.image_url && (
+                      <div className="mt-8 relative h-48 overflow-hidden rounded border border-black/5 shadow-inner">
+                        <img 
+                          src={readingItem.image_url} 
+                          alt={readingItem.title}
+                          className="w-full h-full object-cover grayscale opacity-95 hover:grayscale-0 transition-all duration-700"
+                          referrerPolicy="no-referrer"
+                        />
+                      </div>
+                    )}
+
+                    <div className="mt-8 pt-6 border-t border-black/5 flex justify-between items-center text-[10px] tracking-widest font-bold uppercase opacity-30">
+                      <span>Mulpa Aesthetics</span>
+                      <span>Mind-Matter Philosophy</span>
+                    </div>
+                  </motion.div>
+                ) : (
+                  <div className="h-full min-h-[600px] border border-dashed border-black/10 rounded flex flex-col items-center justify-center text-center p-12 bg-white/50">
+                    <BookOpen className="opacity-10 mb-4" size={64} strokeWidth={0.5} />
+                    <p className="text-lg font-serif italic opacity-30">
+                      {activeLang === 'KR' 
+                        ? '왼쪽 목차에서 글을 선택하여 읽어보세요.' 
+                        : activeLang === 'TC' 
+                          ? '請在左側目錄中選擇文章閱讀。' 
+                          : 'Select an article from the table of contents to read.'}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -1322,8 +1577,513 @@ const ImageSlider = ({ images, speed = 3 }: { images: string[]; speed: number })
   );
 };
 
-const TeaDetailPage = ({ t, setPage, currentTeaImage, siteSettings }: { t: any; setPage: (p: Page) => void; currentTeaImage: string; siteSettings: SiteSettings | null }) => {
+const DEFAULT_TEA_POEMS: ArchiveItem[] = [
+  {
+    id: '8b6931fb-bf9f-431e-bf11-c91ffb9ea0fc',
+    title: '불한선차의 아침',
+    summary: '불한령의 깊은 솔바람과 이슬을 담아 빚은 선차의 노래.',
+    content: '### 불한선차의 아침\n\n문경 불한령의 깊은 안개 걷히고\n맑은 이슬 한 모금,\n초의선사의 숨결 어리니\n찻잔 속 푸른 물파가 일렁인다.\n\n한 알의 불한선차,\n뜨거운 물에 온전히 나를 풀 때\n우주가 먼저 머물고\n마음은 마침내 만물과 하나 되니\n\n비우고 가득 채운들 어떠하리\n한 잔의 향기가 온 누리에 스미는데.',
+    image_url: 'https://images.unsplash.com/photo-1594631252845-29fc4cc8cde9?auto=format&fit=crop&q=80&w=1200',
+    poetry_collection_name: '불한선차 시',
+    language: 'KR'
+  },
+  {
+    id: 'a43ffb9e-c88f-49ff-bc11-a88f7b7cbfe1',
+    title: '弗寒仙茶之晨',
+    summary: '吟詠聞慶弗寒嶺高潔松風與甘露所釀製的仙茶之美。',
+    content: '### 弗寒仙茶之晨\n\n聞慶弗寒嶺的深霧初開\n清晨的一口甘露\n彷彿草衣禪師的呼吸悄立\n茶盞中碧綠的物波正蕩漾。\n\n一粒弗寒仙茶\n當它在熱水中全然釋放自己\n宇宙已然為之駐足\n而心，終與萬物化為一體。\n\n空無或充盈，又有何妨\n這一杯淡雅之香早已滲透乾坤。',
+    image_url: 'https://images.unsplash.com/photo-1594631252845-29fc4cc8cde9?auto=format&fit=crop&q=80&w=1200',
+    poetry_collection_name: '弗寒仙茶 詩',
+    language: 'TC'
+  },
+  {
+    id: '678d8a7c-cfd9-43ef-ba88-e92ffbb1ee8c',
+    title: 'Elegance of Bulhan Seoncha',
+    summary: 'A poetic dedication to the calming energy and cosmic waves of Bulhan Seoncha.',
+    content: '### Elegance of Bulhan Seoncha\n\nDeep in the mists of Bulhan-ryeong,\nWhere the sacred dew descends,\nThe soul of Master Cho-ui breathes\nAs water and leaf unite as friends.\n\nOne tiny pellet of Seoncha,\nDissolving in the boiling stream,\nSpreads the cosmic wave of peace\nLike a gentle, timeless dream.\n\nEmpty or full,\nIt matters no more,\nFor the scent of tea\nRestores the earth\'s floor.',
+    image_url: 'https://images.unsplash.com/photo-1594631252845-29fc4cc8cde9?auto=format&fit=crop&q=80&w=1200',
+    poetry_collection_name: 'Bulhan Seoncha Poem',
+    language: 'EN'
+  }
+];
+
+const DEFAULT_PHILOSOPHY_ITEMS: ArchiveItem[] = [
+  {
+    id: 'f93cb566-5e58-45ec-9aef-4fb10efb8b20',
+    title: '물파주의 선언문 (物波主義 宣言文)',
+    summary: '물파미학의 출발점을 알리는 역사적 선언문.',
+    content: '### 물파주의 선언문 (物波主義 宣言文)\n\n20세기는 과학문명의 눈부신 성과에도 불구하고 정신문명은 오히려 쇠퇴의 길을 걸어왔습니다.\n\n물파주의(Mulpaism) 예술이란 **心物論(심물론)**에 근거한 동양 서예정신과 문인화 정신에 입각한 **선의 예술**입니다. 한마디로 정의하면 **물파(물파)란 심물지파(心物之波)**입니다. 단순히 서구 과학의 유물적인 파동도 아니요, 동양 종교의 유심적 마음의 파동도 아닌, 영적인 신기운의 파동(신기파)을 일컫는 것입니다.\n\n글씨와 붓, 먹을 도구 삼아 온 우주의 합일된 생명 파동을 마음에 여과시켜 표현하고자 한 것이 물파예술가들의 출발점이자 사명입니다.\n\n(孫炳哲 / 물파공간 관장)',
+    poetry_collection_name: '물파철학',
+    language: 'KR',
+    image_url: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?auto=format&fit=crop&q=80&w=1200'
+  },
+  {
+    id: '67ca9fce-fcf9-4299-addb-5b51a029307d',
+    title: '심물지파론 (心物之波論)',
+    summary: '마음과 사물이 빚어내는 살아있는 파동에 관하여.',
+    content: '### 심물지파론 (心物之波論)\n\n예술작품은 박제된 대상이 아닙니다.\n\n어떤 존재도 홀로 고정되어 진동을 멈출 수 없습니다. 물결이 바람을 만나 일렁이듯, 가슴 깊은 곳의 참된 자아(心)가 삼라만상(物)이라는 객체와 부딪치는 순간, 무형의 순수한 의식이 유물의 흔적으로 응축됩니다.\n\n이것이 곧 심물지기(心物之氣)이며, 선(線)을 통해 우주적 연대를 확인하는 계기가 됩니다.',
+    poetry_collection_name: '물파철학',
+    language: 'KR',
+    image_url: 'https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?auto=format&fit=crop&q=80&w=1200'
+  },
+  {
+    id: '5e4bfa02-4fc3-4b6a-939e-2dcbf1189f3d',
+    title: '유무쌍즉론 (有無雙則論)',
+    summary: '보이는 형상과 보이지 않는 기운의 순환 법칙.',
+    content: '### 유무쌍즉론 (有無雙則論)\n\n무형(無形)과 유형(Type)은 서로 다른 두 세계가 아닙니다.\n\n우주의 법체는 비어있음(無)으로 가득 차 있고, 사물은 채워져 있음(有)으로 비워집니다. 붓이 허공을 가를 때, 먹선은 있음을 증명하고 여백은 자리를 지킵니다.\n\n그릇이 비어있어야 무엇을 담을 수 있듯, 찻잔이 비워지고 내면의 번뇌가 소멸할 때 새로운 깨달음의 빛(자연명기)이 비치게 될 것입니다.',
+    poetry_collection_name: '물파철학',
+    language: 'KR',
+    image_url: 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?auto=format&fit=crop&q=80&w=1200'
+  },
+  {
+    id: '1e4e1a0b-21d1-4db8-99b8-3ec87be3ee80',
+    title: '物波主義 宣言文',
+    summary: '宣告物波美學的出發點與哲學基礎。',
+    content: '### 物波主義 宣言文\n\n20世紀雖然科學文明取得了令人矚目的成就，但人們仍批評精神文明反而走上了衰落之路。\n\n物波主義（Mulpaism）藝術是立足於心物論式的東方書法精神和文人畫精神的**線的藝術**。一言以跡之，**物波即心物之波**。它不僅僅是西方科學的唯物性的物的波，而是作為線的藝術的心物之波。\n\n這也正是物波藝術家自覺認識的全新起點。\n\n（孫炳哲 / 物波空間 館長）\n1997. 12. 12.',
+    poetry_collection_name: '物波哲學',
+    language: 'TC',
+    image_url: 'https://images.unsplash.com/photo-1549490349-8643362247b5?q=80&w=1200'
+  },
+  {
+    id: 'b75fbe8e-a20c-4e5b-b9f1-396868af2d2a',
+    title: '心物之波論',
+    summary: '關於心靈與物質交融激盪而出的生命波動。',
+    content: '### 心物之波論\n\n藝術作品並非被製成標本的對象。\n\n創作者的心(心)與對象(物)相遇產生的波動，透過材料與形式凝聚於那一條筆墨之線中。此一波動，在與鑑賞者相遇時，將會重新開始在觀者心頭盪漾開來，激發宇宙間的廣泛共鳴。',
+    poetry_collection_name: '物波哲學',
+    language: 'TC',
+    image_url: 'https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?q=80&w=1200'
+  },
+  {
+    id: '8cb38de9-e688-466d-8bc4-de976afdeffd',
+    title: '有無雙則論',
+    summary: '揭示形象與精神、虛與實的循環規律。',
+    content: '### 有無雙則論\n\n無形（心、氣、靈感）透過筆墨形象的有形展現於世。完成的有形作品，又將與觀者相遇而轉化為無形，化為心靈深處的餘韻。無與有，互為依仗，周而復始。',
+    poetry_collection_name: '物波哲學',
+    language: 'TC',
+    image_url: 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?q=80&w=1200'
+  },
+  {
+    id: '50e9ef6d-ee0e-43cc-8968-dec512dbfe12',
+    title: 'Mulpaism Declaration',
+    summary: 'The historic declaration outlining the foundations of Mulpaism Art.',
+    content: '### Mulpaism Declaration\n\nDespite the dizzying achievements of 20th-century technology, our spiritual civilization has walked the path of decline.\n\nMulpaism is an **art of lines** based on the Mind-Matter Philosophy. In one word, **Mulpa is the wave of mind and matter**. It is a wave of spiritual and energetic new vitality, a divine vitality wave, carrying forward the ink and brush tradition to the 21st century.\n\n(Sun Byung-chul / Director of Mulpa Space)\nDecember 12, 1997',
+    poetry_collection_name: 'Mulpa Philosophy',
+    language: 'EN',
+    image_url: 'https://images.unsplash.com/photo-1549490349-8643362247b5?q=80&w=1200'
+  },
+  {
+    id: '967d3e91-72ef-4ca5-b8fb-98e3ca91ffd0',
+    title: 'On the Wave of Mind-Matter',
+    summary: 'Exploring the dynamic wave pattern formed by the merging of conscious mind and external object.',
+    content: '### On the Wave of Mind-Matter\n\nArt is not a passive or static object.\n\nIt is the lively resonance of the creator\'s inner self merging with the material essence of the universe. When the ink meets paper, it captures this active wave of existence, allowing viewers to revive and complete that exact cosmic motion within their own hearts.',
+    poetry_collection_name: 'Mulpa Philosophy',
+    language: 'EN',
+    image_url: 'https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?q=80&w=1200'
+  },
+  {
+    id: '921ecde0-eb14-416d-9be2-cc835def8afd',
+    title: 'On the Dual Law of Being and Non-being',
+    summary: 'The eternal circulation between the formless spirit and the physical manifestation.',
+    content: '### On the Dual Law of Being and Non-being\n\nThe visible (form) and the invisible (vitality/spaces) are two sides of the same coin. Just as a cup must be empty to serve its purpose, a line of calligraphy relies on the surrounding emptiness. The visible brush stroke establishes presence, while the negative space invites eternal dreaming.',
+    poetry_collection_name: 'Mulpa Philosophy',
+    language: 'EN',
+    image_url: 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?q=80&w=1200'
+  }
+];
+
+const DEFAULT_JOURNEY_PHOTOS: ArchiveItem[] = [
+  {
+    id: '8c919245-c8cc-4d37-889a-6a5cf8a791a0',
+    title: '동양 선(線) 미학 국제 학술보고 (International Symposium on Oriental Line Aesthetics)',
+    summary: '동서양 예술인들이 모인 자리에서 물파선과 심물 사상을 발표하는 라석 시인.',
+    content: '### 동양 선(線) 미학 국제 학술보고\n\n1997년 겨울, 서울에서 개최된 동양 미학 국제 심포지엄에서 라석 손병철 선생은 "동양의 선 예술은 단순한 잉크의 궤적이 아니라 심물지기(心物之氣)의 발현"임을 학술적으로 천명하였습니다.\n\n이 행사에서 세계적인 미학자들과 동서 교류의 새로운 방법론으로서 물파주의(Mulpaism)를 토론하며 현대 미술의 새로운 나침반을 제안했습니다.',
+    image_url: 'https://images.unsplash.com/photo-1549490349-8643362247b5?auto=format&fit=crop&q=80&w=1200',
+    poetry_collection_name: '라석여정 - 활동사진',
+    language: 'KR'
+  },
+  {
+    id: 'f9b418de-b4f0-410a-b362-e64fcbce46ff',
+    title: '문경 불한령 선차 수확 및 시원 (Bulhan-ryeong Tea Harvest)',
+    summary: '문경 불한령의 야생 차밭에서 첫 찻잎을 거두며 생명 순환을 찬미하는 시인.',
+    content: '### 문경 불한령 선차 수확 및 시원\n\n초의선사의 선다 정신이 살아 숨 쉬는 경북 문경 불한령 대자연 속에서, 눈 속에서도 기운을 품고 자란 찻잎을 정성스럽게 채취하는 여정입니다.\n\n시인은 한 알의 불한선차(차까오)가 완벽한 우주적 파동을 품고 우리 몸에 녹아들기 전, 그 생명력의 출발점에서 대자연에 깊은 경의를 담아 참선을 진행했습니다.',
+    image_url: 'https://images.unsplash.com/photo-1594631252845-29fc4cc8cde9?auto=format&fit=crop&q=80&w=1200',
+    poetry_collection_name: '라석여정 - 활동사진',
+    language: 'KR'
+  },
+  {
+    id: '960cda2d-ea0b-48af-ace1-2b638e5cbfe1',
+    title: '東方線條美學 國際學術報告',
+    summary: '羅石詩人在東西方藝術家聚集的論壇上發表物波線條與心物思想。',
+    content: '### 東方線條美學 國際學術報告\n\n1997年冬，在首爾舉辦的東方美學國際研討會上，羅石孫炳哲先生在學術上闡明瞭：“東方的線條藝術並不是單純墨汁的軌跡，而是心物之氣的體現。”\n\n在此次活動中，他與世界級美學家共同討論了作為東西方交流新方法論的物波主義（Mulpaism），為現代美術提供了全新的指南。',
+    image_url: 'https://images.unsplash.com/photo-1549490349-8643362247b5?auto=format&fit=crop&q=80&w=1200',
+    poetry_collection_name: '羅石旅程 - 活動照片',
+    language: 'TC'
+  },
+  {
+    id: '01a5eefc-9a48-43d9-ab77-bc43cebaefea',
+    title: '聞慶弗寒嶺 仙茶採摘與始源',
+    summary: '詩人在聞慶弗寒嶺野生茶園採集清晨新葉，讚頌生命循環之美。',
+    content: '### 聞慶弗寒嶺 仙茶採摘與始源\n\n在草衣禪師仙茶精神生生不息的慶尚北道聞慶弗寒嶺大自然中，詩人細心採摘在冰雪中依然孕育著蓬勃生機的茶葉。\n\n在每一顆弗寒仙茶（茶膏）蘊含完整的宇宙波動並在我們體內融化之前，詩人在其生命力的起點上對大自然致以深切的敬意。',
+    image_url: 'https://images.unsplash.com/photo-1594631252845-29fc4cc8cde9?auto=format&fit=crop&q=80&w=1200',
+    poetry_collection_name: '羅石旅程 - 活動照片',
+    language: 'TC'
+  },
+  {
+    id: '9db45aee-68bb-4bfa-bede-409fcbce7001',
+    title: 'International Forum on Line Aesthetics',
+    summary: 'Poet Lasok presenting on Mulpa Wave and Mind-Matter philosophy at an international summit.',
+    content: '### International Forum on Line Aesthetics\n\nIn the winter of 1997, during the International Symposium on Oriental Aesthetics in Seoul, Sun Byung-chul (Lasok) scientifically declared that "the Asian ink line is not a simple physical mark, but the physical manifestation of spirit-matter resonance (Qi)."\n\nAt this historical speech, he discussed Mulpaism with prominent global curators as a new paradigm for cross-cultural artistic creation.',
+    image_url: 'https://images.unsplash.com/photo-1549490349-8643362247b5?auto=format&fit=crop&q=80&w=1200',
+    poetry_collection_name: 'Lasok Journey - Activity Photos',
+    language: 'EN'
+  },
+  {
+    id: 'eab8900a-debb-4ea4-7b77-cfefbeab1a0f',
+    title: 'Tea Harvest and Meditation at Bulhan-ryeong',
+    summary: 'Poet Lasok harvesting wild tea buds deep in Mungyeong forests, honoring life\'s cycle.',
+    content: '### Tea Harvest and Meditation at Bulhan-ryeong\n\nUnder the ancient trees of Bulhan-ryeong where Master Cho-ui\'s legacy resides, the poet harvested raw green tea buds that survived winter frost with unmatched inner strength.\n\nThis captures the exact spiritual beginning of Bulhan Seoncha (Tea paste) before it dissolves to restore our internal peace.',
+    image_url: 'https://images.unsplash.com/photo-1594631252845-29fc4cc8cde9?auto=format&fit=crop&q=80&w=1200',
+    poetry_collection_name: 'Lasok Journey - Activity Photos',
+    language: 'EN'
+  }
+];
+
+const DEFAULT_JOURNEY_PRESS: ArchiveItem[] = [
+  {
+    id: 'fa2ca13d-deee-4fe4-add9-9db4f9be9901',
+    title: '[인터뷰] 시인 라석, 선차(禪茶)의 향기로 현대인의 영혼을 가꾸다',
+    summary: '동방문학신문 - 2024년 신춘 특별대담',
+    content: '### 선차(禪茶)의 향기로 현대인의 영혼을 가꾸다\n\n"인간의 삶은 가속화되고 있지만, 우리의 영혼은 잠시 쉴 자리를 찾지 못해 헤매고 있습니다." 시인 라석 손병철 선생은 최근 출간한 심물시집과 더불어, 문경 불한선차의 보급이 단순한 차 마시기가 아닌 내면의 깊은 울림을 찾기 위한 과정이라고 설파했다.\n\n시인은 차와 시의 공통점에 대해 "둘 다 눈에 보이지 않는 무형의 기운을 유형의 결과물(찻잔의 맛, 종이 위의 글씨)로 이끌어내어 타인의 마음을 비추는 영사기 같은 역할을 한다"고 설명했다.',
+    image_url: 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80&w=1200',
+    poetry_collection_name: '라석여정 - 언론보도',
+    language: 'KR'
+  },
+  {
+    id: '6caefbe2-89cc-4a00-1111-e64cbcee8da0',
+    title: '동방 문화의 기품, 묵선(墨線)의 에너지가 유럽 심장부 벨기에를 물들이다',
+    summary: '벨기에 국영 매체 예술 리뷰 - 브뤼셀 특별전 보도',
+    content: '### 동방 문화의 기품, 선(線)의 파동 벨기에를 물들이다\n\n벨기에 브뤼셀 예술 센터에서 열린 "물파주의(Mulpaism) 선묵전"에서 평론가들은 가볍고 빠른 현대 예술 사이에서 라석 시인의 철학이 담긴 두터운 선들이 엄청난 내세적 힘을 발휘하고 있다고 평가했다.\n\n특히 문인화를 원류로 하는 선의 힘과 마음을 맑게 하는 차의 수양이 보여주는 동양 미학의 심오함에 왕실과 교포 사회 모두가 영감과 치유를 경험했다는 찬사가 잇따랐다.',
+    image_url: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?auto=format&fit=crop&q=80&w=1200',
+    poetry_collection_name: '라석여정 - 언론보도',
+    language: 'KR'
+  },
+  {
+    id: 'ab2cd3ef-4f1b-4cf7-9a00-88cbdfbcee70',
+    title: '【專訪】羅石詩人：以禪茶之香，灌溉現代人的心靈荒漠',
+    summary: '東方文學報 - 2024年新春特別對談',
+    content: '### 以禪茶之香，灌溉現代人的心靈荒漠\n\n“人類生活的節奏正在加快，但我們的心靈卻因為找不到片刻安歇而四處漂泊。” 羅石詩人表示，近期出版的心物詩集與聞慶弗寒仙茶的推廣，並非單純的品茗，而是尋找內心深處共鳴的旅程。\n\n詩人闡述茶與詩的共通之處：“二者皆是將看不見、摸不著的無形氣息，凝聚為有形的成果（茶盞中的甘露，紙面上的詩行），如同一臺映照他人心扉的投影儀。”',
+    image_url: 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80&w=1200',
+    poetry_collection_name: '羅石旅程 - 媒體報導',
+    language: 'TC'
+  },
+  {
+    id: 'bc3de4fg-5f2c-4ef8-ab11-99ccdfbcee80',
+    title: '東方文化之風骨，墨線的生命動能激盪外邦',
+    summary: '比利時國家電視臺文藝專題 - 布魯塞爾特展報導',
+    content: '### 東方文化之風骨，墨線的生命動能激盪外邦\n\n在比利時布魯塞爾舉辦的“物波主義線條藝術展”上，歐洲評論家高度讚揚羅石詩人作品中展現的生命哲학，指出在瞬息萬變的快餐文化時代，其作品中蒼勁的墨線和富含哲思的空靈感具有強烈的震撼力。\n\n比利時王室及當地文化界紛紛對這種源於東方先賢、以詩茶相輔相成的修身美學表達了極大的驚歎。',
+    image_url: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?auto=format&fit=crop&q=80&w=1200',
+    poetry_collection_name: '羅石旅程 - 媒體報導',
+    language: 'TC'
+  },
+  {
+    id: 'cd4ef5gh-6b3a-4da2-bcd2-aa8defabcee1',
+    title: '[Interview] Poet Lasok: Nurturing the Soul of Modernity with Seoncha',
+    summary: 'Oriental Literary Times - 2024 Spring Special Edition',
+    content: '### Nurturing the Soul of Modernity with Seoncha\n\n"Human civilization moves too fast, but our spiritual self is drifting, unable to find a resting place." Poet Lasok Sun Byung-chul shared that his poetry collections combined with Mungyeong Bulhan Seoncha are not an advertisement for tea, but a spiritual calling.\n\nHe defined the union of poetry and tea: "Both draw formless, spiritual intent into tangible existence (the warmth of a tea cup, the line on paper), working together like a spiritual cinema to illuminate foreign hearts."',
+    image_url: 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80&w=1200',
+    poetry_collection_name: 'Lasok Journey - Media Press',
+    language: 'EN'
+  },
+  {
+    id: 'de5fg6hi-7c4b-4da3-bda3-bb9defabcde2',
+    title: 'The Dignity of Ink: Mulpa Lines Resonate in the Heart of Brussels',
+    summary: 'Belgian Gazette Arts Review - Special Report from Brussels Exhibition',
+    content: '### The Dignity of Ink: Mulpa Lines Resonate in Brussels\n\nCritics at the Brussels Arts Center exhibition representing "Mulpaism Ink & Spirit" observed that while modern commercial art is light and fleeting, Lasok\'s heavy, intentional line strokes command immense contemplative gravity.\n\nThe royal attendees and European scholars expressed profound gratitude for experiencing this visual Zen philosophy, noting it acts as a much-needed remedy for spiritual exhaustion.',
+    image_url: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?auto=format&fit=crop&q=80&w=1200',
+    poetry_collection_name: 'Lasok Journey - Media Press',
+    language: 'EN'
+  }
+];
+
+const JourneyPage = ({ t, setPage, archiveItems }: { t: any; setPage: (p: Page) => void; archiveItems: ArchiveItem[] }) => {
+  const activeLang = t.nav.about === '소개' ? 'KR' : t.nav.about === '關於' ? 'TC' : 'EN';
+  const [selectedJourneyItem, setSelectedJourneyItem] = useState<ArchiveItem | null>(null);
+  const [journeyTab, setJourneyTab] = useState<'photos' | 'press'>('photos');
+
+  // Journey Photos (라석여정 - 활동사진)
+  let journeyPhotos = (archiveItems || []).filter(item => {
+    const colName = item.poetry_collection_name;
+    return (
+      colName === '라석여정 - 활동사진' ||
+      colName === '羅石旅程 - 活動照片' ||
+      colName === 'Lasok Journey - Activity Photos'
+    ) && item.language === activeLang;
+  });
+
+  if (journeyPhotos.length === 0) {
+    journeyPhotos = DEFAULT_JOURNEY_PHOTOS.filter(item => item.language === activeLang);
+  }
+
+  // Journey Press (라석여정 - 언론보도)
+  let journeyPress = (archiveItems || []).filter(item => {
+    const colName = item.poetry_collection_name;
+    return (
+      colName === '라석여정 - 언론보도' ||
+      colName === '羅石旅程 - 媒體報導' ||
+      colName === 'Lasok Journey - Media Press'
+    ) && item.language === activeLang;
+  });
+
+  if (journeyPress.length === 0) {
+    journeyPress = DEFAULT_JOURNEY_PRESS.filter(item => item.language === activeLang);
+  }
+
+  const journeySectionTitle = activeLang === 'KR' 
+    ? '라석여정 (羅石旅程)' 
+    : activeLang === 'TC' 
+      ? '羅石旅程' 
+      : "Lasok's Journey";
+
+  const journeySectionSub = activeLang === 'KR'
+    ? '시인 라석의 활동사진과 언론 미디어 기록'
+    : activeLang === 'TC'
+      ? '詩人羅石的活動照片與媒體報導記錄'
+      : 'Activity photos and media press archives of Poet Lasok';
+
+  const photoTabLabel = activeLang === 'KR' ? '활동사진' : activeLang === 'TC' ? '活動照片' : 'Activity Photos';
+  const pressTabLabel = activeLang === 'KR' ? '언론 미디어' : activeLang === 'TC' ? '媒體報導' : 'Media Coverage';
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="bg-white min-h-screen pt-24"
+    >
+      {/* Lasok Journey Section (라석여정 목록) */}
+      <section className="py-24 bg-white border-b border-black/5">
+        <div className="container mx-auto px-6 md:px-24">
+          <div className="text-center mb-16 space-y-4">
+            <span className="text-[10px] tracking-[0.5em] uppercase font-bold opacity-30">Lasok Journey Archive</span>
+            <h2 className="text-3xl md:text-5xl font-serif tracking-tight text-black">{journeySectionTitle}</h2>
+            <p className="text-slate-500 font-serif italic text-base md:text-lg">{journeySectionSub}</p>
+            <div className="w-12 h-px bg-black/10 mx-auto pt-4" />
+          </div>
+
+          {/* Tab Switcher */}
+          <div className="flex justify-center gap-8 mb-16 border-b border-black/5 pb-4 max-w-md mx-auto">
+            <button
+              onClick={() => setJourneyTab('photos')}
+              className={`pb-4 px-4 text-xs tracking-[0.3em] uppercase font-bold transition-all relative ${
+                journeyTab === 'photos' ? 'text-black font-extrabold' : 'text-black/30 hover:text-black/70'
+              }`}
+            >
+              {photoTabLabel} ({journeyPhotos.length})
+              {journeyTab === 'photos' && (
+                <motion.div layoutId="journeyUnderline" className="absolute bottom-0 left-0 right-0 h-0.5 bg-black" />
+              )}
+            </button>
+            <button
+              onClick={() => setJourneyTab('press')}
+              className={`pb-4 px-4 text-xs tracking-[0.3em] uppercase font-bold transition-all relative ${
+                journeyTab === 'press' ? 'text-black font-extrabold' : 'text-black/30 hover:text-black/70'
+              }`}
+            >
+              {pressTabLabel} ({journeyPress.length})
+              {journeyTab === 'press' && (
+                <motion.div layoutId="journeyUnderline" className="absolute bottom-0 left-0 right-0 h-0.5 bg-black" />
+              )}
+            </button>
+          </div>
+
+          {/* Journey List/Grid */}
+          <div className="max-w-6xl mx-auto">
+            {journeyTab === 'photos' ? (
+              journeyPhotos.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                  {journeyPhotos.map((item, idx) => (
+                    <motion.div
+                      key={item.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: idx * 0.1, duration: 0.6 }}
+                      className="group border border-black/5 p-6 bg-[#fcfbf9] hover:bg-white hover:border-black/10 hover:shadow-xl transition-all duration-500 flex flex-col h-full cursor-pointer"
+                      onClick={() => setSelectedJourneyItem(item)}
+                    >
+                      <div className="aspect-[4/3] overflow-hidden bg-gray-100 mb-6 relative">
+                        <img
+                          src={item.image_url || DEFAULT_IMAGE}
+                          alt={item.title}
+                          className="w-full h-full object-cover grayscale brightness-95 group-hover:scale-105 group-hover:grayscale-0 group-hover:brightness-100 transition-all duration-700"
+                          referrerPolicy="no-referrer"
+                        />
+                        <div className="absolute top-4 right-4 bg-white/90 text-black border border-black/10 px-2 py-1 text-[8px] tracking-widest font-mono uppercase">
+                          Photo 0{idx + 1}
+                        </div>
+                      </div>
+                      <div className="space-y-3 flex-1 flex flex-col justify-between">
+                        <div className="space-y-2">
+                          <h3 className="text-base font-serif text-black group-hover:text-black/70 transition-colors leading-tight line-clamp-2">
+                            {item.title}
+                          </h3>
+                          <p className="text-xs text-black/50 font-serif leading-relaxed line-clamp-3">
+                            {item.summary}
+                          </p>
+                        </div>
+                        <div className="pt-4 border-t border-black/5 flex justify-between items-center text-[9px] tracking-[0.2em] font-bold uppercase opacity-40 group-hover:opacity-100 transition-all">
+                          <span>See Details</span>
+                          <span>→</span>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-20 border border-dashed border-black/10 bg-[#fefefe]/50">
+                  <p className="text-sm font-serif italic opacity-40">No photos shared yet.</p>
+                </div>
+              )
+            ) : (
+              journeyPress.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {journeyPress.map((item, idx) => (
+                    <motion.div
+                      key={item.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: idx * 0.1, duration: 0.6 }}
+                      className="group border border-black/5 p-8 bg-white hover:border-black/20 hover:shadow-xl transition-all duration-500 flex flex-col sm:flex-row gap-6 items-start cursor-pointer"
+                      onClick={() => setSelectedJourneyItem(item)}
+                    >
+                      <div className="w-full sm:w-1/3 aspect-[4/3] sm:aspect-square overflow-hidden bg-gray-100 shrink-0 relative">
+                        <img
+                          src={item.image_url || DEFAULT_IMAGE}
+                          alt={item.title}
+                          className="w-full h-full object-cover grayscale brightness-95 group-hover:scale-105 group-hover:grayscale-0 group-hover:brightness-100 transition-all duration-700"
+                          referrerPolicy="no-referrer"
+                        />
+                      </div>
+                      <div className="space-y-4 flex-1 flex flex-col h-full justify-between">
+                        <div className="space-y-2">
+                          <span className="text-[9px] tracking-widest font-mono uppercase opacity-40">
+                            {item.summary}
+                          </span>
+                          <h3 className="text-lg font-serif text-black leading-snug group-hover:text-black/70 transition-colors line-clamp-3">
+                            {item.title}
+                          </h3>
+                        </div>
+                        <div className="pt-4 border-t border-black/5 flex justify-between items-center text-[9px] tracking-[0.2em] font-bold uppercase opacity-40 group-hover:opacity-100 transition-all w-full">
+                          <span>Read Article</span>
+                          <span>→</span>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-20 border border-dashed border-black/10 bg-[#fefefe]/50">
+                  <p className="text-sm font-serif italic opacity-40">No press archives shared yet.</p>
+                </div>
+              )
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* Journey Detail Modal */}
+      <AnimatePresence>
+        {selectedJourneyItem && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white max-w-2xl w-full max-h-[85vh] overflow-y-auto shadow-2xl relative border border-black/5"
+            >
+              {/* Close button */}
+              <button
+                onClick={() => setSelectedJourneyItem(null)}
+                className="absolute top-6 right-6 text-black bg-white/85 hover:bg-white p-2 rounded-full border border-black/10 z-10 transition-all shadow-sm"
+              >
+                <X size={18} />
+              </button>
+
+              <div className="aspect-[16/10] overflow-hidden bg-gray-100">
+                <img
+                  src={selectedJourneyItem.image_url || DEFAULT_IMAGE}
+                  alt={selectedJourneyItem.title}
+                  className="w-full h-full object-cover grayscale brightness-90 hover:grayscale-0 transition-all duration-[1s]"
+                  referrerPolicy="no-referrer"
+                />
+              </div>
+
+              <div className="p-8 space-y-6 text-black">
+                <div className="space-y-2">
+                  <span className="text-[9px] tracking-[0.4em] font-mono uppercase bg-gray-100 border border-black/5 px-3 py-1 text-black/50">
+                    {selectedJourneyItem.summary}
+                  </span>
+                  <h3 className="text-2xl md:text-3xl font-serif text-black leading-tight pt-2">
+                    {selectedJourneyItem.title}
+                  </h3>
+                </div>
+
+                <div className="w-12 h-px bg-black/10" />
+
+                <div className="prose prose-sm max-w-none text-black/80 font-serif leading-relaxed markdown-body">
+                  <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
+                    {selectedJourneyItem.content}
+                  </ReactMarkdown>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+};
+
+const TeaDetailPage = ({ t, setPage, currentTeaImage, siteSettings, archiveItems }: { t: any; setPage: (p: Page) => void; currentTeaImage: string; siteSettings: SiteSettings | null; archiveItems: ArchiveItem[] }) => {
   const tea = t.teaDetail;
+  const activeLang = t.nav.about === '소개' ? 'KR' : t.nav.about === '關於' ? 'TC' : 'EN';
+  
+  let teaPoems = (archiveItems || []).filter(item => {
+    const colName = item.poetry_collection_name;
+    const isTeaCollection = colName === '불한선차 시' || colName === '弗寒仙茶 詩' || colName === 'Bulhan Seoncha Poem';
+    return isTeaCollection && item.language === activeLang;
+  });
+
+  if (teaPoems.length === 0) {
+    teaPoems = DEFAULT_TEA_POEMS.filter(item => item.language === activeLang);
+  }
+
+  const [readingPoem, setReadingPoem] = useState<ArchiveItem | null>(null);
+
+  useEffect(() => {
+    if (teaPoems.length > 0 && !readingPoem) {
+      setReadingPoem(teaPoems[0]);
+    }
+  }, [teaPoems, readingPoem]);
+
+  const sectionTitle = activeLang === 'KR' 
+    ? '불한선차 시 연재' 
+    : activeLang === 'TC' 
+      ? '弗寒仙茶 詩 連載' 
+      : 'Bulhan Seoncha Poetry Series';
+
+  const sectionSub = activeLang === 'KR'
+    ? '생명과 차의 파동을 읊는 시편'
+    : activeLang === 'TC'
+      ? '吟詠生命與茶之波動的詩篇'
+      : 'Psalms Humming the Resonance of Life and Tea';
+
+  const selectPrompt = activeLang === 'KR'
+    ? '목록에서 작품을 선택하여 아래에서 읽어보세요.'
+    : activeLang === 'TC'
+      ? '請在下方目錄中選擇作品閱讀。'
+      : 'Select a poem from the list below to read.';
   
   return (
     <motion.div 
@@ -1370,6 +2130,114 @@ const TeaDetailPage = ({ t, setPage, currentTeaImage, siteSettings }: { t: any; 
           <ChevronDown size={32} />
         </div>
       </header>
+
+      {/* Bulhan Seoncha Poetry Serialization Section */}
+      <section className="py-24 bg-[#fbfaf5] border-t border-b border-black/5">
+        <div className="container mx-auto px-6 md:px-24">
+          <div className="text-center mb-16 space-y-4">
+            <span className="text-[10px] tracking-[0.5em] uppercase font-bold opacity-30">Poetry Series</span>
+            <h2 className="text-3xl md:text-5xl font-serif tracking-tight text-black">{sectionTitle}</h2>
+            <p className="text-slate-500 font-serif italic text-base md:text-lg">{sectionSub}</p>
+            <div className="w-12 h-px bg-black/10 mx-auto pt-4" />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 max-w-6xl mx-auto">
+            {/* Left Column: Poem Select List */}
+            <div className="lg:col-span-4 bg-white p-6 border border-black/5 shadow-sm rounded flex flex-col h-[500px]">
+              <h3 className="text-xs font-bold tracking-[0.3em] uppercase opacity-40 mb-6 border-b border-black/5 pb-3">
+                {activeLang === 'KR' ? '시 목록' : activeLang === 'TC' ? '詩 目錄' : 'Poem List'} ({teaPoems.length})
+              </h3>
+              <div className="flex-1 overflow-y-auto pr-2 space-y-3 scrollbar-hide">
+                {teaPoems.map((poem, idx) => (
+                  <button
+                    key={poem.id}
+                    onClick={() => setReadingPoem(poem)}
+                    className={`w-full flex items-center justify-between p-4 transition-all duration-300 text-left border rounded ${
+                      readingPoem?.id === poem.id
+                        ? 'bg-[#1a1a1a] text-white border-black shadow'
+                        : 'bg-[#faf9f6] text-black border-black/5 hover:border-black/20 hover:bg-[#f6f4ed]'
+                    }`}
+                  >
+                    <div className="flex items-center gap-4 min-w-0 pr-2">
+                      <span className={`text-[10px] font-mono opacity-40 ${readingPoem?.id === poem.id ? 'text-white' : 'text-black'}`}>
+                        {(idx + 1).toString().padStart(2, '0')}
+                      </span>
+                      <span className="font-serif text-base truncate">
+                        {poem.title}
+                      </span>
+                    </div>
+                    <div className={`w-3 h-px transition-all duration-300 shrink-0 ${readingPoem?.id === poem.id ? 'bg-white/40 w-6' : 'bg-black/10'}`} />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Right Column: Poem display body */}
+            <div className="lg:col-span-8">
+              {readingPoem ? (
+                <motion.div
+                  key={readingPoem.id}
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5 }}
+                  className="bg-white border border-black/5 p-8 md:p-12 shadow-sm rounded relative min-h-[500px] flex flex-col justify-between overflow-hidden"
+                >
+                  <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
+                    <BookOpen size={160} strokeWidth={0.5} />
+                  </div>
+
+                  <div className="relative z-10 space-y-12 pr-4">
+                    <div className="border-b border-black/5 pb-6">
+                      <h3 className="text-2xl md:text-3xl font-serif text-black leading-tight mb-2">
+                        {readingPoem.title}
+                      </h3>
+                      {readingPoem.summary && (
+                        <p className="text-xs tracking-widest uppercase opacity-40 font-mono mt-2">
+                          {readingPoem.summary}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="font-serif text-lg md:text-xl leading-relaxed text-black/80 whitespace-pre-wrap pl-2 border-l border-black/5">
+                      <ReactMarkdown 
+                        remarkPlugins={[remarkGfm, remarkBreaks]}
+                        components={{
+                          p: ({ children }) => <div className="mb-0 leading-[1.3]">{children}</div>,
+                        }}
+                      >
+                        {readingPoem.content}
+                      </ReactMarkdown>
+                    </div>
+                  </div>
+
+                  {readingPoem.image_url && (
+                    <div className="mt-8 relative h-32 md:h-48 overflow-hidden rounded border border-black/5 shadow-inner">
+                      <img 
+                        src={readingPoem.image_url} 
+                        alt={readingPoem.title}
+                        className="w-full h-full object-cover grayscale opacity-95 hover:grayscale-0 transition-all duration-700"
+                        referrerPolicy="no-referrer"
+                      />
+                    </div>
+                  )}
+
+                  <div className="mt-8 pt-6 border-t border-black/5 flex justify-between items-center text-[10px] tracking-widest font-bold uppercase opacity-30">
+                    <span>Son Lasok Ph.D.</span>
+                    <span>Bulhan Seoncha</span>
+                  </div>
+                </motion.div>
+              ) : (
+                <div className="h-full min-h-[500px] border border-dashed border-black/10 rounded flex flex-col items-center justify-center text-center p-12 bg-white/50">
+                  <BookOpen className="opacity-10 mb-4" size={64} strokeWidth={0.5} />
+                  <p className="text-lg font-serif italic opacity-30">
+                    {selectPrompt}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Science & Discovery Section */}
       <section className="py-32 bg-white overflow-hidden">
@@ -1659,10 +2527,17 @@ const ArtistEditor = ({
         const file = files[i];
         const formData = new FormData();
         formData.append('image', file);
+        formData.append('folder', 'works');
         const response = await fetch('/upload.php', { method: 'POST', body: formData });
         const result = await response.json();
         const url = result.url || await compressImage(file);
-        newWorks.push({ title: file.name.split('.')[0], image: url });
+        newWorks.push({ 
+          title: file.name.split('.')[0], 
+          image: url,
+          size: '',
+          introduction: '',
+          criticism: ''
+        });
       }
       setData(prev => ({ ...prev, works: newWorks }));
     } catch (err) {
@@ -1696,9 +2571,6 @@ const ArtistEditor = ({
               <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">Bio</label>
               <textarea value={data.bio} onChange={e => setData({...data, bio: e.target.value})} className="w-full h-40 border border-black/10 p-4 outline-none focus:border-black font-serif text-black text-sm leading-relaxed" placeholder="Artist biography..." />
             </div>
-          </div>
-
-          <div className="space-y-8">
             <div className="space-y-4">
               <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">Profile Photo</label>
               <div className="group relative aspect-square w-48 bg-gray-50 border border-black/5 overflow-hidden flex items-center justify-center cursor-pointer" onClick={() => photoInputRef.current?.click()}>
@@ -1711,41 +2583,90 @@ const ArtistEditor = ({
                 <input type="file" ref={photoInputRef} className="hidden" onChange={handlePhotoUpload} accept="image/*" />
               </div>
             </div>
+          </div>
 
-            <div className="space-y-6 pt-8 border-t border-black/5">
-              <div className="flex justify-between items-center">
-                <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">Works ({data.works.length})</label>
-                <label className="text-[10px] tracking-[0.2em] uppercase font-bold text-blue-600 cursor-pointer hover:opacity-70">
+          <div className="space-y-8">
+            <div className="space-y-6 pt-0">
+              <div className="flex justify-between items-center border-b border-black/5 pb-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">Works ({data.works.length})</label>
+                  <p className="text-[8px] text-slate-400">작품은 uploads/works/ 폴더에 보관됩니다.</p>
+                </div>
+                <label className="text-[10px] tracking-[0.2em] uppercase font-bold text-blue-600 cursor-pointer hover:opacity-75 bg-blue-50 px-3 py-1.5 border border-blue-100 rounded">
                   + Add Works
                   <input type="file" multiple className="hidden" onChange={handleWorkUpload} accept="image/*" />
                 </label>
               </div>
-              <div className="grid grid-cols-4 gap-4">
+              <div className="space-y-8 max-h-[55vh] overflow-y-auto pr-2 scrollbar-hide">
                 {data.works.map((work, idx) => (
-                  <div key={idx} className="relative group flex flex-col gap-2">
-                    <div className="aspect-square bg-gray-50 overflow-hidden border border-black/5 relative">
-                      <img src={work.image} className="w-full h-full object-cover grayscale" referrerPolicy="no-referrer" alt={work.title} />
-                      <button 
-                        onClick={() => {
-                          const newWorks = [...data.works];
-                          newWorks.splice(idx, 1);
-                          setData({...data, works: newWorks});
-                        }}
-                        className="absolute top-1 right-1 p-1 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <Trash2 size={10} />
-                      </button>
-                    </div>
-                    <input 
-                      value={work.title} 
-                      onChange={e => {
+                  <div key={idx} className="border border-black/5 p-6 bg-slate-50/50 flex flex-col sm:flex-row gap-6 relative group rounded">
+                    <button 
+                      onClick={() => {
                         const newWorks = [...data.works];
-                        newWorks[idx] = { ...newWorks[idx], title: e.target.value };
+                        newWorks.splice(idx, 1);
                         setData({...data, works: newWorks});
                       }}
-                      className="text-[8px] uppercase tracking-widest border-b border-transparent focus:border-black/20 outline-none font-serif text-black"
-                      placeholder="Work Title"
-                    />
+                      className="absolute top-4 right-4 p-1.5 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 transition-colors border border-red-100 rounded"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                    <div className="w-24 h-24 shrink-0 bg-gray-100 overflow-hidden border border-black/5 flex items-center justify-center relative">
+                      <img src={work.image} className="w-full h-full object-contain grayscale" referrerPolicy="no-referrer" alt={work.title} />
+                    </div>
+                    <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <label className="text-[8px] tracking-[0.2em] uppercase opacity-40 font-bold">Work Title (작품명)</label>
+                        <input 
+                          value={work.title} 
+                          onChange={e => {
+                            const newWorks = [...data.works];
+                            newWorks[idx] = { ...newWorks[idx], title: e.target.value };
+                            setData({...data, works: newWorks});
+                          }}
+                          className="w-full text-xs font-serif border-b border-black/10 focus:border-black outline-none pb-1 bg-transparent text-black font-semibold"
+                          placeholder="작품명"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[8px] tracking-[0.2em] uppercase opacity-40 font-bold">Size (크기)</label>
+                        <input 
+                          value={work.size || ''} 
+                          onChange={e => {
+                            const newWorks = [...data.works];
+                            newWorks[idx] = { ...newWorks[idx], size: e.target.value };
+                            setData({...data, works: newWorks});
+                          }}
+                          className="w-full text-xs font-serif border-b border-black/10 focus:border-black outline-none pb-1 bg-transparent text-black"
+                          placeholder="예: 70 x 70 cm"
+                        />
+                      </div>
+                      <div className="space-y-1 sm:col-span-2">
+                        <label className="text-[8px] tracking-[0.2em] uppercase opacity-40 font-bold">Introduction (작품소개)</label>
+                        <input 
+                          value={work.introduction || ''} 
+                          onChange={e => {
+                            const newWorks = [...data.works];
+                            newWorks[idx] = { ...newWorks[idx], introduction: e.target.value };
+                            setData({...data, works: newWorks});
+                          }}
+                          className="w-full text-xs font-serif border-b border-black/10 focus:border-black outline-none pb-1 bg-transparent text-black"
+                          placeholder="작품의의와 간단한 소개 설명"
+                        />
+                      </div>
+                      <div className="space-y-1 sm:col-span-2">
+                        <label className="text-[8px] tracking-[0.2em] uppercase opacity-40 font-bold">Criticism (비평 및 해설)</label>
+                        <textarea 
+                          value={work.criticism || ''} 
+                          onChange={e => {
+                            const newWorks = [...data.works];
+                            newWorks[idx] = { ...newWorks[idx], criticism: e.target.value };
+                            setData({...data, works: newWorks});
+                          }}
+                          className="w-full text-xs h-16 p-2 bg-white border border-black/10 focus:border-black outline-none font-serif text-black leading-relaxed"
+                          placeholder="작품 비평 또는 해설 설명문..."
+                        />
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -1783,13 +2704,26 @@ const AdminDashboard = ({
   const [editingItem, setEditingItem] = useState<ArchiveItem | null>(initialEditingItem || null);
   const [isUploading, setIsUploading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [activeTab, setActiveTab] = useState<'poetry' | 'settings' | 'artists'>('poetry');
+  const [activeTab, setActiveTab] = useState<'poetry' | 'settings' | 'artists' | 'journey'>('poetry');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
   const contentImageInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const heroInputRef = useRef<HTMLInputElement>(null);
   const teaInputRef = useRef<HTMLInputElement>(null);
+  
+  const [isAddingJourney, setIsAddingJourney] = useState(false);
+  const [editingJourneyItem, setEditingJourneyItem] = useState<ArchiveItem | null>(null);
+  const [journeyFormData, setJourneyFormData] = useState({
+    title: '',
+    content: '',
+    summary: '',
+    image_url: '',
+    poetry_collection_name: '라석여정 - 활동사진',
+    language: 'KR' as Language
+  });
+  const journeyCoverInputRef = useRef<HTMLInputElement>(null);
+  const journeyContentImageInputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState({
     title: initialEditingItem?.title || '',
@@ -1810,6 +2744,47 @@ const AdminDashboard = ({
   const [editingArtistIdx, setEditingArtistIdx] = useState<number | null>(null);
   const [isAddingArtist, setIsAddingArtist] = useState(false);
   const isInitialSync = useRef(true);
+
+  const isJourneyItem = (item: ArchiveItem) => {
+    const name = item.poetry_collection_name || '';
+    return name.startsWith('라석여정') || 
+           name.startsWith('羅石旅程') || 
+           name.toLowerCase().includes('journey');
+  };
+
+  const handleJourneyEditClick = (item: ArchiveItem) => {
+    setEditingJourneyItem(item);
+    setJourneyFormData({
+      title: item.title,
+      content: item.content,
+      summary: item.summary,
+      image_url: item.image_url,
+      poetry_collection_name: item.poetry_collection_name || '라석여정 - 활동사진',
+      language: item.language || 'KR'
+    });
+    setIsAddingJourney(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleNewJourneyClick = () => {
+    const nextIsAdding = !isAddingJourney;
+    setIsAddingJourney(nextIsAdding);
+    if (editingJourneyItem) {
+      setEditingJourneyItem(null);
+    }
+    if (nextIsAdding) {
+      setJourneyFormData({
+        title: '',
+        content: '',
+        summary: '',
+        image_url: siteSettings?.logo_url || DEFAULT_IMAGE,
+        poetry_collection_name: '라석여정 - 활동사진',
+        language: 'KR'
+      });
+    } else {
+      setJourneyFormData({ title: '', content: '', summary: '', image_url: '', poetry_collection_name: '라석여정 - 활동사진', language: 'KR' });
+    }
+  };
 
   useEffect(() => {
     if (siteSettings && isInitialSync.current) {
@@ -2012,6 +2987,15 @@ const AdminDashboard = ({
       const formDataUpload = new FormData();
       formDataUpload.append('image', file);
       
+      const isJourney = formData.poetry_collection_name && (
+        formData.poetry_collection_name.startsWith('라석여정') || 
+        formData.poetry_collection_name.startsWith('羅石旅程') || 
+        formData.poetry_collection_name.toLowerCase().includes('journey')
+      );
+      if (isJourney) {
+        formDataUpload.append('folder', 'Journey');
+      }
+      
       const response = await fetch('/upload.php', {
         method: 'POST',
         body: formDataUpload
@@ -2042,6 +3026,15 @@ const AdminDashboard = ({
       const formDataUpload = new FormData();
       formDataUpload.append('image', file);
       
+      const isJourney = formData.poetry_collection_name && (
+        formData.poetry_collection_name.startsWith('라석여정') || 
+        formData.poetry_collection_name.startsWith('羅石旅程') || 
+        formData.poetry_collection_name.toLowerCase().includes('journey')
+      );
+      if (isJourney) {
+        formDataUpload.append('folder', 'Journey');
+      }
+      
       const response = await fetch('/upload.php', {
         method: 'POST',
         body: formDataUpload
@@ -2069,6 +3062,129 @@ const AdminDashboard = ({
           content: formData.content + `\n\n![image](${base64})\n\n` 
         });
       }
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleJourneyCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploading(true);
+    try {
+      const formDataUpload = new FormData();
+      formDataUpload.append('image', file);
+      formDataUpload.append('folder', 'Journey');
+      
+      const response = await fetch('/upload.php', {
+        method: 'POST',
+        body: formDataUpload
+      });
+      
+      const result = await response.json();
+      if (result.url) {
+        setJourneyFormData(prev => ({ ...prev, image_url: result.url }));
+      } else {
+        const base64 = await compressImage(file);
+        setJourneyFormData(prev => ({ ...prev, image_url: base64 }));
+      }
+    } catch (err) {
+      console.error("Upload failed, falling back to base64", err);
+      const base64 = await compressImage(file).catch(() => '');
+      if (base64) setJourneyFormData(prev => ({ ...prev, image_url: base64 }));
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleJourneyContentImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploading(true);
+    try {
+      const formDataUpload = new FormData();
+      formDataUpload.append('image', file);
+      formDataUpload.append('folder', 'Journey');
+      
+      const response = await fetch('/upload.php', {
+        method: 'POST',
+        body: formDataUpload
+      });
+      
+      const result = await response.json();
+      if (result.url) {
+        setJourneyFormData(prev => ({ 
+          ...prev, 
+          content: prev.content + `\n\n![image](${result.url})\n\n` 
+        }));
+      } else {
+        const base64 = await compressImage(file);
+        setJourneyFormData(prev => ({ 
+          ...prev, 
+          content: prev.content + `\n\n![image](${base64})\n\n` 
+        }));
+      }
+    } catch (err) {
+      console.error("Upload failed, falling back to base64", err);
+      const base64 = await compressImage(file).catch(() => '');
+      if (base64) {
+        setJourneyFormData(prev => ({ 
+          ...prev, 
+          content: prev.content + `\n\n![image](${base64})\n\n` 
+        }));
+      }
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleJourneySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsUploading(true);
+    
+    try {
+      const submissionData = {
+        title: journeyFormData.title,
+        content: journeyFormData.content,
+        summary: journeyFormData.summary,
+        category: 'poetry', // satisfy DB logic
+        image_url: journeyFormData.image_url.trim() || DEFAULT_IMAGE,
+        poetry_collection_name: journeyFormData.poetry_collection_name || null,
+        language: journeyFormData.language || 'KR'
+      };
+
+      if (editingJourneyItem) {
+        const { error } = await supabase
+          .from('archive_items')
+          .update(submissionData)
+          .eq('id', editingJourneyItem.id);
+        
+        if (error) throw error;
+        
+        setArchiveItems(prev => prev.map(item => item.id === editingJourneyItem.id ? { ...item, ...submissionData } : item));
+        setEditingJourneyItem(null);
+        
+        setShowSuccess(true);
+        setTimeout(() => setShowSuccess(false), 2000);
+      } else {
+        const { data, error } = await supabase
+          .from('archive_items')
+          .insert([submissionData])
+          .select();
+        
+        if (error) throw error;
+        if (!data) throw new Error("No data returned from insert");
+
+        setArchiveItems(prev => [data[0] as ArchiveItem, ...prev]);
+        setIsAddingJourney(false);
+        
+        setShowSuccess(true);
+        setTimeout(() => setShowSuccess(false), 2000);
+      }
+      setJourneyFormData({ title: '', content: '', summary: '', image_url: '', poetry_collection_name: '라석여정 - 활동사진', language: 'KR' });
+    } catch (err: any) {
+      console.error("Journey Save Error:", err);
+      alert(`저장에 실패했습니다: ${err.message || String(err)}`);
     } finally {
       setIsUploading(false);
     }
@@ -2180,6 +3296,12 @@ const AdminDashboard = ({
               className={`px-6 py-3 text-[10px] tracking-[0.3em] uppercase transition-all ${activeTab === 'artists' ? 'bg-black text-white' : 'bg-white text-black border border-black/10'}`}
             >
               Artists
+            </button>
+            <button 
+              onClick={() => setActiveTab('journey')}
+              className={`px-6 py-3 text-[10px] tracking-[0.3em] uppercase transition-all ${activeTab === 'journey' ? 'bg-black text-white' : 'bg-white text-black border border-black/10'}`}
+            >
+              라석여정 (Lasok Journey)
             </button>
           </div>
         </div>
@@ -2347,6 +3469,275 @@ const AdminDashboard = ({
               Save Roster to Database
             </button>
           </motion.div>
+        ) : activeTab === 'journey' ? (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="space-y-12 text-black"
+          >
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6 mb-8">
+              <div className="space-y-2">
+                <h3 className="text-3xl font-serif tracking-tight text-black">라석여정 관리 (Lasok Journey Management)</h3>
+                <p className="text-[10px] tracking-[0.3em] uppercase opacity-40">활동 사진 및 언론 보도 콘텐츠를 투명하게 관리합니다.</p>
+              </div>
+              <button 
+                onClick={handleNewJourneyClick}
+                className="bg-black text-white px-8 py-4 text-[10px] tracking-[0.4em] uppercase hover:bg-gray-800 transition-all active:scale-95 flex items-center gap-2"
+              >
+                {(isAddingJourney || editingJourneyItem) ? <X size={14} /> : <Plus size={14} />}
+                {(isAddingJourney || editingJourneyItem) ? '닫기 (Close)' : '새 여정 등록 (New Journey)'}
+              </button>
+            </div>
+
+            {/* Journey Form */}
+            {(isAddingJourney || editingJourneyItem) && (
+              <motion.form 
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                onSubmit={handleJourneySubmit}
+                className="bg-white p-12 mb-16 shadow-2xl space-y-12 border border-black/5"
+              >
+                <div className="border-b border-black/5 pb-4">
+                  <h4 className="text-xl font-serif tracking-wide">{editingJourneyItem ? '여정 수정 (Edit Journey Entry)' : '새 여정 등록 (New Journey Entry)'}</h4>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                  <div className="space-y-4">
+                    <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">언어 그룹 (Language Group)</label>
+                    <select 
+                      value={journeyFormData.language}
+                      onChange={e => {
+                        const newLang = e.target.value as Language;
+                        // Automatically map default collection name based on language
+                        let colName = '라석여정 - 활동사진';
+                        if (newLang === 'TC') {
+                          colName = '羅石旅程 - 活動照片';
+                        } else if (newLang === 'EN') {
+                          colName = 'Lasok Journey - Activity Photos';
+                        }
+                        setJourneyFormData({...journeyFormData, language: newLang, poetry_collection_name: colName});
+                      }}
+                      className="w-full border-b border-gray-300 py-4 text-xl outline-none focus:border-black transition-colors font-serif bg-transparent cursor-pointer text-black"
+                    >
+                      <option value="KR">한국어 (KR)</option>
+                      <option value="TC">繁體中文 (TC)</option>
+                      <option value="EN">English (EN)</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-4">
+                    <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold font-serif">카테고리 선택 (Category)</label>
+                    <select 
+                      required
+                      value={journeyFormData.poetry_collection_name}
+                      onChange={e => setJourneyFormData({...journeyFormData, poetry_collection_name: e.target.value})}
+                      className="w-full border-b border-gray-300 py-4 text-xl outline-none focus:border-black transition-colors font-serif bg-transparent cursor-pointer text-[#333]"
+                    >
+                      {journeyFormData.language === 'KR' && (
+                        <>
+                          <option value="라석여정 - 활동사진">라석여정 - 활동사진 (Photos)</option>
+                          <option value="라석여정 - 언론보도">라석여정 - 언론보도 (Press)</option>
+                        </>
+                      )}
+                      {journeyFormData.language === 'TC' && (
+                        <>
+                          <option value="羅石旅程 - 活動照片">羅石旅程 - 活動照片 (Photos)</option>
+                          <option value="羅石旅程 - 媒體報導">羅石旅程 - 媒體報導 (Press)</option>
+                        </>
+                      )}
+                      {journeyFormData.language === 'EN' && (
+                        <>
+                          <option value="Lasok Journey - Activity Photos">Lasok Journey - Activity Photos (Photos)</option>
+                          <option value="Lasok Journey - Media Press">Lasok Journey - Media Press (Press)</option>
+                        </>
+                      )}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-12 pt-8">
+                  <div className="space-y-4">
+                    <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">제목 (Title / Headline)</label>
+                    <input 
+                      required
+                      value={journeyFormData.title}
+                      onChange={e => setJourneyFormData({...journeyFormData, title: e.target.value})}
+                      placeholder="제목을 입력하세요..."
+                      className="w-full border-b border-gray-300 py-4 text-2xl outline-none focus:border-black transition-colors font-serif placeholder:text-gray-300 text-black animate-none"
+                    />
+                  </div>
+
+                  <div className="space-y-4">
+                    <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">대표 이미지 (Cover Image)</label>
+                    <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
+                      <input 
+                        value={journeyFormData.image_url}
+                        onChange={e => setJourneyFormData({...journeyFormData, image_url: e.target.value})}
+                        placeholder="Image URL or upload..."
+                        className="flex-1 border-b border-gray-300 py-4 outline-none focus:border-black transition-colors font-serif text-black placeholder:text-gray-300"
+                      />
+                      <input 
+                        type="file" 
+                        ref={journeyCoverInputRef}
+                        onChange={handleJourneyCoverUpload}
+                        accept="image/*"
+                        className="hidden"
+                      />
+                      <button 
+                        type="button"
+                        disabled={isUploading}
+                        onClick={() => journeyCoverInputRef.current?.click()}
+                        className="flex items-center gap-2 px-6 py-3 border border-black/10 text-[10px] tracking-[0.2em] uppercase hover:bg-gray-50 transition-all disabled:opacity-50"
+                      >
+                        <Upload size={14} /> {isUploading ? 'Uploading...' : 'Upload File'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">간단 소개 (Brief Summary)</label>
+                  <textarea 
+                    required
+                    value={journeyFormData.summary}
+                    onChange={e => setJourneyFormData({...journeyFormData, summary: e.target.value})}
+                    rows={2}
+                    placeholder="활동이나 기사에 대한 간단한 요약을 적어주세요..."
+                    className="w-full border-b border-gray-300 py-4 text-lg outline-none focus:border-black transition-colors font-serif resize-none italic text-black placeholder:text-gray-300 leading-tight"
+                  />
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">자세한 내용 (Full Content / Markdown Supported)</label>
+                    <div className="flex gap-2">
+                      <input 
+                        type="file" 
+                        ref={journeyContentImageInputRef}
+                        onChange={handleJourneyContentImageUpload}
+                        accept="image/*"
+                        className="hidden"
+                      />
+                      <button 
+                        type="button"
+                        disabled={isUploading}
+                        onClick={() => journeyContentImageInputRef.current?.click()}
+                        className="flex items-center gap-2 px-4 py-2 border border-black/10 text-[9px] tracking-[0.2em] uppercase hover:bg-gray-50 transition-all disabled:opacity-50"
+                      >
+                        <ImageIcon size={12} /> {isUploading ? 'Adding...' : 'Add Image'}
+                      </button>
+                    </div>
+                  </div>
+                  <textarea 
+                    required
+                    value={journeyFormData.content}
+                    onChange={e => setJourneyFormData({...journeyFormData, content: e.target.value})}
+                    rows={10}
+                    placeholder="상세 내용을 적어주세요..."
+                    className="w-full border border-gray-200 p-8 outline-none focus:border-black transition-colors font-serif leading-[1.1] text-lg text-black placeholder:text-gray-300"
+                  />
+                </div>
+
+                <div className="flex gap-4">
+                  <button type="submit" className="flex-1 bg-black text-white py-6 text-[10px] tracking-[0.5em] uppercase hover:bg-gray-800 transition-all">
+                    {editingJourneyItem ? '변동사항 기입 (Save Journey Changes)' : '여정 등록 (Publish Journey Entry)'}
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => { 
+                      setEditingJourneyItem(null); 
+                      setIsAddingJourney(false);
+                      setJourneyFormData({ title: '', content: '', summary: '', image_url: '', poetry_collection_name: '라석여정 - 활동사진', language: 'KR' }); 
+                    }}
+                    className="px-12 border border-black/10 text-[10px] tracking-[0.5em] uppercase hover:bg-gray-50 transition-all font-bold"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </motion.form>
+            )}
+
+            {/* List Table for Journey Items */}
+            <div className="bg-white shadow-2xl border border-black/5 overflow-hidden">
+              <div className="p-8 bg-gray-50 border-b border-black/5 flex justify-between items-center overflow-x-auto">
+                <span className="text-[10px] tracking-[0.5em] uppercase opacity-40 font-bold">
+                  라석여정 레코드 ({archiveItems.filter(isJourneyItem).length})
+                </span>
+                <span className="text-[9px] font-mono opacity-30 whitespace-nowrap">
+                  Journey Categories: Photos, Media Press
+                </span>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="text-[9px] tracking-[0.5em] uppercase opacity-30 border-b border-black/5">
+                      <th className="px-8 py-6 font-bold">대표이미지</th>
+                      <th className="px-8 py-6 font-bold">여정 제목</th>
+                      <th className="px-8 py-6 font-bold">카테고리</th>
+                      <th className="px-8 py-6 font-bold">언어</th>
+                      <th className="px-8 py-6 font-bold text-right">관리</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-black/5">
+                    {archiveItems.filter(isJourneyItem).map((item) => (
+                      <tr key={item.id} className="hover:bg-gray-50/50 transition-colors group">
+                        <td className="px-8 py-6">
+                          <div className="w-20 h-12 overflow-hidden bg-gray-100">
+                            <img src={item.image_url || DEFAULT_IMAGE} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700" referrerPolicy="no-referrer" />
+                          </div>
+                        </td>
+                        <td className="px-8 py-6">
+                          <div className="font-serif text-lg tracking-tight">{item.title}</div>
+                          <div className="text-[10px] opacity-30 line-clamp-1 mt-1">{item.summary}</div>
+                        </td>
+                        <td className="px-8 py-6">
+                          <span className="text-[9px] tracking-[0.1em] font-sans opacity-60 border border-black/10 px-3 py-1 rounded-full uppercase">{item.poetry_collection_name || 'Journey Item'}</span>
+                        </td>
+                        <td className="px-8 py-6 text-[10px] opacity-40 font-mono">
+                          {item.language}
+                        </td>
+                        <td className="px-8 py-6 text-right">
+                          <div className="flex justify-end gap-6">
+                            <button 
+                              onClick={() => handleJourneyEditClick(item)}
+                              className="text-gray-400 hover:text-black transition-colors p-2"
+                              title="Edit Journey Entry"
+                            >
+                              <Edit2 size={16} />
+                            </button>
+                            {deleteConfirmId === item.id ? (
+                              <div className="flex items-center gap-2">
+                                <button 
+                                  onClick={() => deleteItem(item.id)}
+                                  className="bg-red-600 text-white text-[9px] px-3 py-1 uppercase tracking-widest hover:bg-red-700 transition-colors"
+                                >
+                                  Confirm
+                                </button>
+                                <button 
+                                  onClick={() => setDeleteConfirmId(null)}
+                                  className="text-gray-400 hover:text-black text-[9px] px-3 py-1 uppercase tracking-widest transition-colors"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            ) : (
+                              <button 
+                                onClick={() => setDeleteConfirmId(item.id)}
+                                className="text-gray-400 hover:text-red-600 transition-colors p-2"
+                                title="Delete Entry"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </motion.div>
         ) : (
           <>
             <div className="flex justify-end mb-8 gap-4">
@@ -2429,7 +3820,11 @@ const AdminDashboard = ({
                       className="w-full border-b border-gray-300 py-4 text-xl outline-none focus:border-black transition-colors font-serif bg-transparent cursor-pointer text-black"
                     >
                       <option value="">Select a collection...</option>
-                      {translations[formData.language as Language || 'KR'].poetryCollection[formData.language as Language || 'KR'].map((colName: string) => (
+                      {translations[formData.language as Language || 'KR'].poetryCollection[formData.language as Language || 'KR'].filter((colName: string) => !(
+                        colName.startsWith('라석여정') || 
+                        colName.startsWith('羅石旅程') || 
+                        colName.toLowerCase().includes('journey')
+                      )).map((colName: string) => (
                         <option key={colName} value={colName}>{colName}</option>
                       ))}
                     </select>
@@ -2555,7 +3950,7 @@ const AdminDashboard = ({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-black/5">
-                    {archiveItems.map((item) => (
+                    {archiveItems.filter(item => !isJourneyItem(item)).map((item) => (
                       <tr key={item.id} className="hover:bg-gray-50/50 transition-colors group">
                         <td className="px-8 py-6">
                           <div className="w-20 h-12 overflow-hidden bg-gray-100">
@@ -2648,7 +4043,7 @@ const ContactPage = ({ t, setPage }: { t: any; setPage: (p: Page) => void }) => 
         >
           <h3 className="text-2xl font-serif mb-8 tracking-widest opacity-80">{t.contact.title}</h3>
           <div className="space-y-6 opacity-60 font-serif tracking-wide">
-            <p>Email: contact@bulhanza.com</p>
+            <p>Email: cocogame@kakao.com</p>
             <p>Instagram: @bulhanza_official</p>
             <p>Studio: Seoul, Korea</p>
           </div>
@@ -2724,7 +4119,7 @@ const PoetryCollectionPage = ({ t, setPage, archiveItems }: { t: any; setPage: (
                 <motion.h1 
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="text-[60px] font-serif mb-12 tracking-tight text-black"
+                  className="text-[40px] font-serif mb-12 tracking-tight text-black"
                 >
                   {t.poetryCollection.title}
                 </motion.h1>
@@ -2756,13 +4151,13 @@ const PoetryCollectionPage = ({ t, setPage, archiveItems }: { t: any; setPage: (
                     
                     <div className="space-y-6">
                       {collections.map((item: string, idx: number) => (
-                        <div key={idx} className="flex items-center justify-between group">
-                          <span className="text-2xl font-serif text-black opacity-80 group-hover:opacity-100 transition-opacity">
+                        <div key={idx} className="flex items-center justify-between group gap-8 border-b border-black/[0.05] pb-4">
+                          <span className="text-[20px] font-serif text-black opacity-80 group-hover:opacity-100 transition-opacity leading-tight">
                             {item}
                           </span>
                           <button 
                             onClick={() => setSelectedCollection(item)}
-                            className="px-4 py-1 border border-black/20 text-xs tracking-widest hover:bg-black hover:text-white transition-all duration-300"
+                            className="px-6 py-2 border border-black/20 text-[10px] tracking-widest hover:bg-black hover:text-white transition-all duration-300 whitespace-nowrap shrink-0"
                           >
                             보기
                           </button>
@@ -2779,19 +4174,19 @@ const PoetryCollectionPage = ({ t, setPage, archiveItems }: { t: any; setPage: (
                 {/* Image Section */}
                 <div className="md:col-span-6 space-y-6">
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="aspect-[3/4] bg-[#f0ede6] overflow-hidden shadow-md">
+                    <div className="aspect-square rounded-full bg-[#f0ede6] overflow-hidden shadow-md">
                       <img 
-                        src="https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&q=80&w=600" 
-                        alt="Book" 
-                        className="w-full h-full object-cover grayscale opacity-80"
+                        src="/assets/1115073702.jpg" 
+                        alt="Poetry Collection Cover 1" 
+                        className="w-full h-full object-cover"
                         referrerPolicy="no-referrer"
                       />
                     </div>
                     <div className="aspect-[3/4] pt-12">
                       <div className="bg-[#e5e1d8] p-4 shadow-inner">
                         <img 
-                          src="https://images.unsplash.com/photo-1512418490979-92798ccc13a0?auto=format&fit=crop&q=80&w=600" 
-                          alt="Ink" 
+                          src="/assets/9791173790355.jpg" 
+                          alt="Poetry Collection Cover 2" 
                           className="w-full h-full object-cover rounded-sm"
                           referrerPolicy="no-referrer"
                         />
@@ -2800,8 +4195,8 @@ const PoetryCollectionPage = ({ t, setPage, archiveItems }: { t: any; setPage: (
                   </div>
                   <div className="aspect-[16/9] bg-[#e5e1d8] overflow-hidden shadow-md">
                     <img 
-                      src="https://images.unsplash.com/photo-1490127252417-7c393f993ee4?auto=format&fit=crop&q=80&w=1200" 
-                      alt="Scroll" 
+                      src="/assets/9791198543004.jpg" 
+                      alt="Poetry Collection Cover 3" 
                       className="w-full h-full object-cover opacity-60 mix-blend-multiply"
                       referrerPolicy="no-referrer"
                     />
@@ -2888,7 +4283,7 @@ const PoetryCollectionPage = ({ t, setPage, archiveItems }: { t: any; setPage: (
 
                     <div className="relative z-10 p-12 md:p-24 max-w-4xl mx-auto flex flex-col items-center">
                       <div className="text-center mb-16">
-                        <h2 className="text-4xl md:text-6xl font-serif text-black mb-8 leading-tight">{readingPoem.title}</h2>
+                        <h2 className="text-3xl md:text-[40px] font-serif text-black mb-8 leading-tight">{readingPoem.title}</h2>
                         <div className="w-24 h-px bg-black/10 mx-auto" />
                       </div>
 
@@ -3006,9 +4401,9 @@ export default function App() {
         const { data: newSettings } = await supabase
           .from('site_settings')
           .insert([{ 
-            logo_url: '/assets/logo_custom.jpg', 
-            hero_bg_url: '/assets/hero_bg_custom.jpg', 
-            tea_detail_url: '/assets/tea_detail_bg_new.jpg',
+            logo_url: '/assets/logo_v2.jpg', 
+            hero_bg_url: '/assets/mountains_v2.jpg', 
+            tea_detail_url: '/assets/bulhansuncha_v2.jpg',
             artists: translations.KR.artDetail.artists
           }])
           .select()
@@ -3057,6 +4452,7 @@ export default function App() {
             <button onClick={() => setPage('art')} className={`hover:opacity-100 transition-opacity opacity-70 ${page === 'art' ? 'opacity-100 font-bold border-b-2 border-current pb-1' : ''}`}>{t.nav.art}</button>
             <button onClick={() => setPage('poetryCollection')} className={`hover:opacity-100 transition-opacity opacity-70 ${page === 'poetryCollection' ? 'opacity-100 font-bold border-b-2 border-current pb-1' : ''}`}>{t.nav.poetryCollection}</button>
             <button onClick={() => setPage('tea')} className={`hover:opacity-100 transition-opacity opacity-70 ${page === 'tea' ? 'opacity-100 font-bold border-b-2 border-current pb-1' : ''}`}>{t.nav.tea}</button>
+            <button onClick={() => setPage('journey')} className={`hover:opacity-100 transition-opacity opacity-70 ${page === 'journey' ? 'opacity-100 font-bold border-b-2 border-current pb-1' : ''}`}>{t.nav.journey}</button>
             <button onClick={() => setPage('contact')} className={`hover:opacity-100 transition-opacity opacity-70 ${page === 'contact' ? 'opacity-100 font-bold border-b-2 border-current pb-1' : ''}`}>{t.nav.contact}</button>
           </div>
         </div>
@@ -3105,6 +4501,7 @@ export default function App() {
             <button onClick={() => { setIsMenuOpen(false); setPage('art'); }}>{t.nav.art}</button>
             <button onClick={() => { setIsMenuOpen(false); setPage('poetryCollection'); }}>{t.nav.poetryCollection}</button>
             <button onClick={() => { setIsMenuOpen(false); setPage('tea'); }}>{t.nav.tea}</button>
+            <button onClick={() => { setIsMenuOpen(false); setPage('journey'); }}>{t.nav.journey}</button>
             <button onClick={() => { setIsMenuOpen(false); setPage('contact'); }}>{t.nav.contact}</button>
             <div className="flex gap-12 mt-12">
               {(['KR', 'TC', 'EN'] as Language[]).map((l) => (
@@ -3445,9 +4842,11 @@ export default function App() {
         ) : page === 'philosophy' ? (
           <PhilosophyPage key="philosophy" t={t} setPage={setPage} />
         ) : page === 'art' ? (
-          <ArtDetailPage key="art" t={t} setPage={setPage} siteSettings={siteSettings} />
+          <ArtDetailPage key="art" t={t} setPage={setPage} siteSettings={siteSettings} archiveItems={archiveItems} />
         ) : page === 'tea' ? (
-          <TeaDetailPage key="tea" t={t} setPage={setPage} currentTeaImage={currentTeaImage} siteSettings={siteSettings} />
+          <TeaDetailPage key="tea" t={t} setPage={setPage} currentTeaImage={currentTeaImage} siteSettings={siteSettings} archiveItems={archiveItems} />
+        ) : page === 'journey' ? (
+          <JourneyPage key="journey" t={t} setPage={setPage} archiveItems={archiveItems} />
         ) : page === 'poetryCollection' ? (
           <PoetryCollectionPage key="poetryCollection" t={t} setPage={setPage} archiveItems={archiveItems} />
         ) : page === 'admin' ? (

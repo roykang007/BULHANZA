@@ -19,6 +19,13 @@ if (!isset($_FILES['image'])) {
 }
 
 $uploadDir = 'uploads/';
+if (isset($_POST['folder'])) {
+    $folder = preg_replace('/[^a-zA-Z0-9_\-]/', '', $_POST['folder']);
+    if ($folder !== '') {
+        $uploadDir = 'uploads/' . $folder . '/';
+    }
+}
+
 if (!is_dir($uploadDir)) {
     mkdir($uploadDir, 0755, true);
 }

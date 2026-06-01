@@ -1,5 +1,6 @@
 {
   "name": "Bulhanza (弗寒子)M",
   "description": "An archive of philosophy, art, and tea culture based on Mind-Matter Philosophy and Mulpa Aesthetics.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
