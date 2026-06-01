@@ -2198,11 +2198,12 @@ const TeaDetailPage = ({ t, setPage, currentTeaImage, siteSettings, archiveItems
                       )}
                     </div>
 
-                    <div className="font-serif text-lg md:text-xl leading-relaxed text-black/80 whitespace-pre-wrap pl-2 border-l border-black/5">
+                    <div className="font-serif text-lg md:text-xl leading-[1.85] text-black/80 whitespace-pre-wrap pl-4 border-l-2 border-black/10 select-text text-left">
                       <ReactMarkdown 
-                        remarkPlugins={[remarkGfm, remarkBreaks]}
+                        remarkPlugins={[remarkGfm]}
                         components={{
-                          p: ({ children }) => <div className="mb-0 leading-[1.3]">{children}</div>,
+                          p: ({ children }) => <div className="mb-6 leading-[1.85] select-text">{children}</div>,
+                          br: () => <br className="hidden" />
                         }}
                       >
                         {readingPoem.content}
@@ -4282,22 +4283,24 @@ const PoetryCollectionPage = ({ t, setPage, archiveItems }: { t: any; setPage: (
                     </div>
 
                     <div className="relative z-10 p-12 md:p-24 max-w-4xl mx-auto flex flex-col items-center">
-                      <div className="text-center mb-16">
-                        <h2 className="text-3xl md:text-[40px] font-serif text-black mb-8 leading-tight">{readingPoem.title}</h2>
-                        <div className="w-24 h-px bg-black/10 mx-auto" />
-                      </div>
+                      <div className="w-full max-w-xl flex flex-col items-start">
+                        <div className="text-left mb-12 w-full">
+                          <h2 className="text-2xl md:text-3xl font-serif font-bold text-black mb-6 leading-relaxed text-left tracking-wide">{readingPoem.title}</h2>
+                          <div className="w-16 h-0.5 bg-[#2c3e50]/20" />
+                        </div>
 
-                      <div className="w-full prose prose-pre:bg-transparent prose-pre:p-0 prose-pre:text-black prose-p:my-0 prose-div:my-0 max-w-none">
-                        <div className="markdown-body font-serif text-xl md:text-2xl leading-[1.1] text-black/90 whitespace-pre-wrap text-center">
-                          <ReactMarkdown 
-                            remarkPlugins={[remarkGfm]}
-                            components={{
-                              p: ({ children }) => <div className="mb-0 leading-[1.1]">{children}</div>,
-                              br: () => <br className="hidden" />
-                            }}
-                          >
-                            {readingPoem.content}
-                          </ReactMarkdown>
+                        <div className="w-full prose prose-pre:bg-transparent prose-pre:p-0 prose-pre:text-black prose-p:my-0 prose-div:my-0 max-w-none">
+                          <div className="markdown-body font-serif text-lg md:text-xl leading-[1.9] text-black/90 whitespace-pre-wrap text-left tracking-wide w-full">
+                            <ReactMarkdown 
+                              remarkPlugins={[remarkGfm]}
+                              components={{
+                                p: ({ children }) => <div className="mb-8 leading-[1.9] text-left font-serif select-text">{children}</div>,
+                                br: () => <br className="hidden" />
+                              }}
+                            >
+                              {readingPoem.content}
+                            </ReactMarkdown>
+                          </div>
                         </div>
                       </div>
 
