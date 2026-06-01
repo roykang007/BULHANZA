@@ -4082,7 +4082,7 @@ const ContactPage = ({ t, setPage }: { t: any; setPage: (p: Page) => void }) => 
   </motion.div>
 );
 
-const PoetryCollectionPage = ({ t, setPage, archiveItems }: { t: any; setPage: (p: Page) => void; archiveItems: ArchiveItem[] }) => {
+const PoetryCollectionPage = ({ t, setPage, archiveItems, dbError }: { t: any; setPage: (p: Page) => void; archiveItems: ArchiveItem[]; dbError: string | null }) => {
   const [activeLang, setActiveLang] = useState<Language>('KR');
   const [selectedCollection, setSelectedCollection] = useState<string | null>(null);
   const [readingPoem, setReadingPoem] = useState<ArchiveItem | null>(null);
@@ -4109,7 +4109,7 @@ const PoetryCollectionPage = ({ t, setPage, archiveItems }: { t: any; setPage: (
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
             >
-              <div className="text-center mb-24">
+              <div className="text-center mb-16">
                 <motion.div
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -4125,7 +4125,7 @@ const PoetryCollectionPage = ({ t, setPage, archiveItems }: { t: any; setPage: (
                   {t.poetryCollection.title}
                 </motion.h1>
                 
-                <div className="flex justify-center gap-4 mb-16">
+                <div className="flex justify-center gap-4 mb-12">
                   {(['KR', 'TC', 'EN'] as const).map((langKey) => (
                     <button 
                       key={langKey}
@@ -4140,6 +4140,31 @@ const PoetryCollectionPage = ({ t, setPage, archiveItems }: { t: any; setPage: (
                     </button>
                   ))}
                 </div>
+
+                {/* 데이터베이스 연결 또는 데이터 상태 경고 배너 */}
+                {(!supabase || dbError || archiveItems.length === 0) && (
+                  <div className="max-w-2xl mx-auto p-6 border border-dashed rounded text-center font-serif text-sm bg-amber-50/20 border-amber-600/30 text-amber-900/80 tracking-wide leading-relaxed">
+                    <p className="font-bold mb-2 text-base text-amber-990 flex items-center justify-center gap-2">
+                      ⚠️ 데이터베이스 연결 및 데이터 상태 안내
+                    </p>
+                    {!supabase ? (
+                      <p>
+                        현재 호스팅된 웹사이트에 <strong>Supabase 데이터베이스 연결 설정(VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY 환경 변수)</strong>이 존재하지 않습니다.<br />
+                        호스팅 플랫폼의 대시보드/설정 메뉴에서 해당 환경 변수를 알맞게 등록해 주셔야 실시간 데이터 조회가 원활히 작동합니다.
+                      </p>
+                    ) : dbError ? (
+                      <p>
+                        <strong>데이터베이스 오류 발생:</strong> {dbError}<br />
+                        테이블 구성이나 API 권한(RLS 정책 등)을 점검해 주세요.
+                      </p>
+                    ) : (
+                      <p>
+                        현재 연동된 데이터베이스 테이블(archive_items)에 저장된 시집 데이터가 비어 있습니다.<br />
+                        상단 혹은 하단의 관리자 대시보드(Admin) 메뉴로 들어가 <strong>샘플 데이터 복구(Seed Data)</strong>를 실행해 보시기 바랍니다.
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-12 gap-12 pb-32">
@@ -4157,7 +4182,22 @@ const PoetryCollectionPage = ({ t, setPage, archiveItems }: { t: any; setPage: (
                             {item}
                           </span>
                           <button 
-                            onClick={() => setSelectedCollection(item)}
+                            onClick={() => {
+                              if (!supabase) {
+                                alert("오류: 데이터베이스(Supabase) 설정 정보가 존재하지 않아 시 정보를 불러올 수 없습니다. 호스팅된 웹사이트 설정의 VITE_SUPABASE_URL 및 VITE_SUPABASE_ANON_KEY 환경 변수가 활성화되었는지 확인해 주세요.");
+                                return;
+                              }
+                              
+                              const targetPoems = archiveItems.filter(p => 
+                                p.poetry_collection_name === item && 
+                                p.language === activeLang
+                              );
+                              
+                              if (targetPoems.length === 0) {
+                                alert(`알림: '${item}' 에 해당하는 시(데이터)가 현재 데이터베이스에 없습니다. 관리자 대시보드(Admin)에서 샘플 데이터(Seed)를 복구한 후 하단의 '보기' 버튼으로 다시 시도해 주세요.`);
+                              }
+                              setSelectedCollection(item);
+                            }}
                             className="px-6 py-2 border border-black/20 text-[10px] tracking-widest hover:bg-black hover:text-white transition-all duration-300 whitespace-nowrap shrink-0"
                           >
                             보기
@@ -4352,6 +4392,7 @@ export default function App() {
   const [adminEditingItem, setAdminEditingItem] = useState<ArchiveItem | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [dbError, setDbError] = useState<string | null>(null);
   const t = translations[lang];
 
   // Dynamic assets from settings or fallback - handle legacy database values
@@ -4382,7 +4423,10 @@ export default function App() {
 
   useEffect(() => {
     const initData = async () => {
-      if (!supabase) return;
+      if (!supabase) {
+        setDbError("데이터베이스 설정 변수(VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY)가 선언되지 않았거나 비어 있습니다.");
+        return;
+      }
       // Fetch Settings - Resiliently pick one and cleanup duplicates
       const { data: settingsList, error: settingsError } = await supabase
         .from('site_settings')
@@ -4414,6 +4458,7 @@ export default function App() {
         if (newSettings) setSiteSettings(newSettings);
       } else if (settingsError) {
         console.error("Settings Fetch Error:", settingsError);
+        setDbError(`환경설정 로드 실패: ${settingsError.message}`);
       }
 
       // Fetch Archive
@@ -4424,6 +4469,9 @@ export default function App() {
       
       if (!archiveError && archive) {
         setArchiveItems(archive as ArchiveItem[]);
+      } else if (archiveError) {
+        console.error("Archive Fetch Error:", archiveError);
+        setDbError(`시집 데이터 로드 실패: ${archiveError.message}`);
       }
     };
 
@@ -4851,7 +4899,7 @@ export default function App() {
         ) : page === 'journey' ? (
           <JourneyPage key="journey" t={t} setPage={setPage} archiveItems={archiveItems} />
         ) : page === 'poetryCollection' ? (
-          <PoetryCollectionPage key="poetryCollection" t={t} setPage={setPage} archiveItems={archiveItems} />
+          <PoetryCollectionPage key="poetryCollection" t={t} setPage={setPage} archiveItems={archiveItems} dbError={dbError} />
         ) : page === 'admin' ? (
           <AdminDashboard 
             key="admin" 
