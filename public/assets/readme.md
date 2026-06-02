@@ -1,1 +1,0 @@
-# Assets Directory for storage
