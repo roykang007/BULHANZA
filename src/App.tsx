@@ -175,7 +175,7 @@ interface Content {
 const translations: Record<Language, Content> = {
   KR: {
     hero: {
-      title: "심물지철(心物之哲) 여영사진(如映寫眞)",
+      title: "심물지철(心物之哲)\n여영사진(如映寫眞)",
       subtitle: "심물의 이치는 비춤과 같다 / 차는 그 빛이 머무는 자리다"
     },
     philosophy: {
@@ -183,7 +183,7 @@ const translations: Record<Language, Content> = {
       text: "심물은 둘이 아니다. 보이는 것과 보이지 않는 것은 서로를 낳고, 그 사이에서 세계가 드러난다. 알고자 하면 멀어지고 고요하면 드러난다."
     },
     philosophyDetail: {
-      title: "심물철학(心物哲學)과 물파미학(物波美學)",
+      title: "심물철학(心物哲學)과\n물파미학(物波美學)",
       subtitle: "심물지파(心物之波)와 21세기 예술철학",
       intro: "예술은 인간이 세계와 만나는 가장 깊은 형식 가운데 하나이다. 인간은 사물을 보고, 소리를 듣고, 만물을 만지며 살아가지만, 단순한 감각적 접촉만으로 세계를 온전히 산다고 할 수는 없다. 우리는 언제나 보이는 것 너머를 함께 느낀다.\n\n심물철학은 마음과 사물을 둘로 갈라 놓지 않는다. 마음은 홀로 세계를 만들지 못하며, 사물도 홀로 의미를 갖지 못한다. 존재는 언제나 마음과 사물이 만나고 비추고 스며드는 관계 속에서만 현실성을 가진다.",
       sections: [
@@ -354,10 +354,10 @@ const translations: Record<Language, Content> = {
         EN: "영문"
       },
       KR: [
-        "1. 라석시전집", "2. 라석심물시집", "3. 라석심물철학시집", "4. 라석천자문시집", "5. 라석역학시집", "6. 라석화답시집", "7. 불한시사합작시집", "물파철학", "불한선차 시", "라석여정 - 활동사진", "라석여정 - 언론보도"
+        "1. 라석시전집", "2. 라석심물시집", "3. 라석심물철학시집", "4. 라석천자문시집", "5. 라석역학시집", "6. 라석화답시집", "7. 불한시사합작시집"
       ],
       TC: [
-        "1. 羅石東夷文詩集", "2. 羅石心物詩集", "3. 羅石心物哲學詩集", "4. 羅石和答詩集", "5. 羅石道德經詩集", "物波哲學", "弗寒仙茶 詩", "羅石旅程 - 活動照片", "羅石旅程 - 媒體報導"
+        "1. 羅石東夷文詩集", "2. 羅石心物詩集", "3. 羅石心物哲學詩集", "4. 羅石和答詩集", "5. 羅石道德經詩集"
       ],
       EN: [
         "1. Lasok's Complete Poetry Collection",
@@ -367,11 +367,7 @@ const translations: Record<Language, Content> = {
         "5. Lasok's I Ching Poetry Collection",
         "6. Lasok's Responsive Poetry Collection",
         "7. Bulhan Poetry Society Collaborative Poetry Collection",
-        "8. Lasok's Tao Te Ching Poetry Collection",
-        "Mulpa Philosophy",
-        "Bulhan Seoncha Poem",
-        "Lasok Journey - Activity Photos",
-        "Lasok Journey - Media Press"
+        "8. Lasok's Tao Te Ching Poetry Collection"
       ]
     },
     contact: {
@@ -569,10 +565,10 @@ const translations: Record<Language, Content> = {
         EN: "英文"
       },
       KR: [
-        "1. 라석시전집", "2. 라석심물시집", "3. 라석심물철학시집", "4. 라석천자문시집", "5. 라석역학시집", "6. 라석화답시집", "7. 불한시사합작시집", "물파철학", "불한선차 시", "라석여정 - 활동사진", "라석여정 - 언론보도"
+        "1. 라석시전집", "2. 라석심물시집", "3. 라석심물철학시집", "4. 라석천자문시집", "5. 라석역학시집", "6. 라석화답시집", "7. 불한시사합작시집"
       ],
       TC: [
-        "1. 羅石東夷文詩集", "2. 羅石心物詩集", "3. 羅石心物哲學詩集", "4. 羅石和答詩集", "5. 羅石道德經詩集", "物波哲學", "弗寒仙茶 詩", "羅石旅程 - 活動照片", "羅石旅程 - 媒體報導"
+        "1. 羅石東夷文詩集", "2. 羅石心物詩集", "3. 羅石心物哲學詩集", "4. 羅石和答詩集", "5. 羅石道德經詩集"
       ],
       EN: [
         "1. Lasok's Complete Poetry Collection",
@@ -582,11 +578,7 @@ const translations: Record<Language, Content> = {
         "5. Lasok's I Ching Poetry Collection",
         "6. Lasok's Responsive Poetry Collection",
         "7. Bulhan Poetry Society Collaborative Poetry Collection",
-        "8. Lasok's Tao Te Ching Poetry Collection",
-        "Mulpa Philosophy",
-        "Bulhan Seoncha Poem",
-        "Lasok Journey - Activity Photos",
-        "Lasok Journey - Media Press"
+        "8. Lasok's Tao Te Ching Poetry Collection"
       ]
     },
     contact: {
@@ -784,10 +776,10 @@ const translations: Record<Language, Content> = {
         EN: "English"
       },
       KR: [
-        "1. 라석시전집", "2. 라석심물시집", "3. 라석심물철학시집", "4. 라석천자문시집", "5. 라석역학시집", "6. 라석화답시집", "7. 불한시사합작시집", "물파철학", "불한선차 시", "라석여정 - 활동사진", "라석여정 - 언론보도"
+        "1. 라석시전집", "2. 라석심물시집", "3. 라석심물철학시집", "4. 라석천자문시집", "5. 라석역학시집", "6. 라석화답시집", "7. 불한시사합작시집"
       ],
       TC: [
-        "1. 羅石東夷文詩集", "2. 羅石心物詩集", "3. 羅石心物哲學詩集", "4. 羅石和答詩集", "5. 羅石道德經詩集", "物波哲學", "弗寒仙茶 詩", "羅石旅程 - 活動照片", "羅石旅程 - 媒體報導"
+        "1. 羅石東夷文詩集", "2. 羅石心物詩集", "3. 羅石心物哲學詩集", "4. 羅石和答詩集", "5. 羅石道德經詩集"
       ],
       EN: [
         "1. Lasok's Complete Poetry Collection",
@@ -797,11 +789,7 @@ const translations: Record<Language, Content> = {
         "5. Lasok's I Ching Poetry Collection",
         "6. Lasok's Responsive Poetry Collection",
         "7. Bulhan Poetry Society Collaborative Poetry Collection",
-        "8. Lasok's Tao Te Ching Poetry Collection",
-        "Mulpa Philosophy",
-        "Bulhan Seoncha Poem",
-        "Lasok Journey - Activity Photos",
-        "Lasok Journey - Media Press"
+        "8. Lasok's Tao Te Ching Poetry Collection"
       ]
     },
     contact: {
@@ -907,7 +895,7 @@ const PhilosophyPage = ({ t, setPage }: { t: any; setPage: (p: Page) => void }) 
         transition={{ duration: 1.5 }}
         className="z-10 max-w-5xl"
       >
-        <h1 className="text-4xl md:text-7xl font-serif mb-6 tracking-[0.2em] leading-tight">
+        <h1 className="text-3xl md:text-5xl font-serif mb-6 tracking-[0.2em] leading-tight whitespace-pre-line">
           {t.philosophyDetail.title}
         </h1>
         <p className="text-xl md:text-2xl font-serif tracking-[0.3em] opacity-60">
@@ -1031,7 +1019,7 @@ const ArtDetailPage = ({ t, setPage, siteSettings, archiveItems }: { t: any; set
           transition={{ duration: 1.5 }}
           className="z-10 max-w-5xl"
         >
-          <h1 className="text-3xl md:text-5xl lg:text-7xl font-serif mb-6 tracking-[0.2em] leading-tight text-black whitespace-nowrap">
+          <h1 className="text-3xl md:text-5xl font-serif mb-6 tracking-[0.2em] leading-tight text-black whitespace-nowrap">
             {t.artDetail.title}
           </h1>
           <p className="text-xl md:text-3xl font-serif tracking-[0.4em] opacity-60 text-black">
@@ -2113,7 +2101,7 @@ const TeaDetailPage = ({ t, setPage, currentTeaImage, siteSettings, archiveItems
             <div className="inline-block px-4 py-1 border border-black/10 rounded-full text-[10px] tracking-[0.4em] uppercase font-bold mb-4">
               Bio-Tea Revolution
             </div>
-            <h1 className="text-5xl md:text-8xl font-serif tracking-tighter leading-none mb-6">
+            <h1 className="text-3xl md:text-5xl font-serif tracking-tight leading-none mb-6">
               {tea.hero.title}
             </h1>
             <p className="text-xl md:text-2xl font-serif tracking-widest opacity-60 max-w-2xl mx-auto italic">
@@ -4633,7 +4621,7 @@ export default function App() {
                 >
                   Mind & Matter / Mulpaism
                 </motion.div>
-                <h1 className="text-[40px] md:text-[80px] font-serif mb-10 tracking-[0.1em] md:tracking-[0.25em] leading-tight text-white drop-shadow-2xl font-light">
+                <h1 className="text-3xl md:text-5xl font-serif mb-10 tracking-[0.1em] md:tracking-[0.2em] leading-tight text-white drop-shadow-2xl font-light whitespace-pre-line">
                   {t.hero.title}
                 </h1>
                 <p className="text-base md:text-xl font-serif tracking-[0.2em] opacity-80 text-white max-w-2xl mx-auto leading-relaxed italic border-t border-white/10 pt-10">
@@ -4679,11 +4667,11 @@ export default function App() {
                 >
                   <div className="space-y-4">
                     <span className="text-xs tracking-[0.5em] uppercase opacity-40 font-bold block">Section 01</span>
-                    <h2 className="text-[40px] md:text-[64px] font-serif tracking-widest leading-tight">
+                    <h2 className="text-3xl md:text-5xl font-serif tracking-widest leading-tight">
                       {t.philosophy.title}
                     </h2>
                   </div>
-                  <p className="text-xl md:text-2xl font-serif leading-relaxed tracking-wide opacity-80 italic">
+                  <p className="text-[33px] font-serif leading-relaxed tracking-wide opacity-80 text-left">
                     {t.philosophy.text}
                   </p>
                   <div className="pt-8">
@@ -4804,7 +4792,7 @@ export default function App() {
                   >
                     <div className="space-y-6">
                       <span className="text-[10px] tracking-[0.5em] uppercase font-bold opacity-40">The Essence 03</span>
-                      <h2 className="text-[40px] md:text-[64px] font-serif tracking-[0.15em] leading-tight">
+                      <h2 className="text-3xl md:text-5xl font-serif tracking-[0.15em] leading-tight">
                         {t.tea.title}
                       </h2>
                     </div>
@@ -4845,7 +4833,7 @@ export default function App() {
                 >
                   <div className="space-y-10">
                     <h2 className="text-[10px] md:text-[12px] tracking-[1em] uppercase font-bold opacity-30 text-white">Behind the Silence</h2>
-                    <p className="text-[40px] leading-[56px] font-serif tracking-wide text-white font-light">
+                    <p className="text-[29px] leading-[42px] font-serif tracking-wide text-white font-light">
                       {t.about.text}
                     </p>
                   </div>
