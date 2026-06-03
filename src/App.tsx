@@ -2241,9 +2241,17 @@ const TeaDetailPage = ({ t, setPage, currentTeaImage, siteSettings, archiveItems
             >
               <div className="space-y-4">
                 <span className="text-[10px] tracking-[0.5em] uppercase font-bold opacity-30">The Discovery</span>
-                <h2 className="text-4xl md:text-6xl font-serif leading-tight">
-                  {tea.invention.title}
-                </h2>
+                {activeLang === 'KR' ? (
+                  <h2 className="font-serif leading-snug tracking-wide text-black flex flex-col gap-1">
+                    <span className="block text-xs md:text-sm uppercase tracking-widest font-bold opacity-40">핵심발명:</span>
+                    <span className="block text-[24px] md:text-[32px] font-medium mt-1 leading-normal text-[#1a1a1a]">'사씨 보이차 스타틴'</span>
+                    <span className="block text-[16px] md:text-[20px] opacity-40 font-medium italic mt-1">(Xie's Pu-erh Tea Statins)</span>
+                  </h2>
+                ) : (
+                  <h2 className="text-2xl md:text-4xl font-serif leading-tight text-black">
+                    {tea.invention.title}
+                  </h2>
+                )}
               </div>
               
               <div className="space-y-6">
@@ -2295,7 +2303,7 @@ const TeaDetailPage = ({ t, setPage, currentTeaImage, siteSettings, archiveItems
               viewport={{ once: true }}
               className="space-y-6"
             >
-              <h2 className="text-3xl md:text-5xl font-serif tracking-widest leading-tight">
+              <h2 className="text-xl md:text-3xl lg:text-4xl font-serif tracking-wide leading-tight md:whitespace-nowrap text-center">
                 {tea.features.title}
               </h2>
               <p className="text-lg md:text-xl font-serif opacity-50 tracking-widest">
@@ -2335,9 +2343,16 @@ const TeaDetailPage = ({ t, setPage, currentTeaImage, siteSettings, archiveItems
           <div className="grid lg:grid-cols-2 gap-24 items-start">
             <div className="sticky top-32 space-y-8">
               <span className="text-[10px] tracking-[0.5em] uppercase font-bold opacity-30">Brand Essence</span>
-              <h2 className="text-5xl md:text-7xl font-serif leading-tight">
-                {tea.philosophy.title}
-              </h2>
+              {activeLang === 'KR' ? (
+                <h2 className="font-serif leading-snug tracking-wide text-black flex flex-col gap-1">
+                  <span className="block text-lg md:text-2xl font-light opacity-50">브랜드 철학:</span>
+                  <span className="block text-[26px] md:text-[36px] font-medium leading-normal text-[#1a1a1a] mt-1">불한(弗寒)과 선(仙), 차(茶) 미학</span>
+                </h2>
+              ) : (
+                <h2 className="text-3xl md:text-5xl font-serif leading-tight text-black">
+                  {tea.philosophy.title}
+                </h2>
+              )}
               <div className="w-12 h-px bg-black" />
             </div>
 
@@ -2383,9 +2398,16 @@ const TeaDetailPage = ({ t, setPage, currentTeaImage, siteSettings, archiveItems
             <div className="space-y-16">
               <div className="space-y-4">
                 <span className="text-[10px] tracking-[0.5em] uppercase font-bold opacity-30">{tea.storage.subtitle}</span>
-                <h2 className="text-4xl md:text-6xl font-serif leading-tight">
-                  {tea.storage.title}
-                </h2>
+                {activeLang === 'KR' ? (
+                  <h2 className="font-serif leading-snug tracking-wide text-black flex flex-col gap-1">
+                    <span className="block text-lg md:text-2xl font-light opacity-50">보관의 미학:</span>
+                    <span className="block text-[26px] md:text-[36px] font-medium leading-normal text-[#1a1a1a] mt-1">"숨 쉬는 도자 호리병"</span>
+                  </h2>
+                ) : (
+                  <h2 className="text-4xl md:text-6xl font-serif leading-tight">
+                    {tea.storage.title}
+                  </h2>
+                )}
               </div>
 
               <div className="space-y-10">
@@ -3809,13 +3831,29 @@ const AdminDashboard = ({
                       className="w-full border-b border-gray-300 py-4 text-xl outline-none focus:border-black transition-colors font-serif bg-transparent cursor-pointer text-black"
                     >
                       <option value="">Select a collection...</option>
-                      {translations[formData.language as Language || 'KR'].poetryCollection[formData.language as Language || 'KR'].filter((colName: string) => !(
-                        colName.startsWith('라석여정') || 
-                        colName.startsWith('羅石旅程') || 
-                        colName.toLowerCase().includes('journey')
-                      )).map((colName: string) => (
-                        <option key={colName} value={colName}>{colName}</option>
-                      ))}
+                      {(() => {
+                        const currentLang = (formData.language as Language) || 'KR';
+                        const currentList = [...(translations[currentLang]?.poetryCollection?.[currentLang] || [])];
+                        const extraItems: Record<Language, string[]> = {
+                          KR: ["물파철학", "불한선차 시"],
+                          TC: ["物波哲學", "弗寒仙茶 詩"],
+                          EN: ["Mulpa Philosophy", "Bulhan Seoncha Poem"]
+                        };
+                        const restoredList = [...currentList];
+                        const extraForLang = extraItems[currentLang] || [];
+                        extraForLang.forEach(item => {
+                          if (!restoredList.includes(item)) {
+                            restoredList.push(item);
+                          }
+                        });
+                        return restoredList.filter((colName: string) => !(
+                          colName.startsWith('라석여정') || 
+                          colName.startsWith('羅石旅程') || 
+                          colName.toLowerCase().includes('journey')
+                        )).map((colName: string) => (
+                          <option key={colName} value={colName}>{colName}</option>
+                        ));
+                      })()}
                     </select>
                   </div>
                   <div className="space-y-4">
@@ -4772,11 +4810,11 @@ export default function App() {
 
             {/* Enhanced Tea Section */}
             <section id="tea" className="relative min-h-screen bg-white flex items-center justify-center py-32 overflow-hidden">
-              <div className="absolute inset-0 md:left-[50%] overflow-hidden">
+              <div className="absolute inset-0 md:left-[50%] overflow-hidden flex items-center justify-center">
                 <img 
                   src="/assets/tea_image.jpg" 
                   alt="Tea" 
-                  className="w-full h-full object-cover grayscale opacity-[0.15] md:grayscale-0 md:opacity-100 transition-all duration-[5s] hover:scale-105"
+                  className="w-full h-full object-cover grayscale opacity-[0.15] md:w-[70%] md:h-[70%] md:object-cover md:grayscale-0 md:opacity-100 transition-all duration-[5s] hover:scale-105"
                   referrerPolicy="no-referrer"
                 />
               </div>
@@ -4856,7 +4894,7 @@ export default function App() {
                       </p>
                     </div>
                     <div className="space-y-4">
-                      <h4 className="text-[11px] tracking-[0.4em] uppercase font-bold opacity-30">The Space</h4>
+                      <h4 className="text-[16px] tracking-[0.4em] uppercase font-bold text-[#0000ff]">The Space</h4>
                       <p className="text-sm font-serif opacity-60 leading-relaxed tracking-[0.1em]">
                         {lang === 'KR' ? '물파공간은 그 사유가 예술로 형상화되는 거룩한 장소입니다.' : 
                          lang === 'TC' ? '物波空間是將那種思維具象化為藝術的神聖場所。' :
