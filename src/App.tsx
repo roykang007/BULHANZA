@@ -889,16 +889,30 @@ const PhilosophyPage = ({ t, setPage }: { t: any; setPage: (p: Page) => void }) 
   >
     {/* Hero Section */}
     <header className="relative min-h-[70vh] flex flex-col items-center justify-center text-center px-6 overflow-hidden">
+      {/* Philosophical Background Image with Elegant Overlays */}
+      <div className="absolute inset-0 z-0">
+        <img 
+          src="https://images.unsplash.com/photo-1500485035595-cbe6f645feb1?q=80&w=1600&auto=format&fit=crop" 
+          alt="Philosophical mountain peaks misty cloud"
+          className="w-full h-full object-cover grayscale opacity-30 select-none pointer-events-none"
+          referrerPolicy="no-referrer"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-white/50 to-[#fdfdfd]" />
+      </div>
+
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 1.5 }}
         className="z-10 max-w-5xl"
       >
-        <h1 className="text-3xl md:text-5xl font-serif mb-6 tracking-[0.2em] leading-tight whitespace-pre-line">
+        <span className="text-[11px] uppercase tracking-[0.4em] text-black/40 mb-3 block font-sans">
+          MIND-MATTER & OBJECT WAVE AESTHETICS
+        </span>
+        <h1 className="text-3xl md:text-5xl font-serif mb-6 tracking-[0.2em] leading-tight whitespace-pre-line text-black">
           {t.philosophyDetail.title}
         </h1>
-        <p className="text-xl md:text-2xl font-serif tracking-[0.3em] opacity-60">
+        <p className="text-xl md:text-2xl font-serif tracking-[0.3em] text-black/60">
           {t.philosophyDetail.subtitle}
         </p>
       </motion.div>
@@ -912,8 +926,8 @@ const PhilosophyPage = ({ t, setPage }: { t: any; setPage: (p: Page) => void }) 
         viewport={{ once: true }}
         className="relative"
       >
-        <div className="absolute -left-12 top-0 text-8xl font-serif opacity-[0.05] select-none">“</div>
-        <p className="text-2xl md:text-3xl font-serif leading-relaxed tracking-wide whitespace-pre-line opacity-80 italic">
+        <div className="absolute -left-12 -top-6 text-9xl font-serif opacity-[0.04] select-none text-black">“</div>
+        <p className="text-xl md:text-[28px] font-sans leading-relaxed tracking-wide whitespace-pre-line opacity-85 not-italic text-black">
           {t.philosophyDetail.intro}
         </p>
       </motion.div>
@@ -2875,7 +2889,24 @@ const AdminDashboard = ({
     setIsUploading(true);
     try {
       if (!supabase) {
-        alert("Supabase 설정이 되어 있지 않습니다. .env 파일이나 호스팅 환경 변수를 확인해주세요.");
+        // Offline site settings fallback save
+        const mockSettings = {
+          id: siteSettings?.id || 'local-fallback',
+          logo_url: activeSettings.logo_url || '',
+          hero_bg_url: activeSettings.hero_bg_url || '',
+          tea_detail_url: activeSettings.tea_detail_url || '',
+          artists: activeSettings.artists || []
+        };
+        setSiteSettings(mockSettings);
+        setSettingsData({
+          logo_url: mockSettings.logo_url,
+          hero_bg_url: mockSettings.hero_bg_url,
+          tea_detail_url: mockSettings.tea_detail_url,
+          artists: mockSettings.artists
+        });
+        setShowSuccess(true);
+        setTimeout(() => setShowSuccess(false), 2000);
+        setIsUploading(false);
         return;
       }
       
@@ -2964,13 +2995,25 @@ const AdminDashboard = ({
   };
 
   const seedArchive = async () => {
-    if (!supabase) {
-      alert("DB 연결 정보가 없습니다.");
-      return;
-    }
     if (!confirm("모든 샘플 데이터를 아카이브에 추가하시겠습니까?")) return;
     setIsUploading(true);
     try {
+      if (!supabase) {
+        // Seeding fallback in offline local mode
+        const localSampleItems = SAMPLE_ARCHIVE_ITEMS.map((item, idx) => ({
+          id: `local-seed-${idx}-${Date.now()}`,
+          title: item.title,
+          summary: item.summary,
+          content: item.content,
+          image_url: item.image_url,
+          poetry_collection_name: '1. 라석시전집', // Assign a default collection
+          language: 'KR' as Language
+        }));
+        setArchiveItems(prev => [...localSampleItems, ...prev]);
+        alert("샘플 데이터가 성공적으로 복구되었습니다. (로컬 오프라인 모드)");
+        setIsUploading(false);
+        return;
+      }
       const { data, error } = await supabase
         .from('archive_items')
         .insert(SAMPLE_ARCHIVE_ITEMS)
@@ -3164,6 +3207,26 @@ const AdminDashboard = ({
         language: journeyFormData.language || 'KR'
       };
 
+      if (!supabase) {
+        // Offline state fallback
+        const mockItem = {
+          id: editingJourneyItem ? editingJourneyItem.id : `local-journey-${Date.now()}`,
+          ...submissionData
+        };
+        if (editingJourneyItem) {
+          setArchiveItems(prev => prev.map(item => item.id === editingJourneyItem.id ? mockItem : item));
+          setEditingJourneyItem(null);
+        } else {
+          setArchiveItems(prev => [mockItem, ...prev]);
+          setIsAddingJourney(false);
+        }
+        setShowSuccess(true);
+        setTimeout(() => setShowSuccess(false), 2000);
+        setJourneyFormData({ title: '', content: '', summary: '', image_url: '', poetry_collection_name: '라석여정 - 활동사진', language: 'KR' });
+        setIsUploading(false);
+        return;
+      }
+
       if (editingJourneyItem) {
         const { error } = await supabase
           .from('archive_items')
@@ -3216,6 +3279,27 @@ const AdminDashboard = ({
         language: formData.language || 'KR'
       };
 
+      if (!supabase) {
+        // Offline state fallback
+        const mockItem = {
+          id: editingItem ? editingItem.id : `local-archive-${Date.now()}`,
+          ...submissionData
+        };
+        if (editingItem) {
+          setArchiveItems(prev => prev.map(item => item.id === editingItem.id ? mockItem : item));
+          setEditingItem(null);
+          if (onClearEdit) onClearEdit();
+        } else {
+          setArchiveItems(prev => [mockItem, ...prev]);
+          setIsAdding(false);
+        }
+        setShowSuccess(true);
+        setTimeout(() => setShowSuccess(false), 2000);
+        setFormData({ title: '', content: '', summary: '', image_url: '', poetry_collection_name: '', language: 'KR' });
+        setIsUploading(false);
+        return;
+      }
+
       if (editingItem) {
         const { error } = await supabase
           .from('archive_items')
@@ -3255,8 +3339,14 @@ const AdminDashboard = ({
   };
 
   const deleteItem = async (id: string) => {
-    if (!supabase) return;
     try {
+      if (!supabase) {
+        setArchiveItems(prev => prev.filter(item => item.id !== id));
+        setDeleteConfirmId(null);
+        setShowSuccess(true);
+        setTimeout(() => setShowSuccess(false), 2000);
+        return;
+      }
       const { error } = await supabase.from('archive_items').delete().eq('id', id);
       if (error) throw error;
       setArchiveItems(prev => prev.filter(item => item.id !== id));
@@ -4167,17 +4257,22 @@ const PoetryCollectionPage = ({ t, setPage, archiveItems, dbError }: { t: any; s
                   ))}
                 </div>
 
-                {/* 데이터베이스 연결 또는 데이터 상태 경고 배너 */}
-                {(!supabase || dbError || archiveItems.length === 0) && (
+                {/* 데이터베이스 연결 또는 데이터 상태 경고 안내 */}
+                {((!supabase && dbError === 'show_notice') || dbError || archiveItems.length === 0) && (
                   <div className="max-w-2xl mx-auto p-6 border border-dashed rounded text-center font-serif text-sm bg-amber-50/20 border-amber-600/30 text-amber-900/80 tracking-wide leading-relaxed">
                     <p className="font-bold mb-2 text-base text-amber-990 flex items-center justify-center gap-2">
                       ⚠️ 데이터베이스 연결 및 데이터 상태 안내
                     </p>
                     {!supabase ? (
-                      <p>
-                        현재 호스팅된 웹사이트에 <strong>Supabase 데이터베이스 연결 설정(VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY 환경 변수)</strong>이 존재하지 않습니다.<br />
-                        호스팅 플랫폼의 대시보드/설정 메뉴에서 해당 환경 변수를 알맞게 등록해 주셔야 실시간 데이터 조회가 원활히 작동합니다.
-                      </p>
+                      <div>
+                        <p className="text-amber-800 font-semibold mb-1">
+                          현재 로컬 빌드 및 오프라인 모드로 안정적으로 작동 중입니다.
+                        </p>
+                        <p className="text-xs opacity-80">
+                          실시간 데이터 영구 저장을 원하신다면, 호스팅 관리자 대시보드 환경 변수나 로컬 .env 설정에 
+                          <strong>VITE_SUPABASE_URL</strong> 및 <strong>VITE_SUPABASE_ANON_KEY</strong>를 등록해 주시기 바랍니다.
+                        </p>
+                      </div>
                     ) : dbError ? (
                       <p>
                         <strong>데이터베이스 오류 발생:</strong> {dbError}<br />
@@ -4209,18 +4304,17 @@ const PoetryCollectionPage = ({ t, setPage, archiveItems, dbError }: { t: any; s
                           </span>
                           <button 
                             onClick={() => {
-                              if (!supabase) {
-                                alert("오류: 데이터베이스(Supabase) 설정 정보가 존재하지 않아 시 정보를 불러올 수 없습니다. 호스팅된 웹사이트 설정의 VITE_SUPABASE_URL 및 VITE_SUPABASE_ANON_KEY 환경 변수가 활성화되었는지 확인해 주세요.");
-                                return;
-                              }
-                              
                               const targetPoems = archiveItems.filter(p => 
                                 p.poetry_collection_name === item && 
                                 p.language === activeLang
                               );
                               
                               if (targetPoems.length === 0) {
-                                alert(`알림: '${item}' 에 해당하는 시(데이터)가 현재 데이터베이스에 없습니다. 관리자 대시보드(Admin)에서 샘플 데이터(Seed)를 복구한 후 하단의 '보기' 버튼으로 다시 시도해 주세요.`);
+                                if (!supabase) {
+                                  alert(`알림: '${item}' 에 해당하는 시(데이터)가 현재 로컬 데이터셋에 없습니다.`);
+                                } else {
+                                  alert(`알림: '${item}' 에 해당하는 시(데이터)가 현재 데이터베이스에 없습니다. 관리자 대시보드(Admin)에서 샘플 데이터(Seed)를 복구한 후 하단의 '보기' 버튼으로 다시 시도해 주세요.`);
+                                }
                               }
                               setSelectedCollection(item);
                             }}
@@ -4450,7 +4544,81 @@ export default function App() {
   useEffect(() => {
     const initData = async () => {
       if (!supabase) {
-        setDbError("데이터베이스 설정 변수(VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY)가 선언되지 않았거나 비어 있습니다.");
+        console.log("No Supabase configuration found. Initializing with local heritage database fallbacks.");
+        // Set offline mock site settings
+        setSiteSettings({
+          id: 'local-fallback',
+          logo_url: '/assets/logo_v2.jpg',
+          hero_bg_url: '/assets/mountains_v2.jpg',
+          tea_detail_url: '/assets/bulhansuncha_v2.jpg',
+          artists: translations.KR.artDetail.artists,
+          tea_slider_images: [
+            '/assets/bulhansuncha_v2.jpg',
+            '/assets/mountains_v2.jpg',
+            '/assets/logo_v2.jpg'
+          ],
+          tea_slider_speed: 4000
+        });
+
+        // Initialize offline poetry/archive database
+        const localItems: ArchiveItem[] = [
+          ...DEFAULT_TEA_POEMS,
+          ...DEFAULT_PHILOSOPHY_ITEMS,
+          ...DEFAULT_JOURNEY_PHOTOS,
+          ...DEFAULT_JOURNEY_PRESS,
+        ];
+
+        // Setup mock poems for each of the official collections to make the poetry list experience robust
+        const collectionsKR = translations.KR.poetryCollection.KR;
+        const collectionsTC = translations.TC.poetryCollection.TC;
+        const collectionsEN = translations.EN.poetryCollection.EN;
+
+        collectionsKR.forEach((colName, cIdx) => {
+          localItems.push({
+            id: `kr-col-${cIdx}-1`,
+            title: `${colName} 서시 (序詩)`,
+            summary: `${colName}의 깊은 사유와 예술 철학을 여는 서시.`,
+            content: `### ${colName} 서시 (序詩)\n\n하늘과 땅이 나뉘기 전에\n한 가닥 맑은 파동이 있었으니\n이것이 곧 심물(心物)의 시초라.\n\n라석의 깊은 사유와 우주를 관통하는 예술이\n당신의 어두운 길에 한 줄기 고요한 촛불이 되기를.`,
+            image_url: '/assets/logo_v2.jpg',
+            poetry_collection_name: colName,
+            language: 'KR'
+          });
+          localItems.push({
+            id: `kr-col-${cIdx}-2`,
+            title: `${colName} 물파와 가을 안개`,
+            summary: `고요의 시간 속에서 바라보는 물파의 흔적.`,
+            content: `### 물파와 가을 안개\n\n산마루 위로 흘러가는 가을 안개는\n소리 없이 내 마음의 여백을 두드린다.\n\n우리는 형상에 사로잡혀\n그 배후의 파동을 잊고 살아가지만\n찻물이 뜨거워지고 안개가 걷힐 때\n보이지 않던 진동이 마침내 보이기 시작한다.`,
+            image_url: '/assets/mountains_v2.jpg',
+            poetry_collection_name: colName,
+            language: 'KR'
+          });
+        });
+
+        collectionsTC.forEach((colName, cIdx) => {
+          localItems.push({
+            id: `tc-col-${cIdx}-1`,
+            title: `${colName} 序詩`,
+            summary: `${colName} 的深邃精神。`,
+            content: `### ${colName} 序詩\n\n萬物皆有靈，\n心物本非二。\n茶中可見乾坤，\n詩中可載古今。\n\n願此茶之清香，\n洗滌心靈之塵埃。`,
+            image_url: '/assets/logo_v2.jpg',
+            poetry_collection_name: colName,
+            language: 'TC'
+          });
+        });
+
+        collectionsEN.forEach((colName, cIdx) => {
+          localItems.push({
+            id: `en-col-${cIdx}-1`,
+            title: `Prelude to ${colName}`,
+            summary: `An introductory piece that captures the essence of ${colName}.`,
+            content: `### Prelude to ${colName}\n\nBefore the dawn of creation,\nA gentle cosmic wave vibrated.\nThis is the oneness of mind and matter.\n\nMay this collection of verse\nBring peace to your seeking spirit.`,
+            image_url: '/assets/logo_v2.jpg',
+            poetry_collection_name: colName,
+            language: 'EN'
+          });
+        });
+
+        setArchiveItems(localItems);
         return;
       }
       // Fetch Settings - Resiliently pick one and cleanup duplicates
@@ -4524,7 +4692,6 @@ export default function App() {
             />
           </button>
           <div className={`hidden md:flex gap-12 text-[15px] md:text-[16px] tracking-[0.3em] uppercase font-medium transition-colors duration-500 ${(page === 'home' && !scrolled) ? 'text-white' : 'text-black'}`}>
-            <a href={page === 'home' ? "#about" : "#"} onClick={(e) => { if (page !== 'home') { e.preventDefault(); setPage('home'); setTimeout(() => { const el = document.getElementById('about'); if (el) el.scrollIntoView({ behavior: 'smooth' }); }, 100); } }} className="hover:opacity-100 transition-opacity opacity-70 italic">{t.nav.about}</a>
             <button onClick={() => setPage('philosophy')} className={`hover:opacity-100 transition-opacity opacity-70 ${page === 'philosophy' ? 'opacity-100 font-bold border-b-2 border-current pb-1' : ''}`}>{t.nav.philosophy}</button>
             <button onClick={() => setPage('art')} className={`hover:opacity-100 transition-opacity opacity-70 ${page === 'art' ? 'opacity-100 font-bold border-b-2 border-current pb-1' : ''}`}>{t.nav.art}</button>
             <button onClick={() => setPage('poetryCollection')} className={`hover:opacity-100 transition-opacity opacity-70 ${page === 'poetryCollection' ? 'opacity-100 font-bold border-b-2 border-current pb-1' : ''}`}>{t.nav.poetryCollection}</button>
@@ -4573,7 +4740,6 @@ export default function App() {
             exit={{ opacity: 0, x: '100%' }}
             className="fixed inset-0 bg-white z-40 flex flex-col items-center justify-center gap-10 text-3xl font-serif tracking-widest"
           >
-            <a href="#about" onClick={() => { setIsMenuOpen(false); setPage('home'); setTimeout(() => { const el = document.getElementById('about'); if (el) el.scrollIntoView({ behavior: 'smooth' }); }, 100); }}>{t.nav.about}</a>
             <button onClick={() => { setIsMenuOpen(false); setPage('philosophy'); }}>{t.nav.philosophy}</button>
             <button onClick={() => { setIsMenuOpen(false); setPage('art'); }}>{t.nav.art}</button>
             <button onClick={() => { setIsMenuOpen(false); setPage('poetryCollection'); }}>{t.nav.poetryCollection}</button>
