@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Component, ReactNode } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Menu, X, Plus, Trash2, Edit2, ArrowLeft, Newspaper, Image as ImageIcon, Upload, ChevronLeft, ChevronRight, BookOpen, Settings, ChevronDown } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
@@ -1482,14 +1482,16 @@ const ArtDetailPage = ({ t, setPage, siteSettings, archiveItems }: { t: any; set
 
                       {/* Manifesto style view with custom typography and spacing */}
                       <div className="font-serif text-base md:text-lg leading-loose text-black/80 whitespace-pre-wrap pl-4 border-l-2 border-black/10">
-                        <ReactMarkdown 
-                          remarkPlugins={[remarkGfm, remarkBreaks]}
-                          components={{
-                            p: ({ children }) => <div className="mb-6 text-justify leading-relaxed">{children}</div>,
-                          }}
-                        >
-                          {readingItem.content}
-                        </ReactMarkdown>
+                        <MarkdownErrorBoundary fallbackText={readingItem.content || ''}>
+                          <ReactMarkdown 
+                            remarkPlugins={[remarkGfm, remarkBreaks].filter(Boolean)}
+                            components={{
+                              p: ({ children }) => <div className="mb-6 text-justify leading-relaxed">{children}</div>,
+                            }}
+                          >
+                            {readingItem.content || ''}
+                          </ReactMarkdown>
+                        </MarkdownErrorBoundary>
                       </div>
                     </div>
 
@@ -1807,6 +1809,29 @@ const DEFAULT_JOURNEY_PRESS: ArchiveItem[] = [
   }
 ];
 
+class MarkdownErrorBoundary extends Component<{ children: ReactNode; fallbackText: string }, { hasError: boolean }> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error: any, errorInfo: any) {
+    console.error("Markdown render error captured:", error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="whitespace-pre-wrap font-serif text-base leading-relaxed text-black/80">
+          {this.props.fallbackText}
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 const JourneyPage = ({ t, setPage, archiveItems }: { t: any; setPage: (p: Page) => void; archiveItems: ArchiveItem[] }) => {
   const activeLang = t.nav.about === '소개' ? 'KR' : t.nav.about === '關於' ? 'TC' : 'EN';
   const [selectedJourneyItem, setSelectedJourneyItem] = useState<ArchiveItem | null>(null);
@@ -1882,7 +1907,12 @@ const JourneyPage = ({ t, setPage, archiveItems }: { t: any; setPage: (p: Page) 
             >
               {photoTabLabel} ({journeyPhotos.length})
               {journeyTab === 'photos' && (
-                <motion.div layoutId="journeyUnderline" className="absolute bottom-0 left-0 right-0 h-0.5 bg-black" />
+                <motion.div 
+                  initial={{ scaleX: 0 }}
+                  animate={{ scaleX: 1 }}
+                  transition={{ duration: 0.2 }}
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-black origin-center" 
+                />
               )}
             </button>
             <button
@@ -1893,7 +1923,12 @@ const JourneyPage = ({ t, setPage, archiveItems }: { t: any; setPage: (p: Page) 
             >
               {pressTabLabel} ({journeyPress.length})
               {journeyTab === 'press' && (
-                <motion.div layoutId="journeyUnderline" className="absolute bottom-0 left-0 right-0 h-0.5 bg-black" />
+                <motion.div 
+                  initial={{ scaleX: 0 }}
+                  animate={{ scaleX: 1 }}
+                  transition={{ duration: 0.2 }}
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-black origin-center" 
+                />
               )}
             </button>
           </div>
@@ -2034,9 +2069,11 @@ const JourneyPage = ({ t, setPage, archiveItems }: { t: any; setPage: (p: Page) 
                 <div className="w-12 h-px bg-black/10" />
 
                 <div className="prose prose-sm max-w-none text-black/80 font-serif leading-relaxed markdown-body">
-                  <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
-                    {selectedJourneyItem.content}
-                  </ReactMarkdown>
+                  <MarkdownErrorBoundary fallbackText={selectedJourneyItem.content || ''}>
+                    <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks].filter(Boolean)}>
+                      {selectedJourneyItem.content || ''}
+                    </ReactMarkdown>
+                  </MarkdownErrorBoundary>
                 </div>
               </div>
             </motion.div>
@@ -2201,15 +2238,17 @@ const TeaDetailPage = ({ t, setPage, currentTeaImage, siteSettings, archiveItems
                     </div>
 
                     <div className="font-serif text-lg md:text-xl leading-[1.85] text-black/80 whitespace-pre-wrap pl-4 border-l-2 border-black/10 select-text text-left">
-                      <ReactMarkdown 
-                        remarkPlugins={[remarkGfm]}
-                        components={{
-                          p: ({ children }) => <div className="mb-6 leading-[1.85] select-text">{children}</div>,
-                          br: () => <br className="hidden" />
-                        }}
-                      >
-                        {readingPoem.content}
-                      </ReactMarkdown>
+                      <MarkdownErrorBoundary fallbackText={readingPoem.content || ''}>
+                        <ReactMarkdown 
+                          remarkPlugins={[remarkGfm].filter(Boolean)}
+                          components={{
+                            p: ({ children }) => <div className="mb-6 leading-[1.85] select-text">{children}</div>,
+                            br: () => <br className="hidden" />
+                          }}
+                        >
+                          {readingPoem.content || ''}
+                        </ReactMarkdown>
+                      </MarkdownErrorBoundary>
                     </div>
                   </div>
 
@@ -4532,15 +4571,17 @@ const PoetryCollectionPage = ({ t, setPage, archiveItems, dbError }: { t: any; s
 
                         <div className="w-full prose prose-pre:bg-transparent prose-pre:p-0 prose-pre:text-black prose-p:my-0 prose-div:my-0 max-w-none">
                           <div className="markdown-body font-serif text-lg md:text-xl leading-[1.9] text-black/90 whitespace-pre-wrap text-left tracking-wide w-full">
-                            <ReactMarkdown 
-                              remarkPlugins={[remarkGfm]}
-                              components={{
-                                p: ({ children }) => <div className="mb-8 leading-[1.9] text-left font-serif select-text">{children}</div>,
-                                br: () => <br className="hidden" />
-                              }}
-                            >
-                              {readingPoem.content}
-                            </ReactMarkdown>
+                            <MarkdownErrorBoundary fallbackText={readingPoem.content || ''}>
+                              <ReactMarkdown 
+                                remarkPlugins={[remarkGfm].filter(Boolean)}
+                                components={{
+                                  p: ({ children }) => <div className="mb-8 leading-[1.9] text-left font-serif select-text">{children}</div>,
+                                  br: () => <br className="hidden" />
+                                }}
+                              >
+                                {readingPoem.content || ''}
+                              </ReactMarkdown>
+                            </MarkdownErrorBoundary>
                           </div>
                         </div>
                       </div>
