@@ -2770,6 +2770,39 @@ const AdminDashboard = ({
   const [isAddingArtist, setIsAddingArtist] = useState(false);
   const isInitialSync = useRef(true);
 
+  const [customSupaUrl, setCustomSupaUrl] = useState(() => {
+    return localStorage.getItem('CUSTOM_SUPABASE_URL') || import.meta.env.VITE_SUPABASE_URL || '';
+  });
+  const [customSupaKey, setCustomSupaKey] = useState(() => {
+    return localStorage.getItem('CUSTOM_SUPABASE_ANON_KEY') || import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+  });
+
+  const saveDatabaseConnection = () => {
+    if (!customSupaUrl || !customSupaKey) {
+      if (confirm("Supabase 연결 설정을 비우시겠습니까? 이 경우 기본 로컬 오프라인 데이터 모드로 작동합니다.")) {
+        localStorage.removeItem('CUSTOM_SUPABASE_URL');
+        localStorage.removeItem('CUSTOM_SUPABASE_ANON_KEY');
+        alert("데이터베이스 연결 설정이 초기화되었습니다. 페이지를 새로고침합니다.");
+        window.location.reload();
+      }
+      return;
+    }
+
+    localStorage.setItem('CUSTOM_SUPABASE_URL', customSupaUrl.trim());
+    localStorage.setItem('CUSTOM_SUPABASE_ANON_KEY', customSupaKey.trim());
+    alert("데이터베이스 연결 설정이 로컬 브라우저에 저장되었습니다!\n데이터베이스를 올바르게 적용하기 위해 페이지가 새로고침됩니다.");
+    window.location.reload();
+  };
+
+  const resetDatabaseConnection = () => {
+    if (confirm("대시보드 설정을 초기화하고 호스팅 빌드 기본 환경 변수값으로 복구하시겠습니까?")) {
+      localStorage.removeItem('CUSTOM_SUPABASE_URL');
+      localStorage.removeItem('CUSTOM_SUPABASE_ANON_KEY');
+      alert("연결 설정이 초기화되었습니다. 페이지를 새로고침합니다.");
+      window.location.reload();
+    }
+  };
+
   const isJourneyItem = (item: ArchiveItem) => {
     const name = item.poetry_collection_name || '';
     return name.startsWith('라석여정') || 
@@ -3470,6 +3503,54 @@ const AdminDashboard = ({
               >
                 Save Site Settings
               </button>
+
+              {/* Database Integration Panel */}
+              <div className="border-t border-black/10 pt-12 mt-12 space-y-6">
+                <h3 className="text-2xl font-serif tracking-widest border-b border-black/5 pb-4 text-black">
+                  실시간 서버 데이터베이스 연동 설정
+                </h3>
+                <p className="text-sm font-sans text-gray-500 leading-relaxed">
+                  호스팅 대시보드(Vercel, Netlify 등)에서 빌드타임 환경 변수(VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY)를 채우지 않았거나, 빌드 후 대시보드에서 수정한 사항이 웹페이지에 연동되지 않을 때 <strong>이곳에서 직접 Supabase 접속 정보를 연결 및 변경</strong>할 수 있습니다.<br />
+                  설정 정보는 현재 브라우저에 안전하게 저장(localStorage)되며 빌드 재실행 없이 곧바로 실시간 동기화가 작동합니다.
+                </p>
+
+                <div className="space-y-4">
+                  <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">Supabase Project URL</label>
+                  <input 
+                    type="text"
+                    value={customSupaUrl}
+                    onChange={e => setCustomSupaUrl(e.target.value)}
+                    placeholder="https://your-project.supabase.co"
+                    className="w-full border-b border-gray-300 py-4 outline-none focus:border-black transition-colors font-mono text-xs text-black"
+                  />
+                </div>
+
+                <div className="space-y-4">
+                  <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">Supabase Anon Public API Key</label>
+                  <input 
+                    type="text"
+                    value={customSupaKey}
+                    onChange={e => setCustomSupaKey(e.target.value)}
+                    placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.g..."
+                    className="w-full border-b border-gray-300 py-4 outline-none focus:border-black transition-colors font-mono text-xs text-black"
+                  />
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                  <button 
+                    onClick={saveDatabaseConnection}
+                    className="flex-1 bg-green-700 text-white py-4 text-[10px] tracking-[0.3em] uppercase hover:bg-green-800 transition-all font-bold shadow-md rounded"
+                  >
+                    데이터베이스 연결 저장 및 활성화 (Save & Active)
+                  </button>
+                  <button 
+                    onClick={resetDatabaseConnection}
+                    className="px-8 bg-gray-100 text-gray-700 hover:bg-gray-200 py-4 text-[10px] tracking-[0.3em] uppercase transition-all rounded border border-black/5"
+                  >
+                    초기화 (Reset to Default)
+                  </button>
+                </div>
+              </div>
             </div>
           </motion.div>
         ) : activeTab === 'artists' ? (
