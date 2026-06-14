@@ -1075,7 +1075,7 @@ export default function App() {
                               )}
 
                               {/* Core Poem Content formatted like genuine parchment paper */}
-                              <div className="markdown-body font-serif text-sm md:text-base leading-[2] text-black/90 justified-text whitespace-pre-wrap py-4 max-w-xl">
+                              <div className="markdown-body font-serif text-sm md:text-base leading-normal text-black/90 justified-text whitespace-pre-wrap py-4 max-w-xl">
                                 <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
                                   {readingPoem.content}
                                 </ReactMarkdown>

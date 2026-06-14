@@ -31,8 +31,8 @@
   /* Poetry-friendly spacing and paragraph gaps in markdown */
   .markdown-body p {
     margin-top: 0 !important;
-    margin-bottom: 1.75rem !important; /* Generous spacing between paragraphs as requested */
-    line-height: 2.2 !important; /* Relaxed elegant line height for poems */
+    margin-bottom: 1.5rem !important; /* Elegant empty line gap between stanzas */
+    line-height: 1.15 !important; /* Extremely compact elegant line height for Korean poetry lines */
   }
   .markdown-body p:last-child {
     margin-bottom: 0 !important;
