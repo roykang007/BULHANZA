@@ -26,15 +26,45 @@ import {
 const uploadImageFile = async (file: File): Promise<string> => {
   const formData = new FormData();
   formData.append('image', file);
-  const response = await fetch('/api/upload', {
-    method: 'POST',
-    body: formData,
-  });
-  if (!response.ok) {
-    throw new Error('Image upload failed');
+
+  try {
+    const response = await fetch('/api/upload', {
+      method: 'POST',
+      body: formData,
+    });
+    if (response.ok) {
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        const data = await response.json();
+        if (data && data.url) {
+          return data.url;
+        }
+      }
+    }
+  } catch (err) {
+    console.warn("Express backend upload not available, attempting PHP fallback:", err);
   }
-  const data = await response.json();
-  return data.url;
+
+  // Fallback for Cafe24 / static PHP web hosting
+  try {
+    const phpResponse = await fetch('/upload.php', {
+      method: 'POST',
+      body: formData,
+    });
+    if (!phpResponse.ok) {
+      throw new Error(`PHP server responded with status ${phpResponse.status}`);
+    }
+    const text = await phpResponse.text();
+    const data = JSON.parse(text);
+    if (data.url) {
+      return data.url;
+    } else {
+      throw new Error(data.error || "Unknown error during PHP upload");
+    }
+  } catch (e: any) {
+    console.error("PHP file upload fallback failed:", e);
+    throw new Error(`Image upload failed. If hosted on Cafe24, ensure /upload.php is present and folder permissions are correct. Error: ${e.message || e}`);
+  }
 };
 
 export default function App() {
