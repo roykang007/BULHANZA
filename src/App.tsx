@@ -390,8 +390,9 @@ export default function App() {
       setIsArtistModalOpen(false);
       setEditingArtist(null);
       await fetchData();
-    } catch (err) {
-      alert('작가 저장 권한이 만료되었습니다. Rules 혹은 세션을 점검해 주세요.');
+    } catch (err: any) {
+      console.error("Save artist failed:", err);
+      alert(`작가 저장에 실패했습니다. (에러: ${err?.message || err})\nRules 혹은 세션을 점검해 주세요.`);
     }
   };
 

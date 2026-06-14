@@ -13,8 +13,8 @@ async function startServer() {
   app.use(express.urlencoded({ extended: true }));
 
   // Ensure upload folder exists
-  const uploadDirName = "이미지저장";
-  const uploadDir = path.join(process.cwd(), uploadDirName);
+  const uploadDirName = "images";
+  const uploadDir = path.join(process.cwd(), "public", uploadDirName);
   if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
   }

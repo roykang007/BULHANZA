@@ -18,11 +18,11 @@ if (!isset($_FILES['image'])) {
     exit;
 }
 
-$uploadDir = 'uploads/';
+$uploadDir = 'images/';
 if (isset($_POST['folder'])) {
     $folder = preg_replace('/[^a-zA-Z0-9_\-]/', '', $_POST['folder']);
     if ($folder !== '') {
-        $uploadDir = 'uploads/' . $folder . '/';
+        $uploadDir = 'images/' . $folder . '/';
     }
 }
 
