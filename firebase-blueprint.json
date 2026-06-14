@@ -40,10 +40,36 @@
         "category": { "type": "string" },
         "image_url": { "type": "string" },
         "poetry_collection_name": { "type": "string" },
-        "language": { "type": "string", "enum": ["KR", "TC", "EN"] },
+        "language": { "type": "string", "enum": ["KR", "TC", "EN", "SC"] },
         "created_at": { "type": "string", "format": "date-time" }
       },
       "required": ["title", "category", "language"]
+    },
+    "Artist": {
+      "title": "Artist",
+      "description": "Representative artists and their works",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "title": { "type": "string" },
+        "bio": { "type": "string" },
+        "image": { "type": "string" },
+        "language": { "type": "string", "enum": ["KR", "TC", "EN", "SC"] },
+        "works": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "title": { "type": "string" },
+              "image": { "type": "string" },
+              "size": { "type": "string" },
+              "introduction": { "type": "string" },
+              "criticism": { "type": "string" }
+            }
+          }
+        }
+      },
+      "required": ["name", "title", "language"]
     }
   },
   "firestore": {
@@ -54,6 +80,10 @@
     "archive_items": {
       "schema": "ArchiveItem",
       "description": "Collection of all archival items"
+    },
+    "artists": {
+      "schema": "Artist",
+      "description": "Collection of all artists and their representative works"
     }
   }
 }

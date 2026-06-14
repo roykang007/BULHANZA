@@ -1,0 +1,75 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 1. Catch-all default deny gate
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions for validation
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedAdmin() {
+      return isSignedIn() &&
+             request.auth.token.email == "roykang007@gmail.com" &&
+             request.auth.token.email_verified == true;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Site settings matching rules
+    match /site_settings/{settingsId} {
+      allow read: if true;
+      allow create, update: if isVerifiedAdmin() &&
+        incoming().logo_url is string &&
+        incoming().hero_bg_url is string &&
+        incoming().tea_detail_url is string;
+      allow delete: if isVerifiedAdmin();
+    }
+
+    // Archive items matching rules
+    match /archive_items/{itemId} {
+      allow read: if true;
+      allow create: if isVerifiedAdmin() &&
+        incoming().title is string &&
+        incoming().title.size() <= 200 &&
+        incoming().content is string &&
+        incoming().summary is string &&
+        incoming().image_url is string &&
+        incoming().category is string &&
+        incoming().language in ['KR', 'TC', 'EN', 'SC']; // SC is Simplified Chinese
+      allow update: if isVerifiedAdmin() &&
+        incoming().title is string &&
+        incoming().title.size() <= 200 &&
+        incoming().content is string &&
+        incoming().summary is string &&
+        incoming().image_url is string &&
+        incoming().category is string &&
+        incoming().language in ['KR', 'TC', 'EN', 'SC'];
+      allow delete: if isVerifiedAdmin();
+    }
+
+    // Artists matching rules
+    match /artists/{artistId} {
+      allow read: if true;
+      allow create, update: if isVerifiedAdmin() &&
+        incoming().name is string &&
+        incoming().title is string &&
+        incoming().language in ['KR', 'TC', 'EN', 'SC'];
+      allow delete: if isVerifiedAdmin();
+    }
+  }
+}
