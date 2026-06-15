@@ -328,6 +328,35 @@ export default function App() {
   const [isArtistModalOpen, setIsArtistModalOpen] = useState(false);
   const [editingArtist, setEditingArtist] = useState<Partial<Artist> | null>(null);
 
+  // Lightbox / Image Popup states for artist masterpieces (작품도록)
+  const [lightboxActive, setLightboxActive] = useState(false);
+  const [lightboxWorks, setLightboxWorks] = useState<Work[]>([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [lightboxArtistName, setLightboxArtistName] = useState('');
+
+  // Lightbox keyboard navigation & overflow prevention
+  useEffect(() => {
+    if (!lightboxActive) return;
+    
+    document.body.style.overflow = "hidden";
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setLightboxActive(false);
+      } else if (e.key === "ArrowLeft") {
+        setLightboxIndex((prev) => (lightboxWorks.length > 0 ? (prev - 1 + lightboxWorks.length) % lightboxWorks.length : 0));
+      } else if (e.key === "ArrowRight") {
+        setLightboxIndex((prev) => (lightboxWorks.length > 0 ? (prev + 1) % lightboxWorks.length : 0));
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [lightboxActive, lightboxWorks.length]);
+
   // Save or Edit items
   const handleSaveItem = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -871,14 +900,29 @@ export default function App() {
                                       <div key={wIdx} className="bg-[#FAF9F6] border border-[#1C1A17]/10 p-6 rounded space-y-4 shadow-sm hover:shadow-md transition-shadow">
                                         
                                         {/* Painting Frame */}
-                                        <div className="aspect-[4/3] w-full border border-black/10 bg-white p-1.5 shadow-sm overflow-hidden relative">
+                                        <div 
+                                          onClick={() => {
+                                            setLightboxWorks(artist.works || []);
+                                            setLightboxIndex(wIdx);
+                                            setLightboxArtistName(artist.name);
+                                            setLightboxActive(true);
+                                          }}
+                                          className="aspect-[4/3] w-full border border-black/10 bg-white p-1.5 shadow-sm overflow-hidden relative cursor-pointer group"
+                                          title={lang === 'KR' ? '클릭하여 원본 이미지 연속 보기' : 'Click to view full image gallery'}
+                                        >
                                           <img 
                                             src={work.image || 'https://images.unsplash.com/photo-1518640467707-6811f4a6ab73?auto=format&fit=crop&q=80&w=1200'} 
                                             alt={work.title} 
                                             referrerPolicy="no-referrer"
-                                            className="w-full h-full object-cover"
+                                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
                                           />
-                                          <div className="absolute inset-0 bg-transparent hover:bg-black/5 transition-colors pointer-events-none" />
+                                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
+                                            {/* Minimalist expand badge */}
+                                            <div className="bg-white/95 text-black px-3 py-1.5 rounded border border-black/10 text-[10px] uppercase font-mono tracking-widest opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all duration-300 shadow-lg flex items-center gap-1.5 font-bold">
+                                              <Sparkles size={11} className="text-amber-600 animate-pulse" />
+                                              {lang === 'KR' ? '작품 크게보기' : 'View Masterpiece'}
+                                            </div>
+                                          </div>
                                         </div>
 
                                         {/* Label Details */}
@@ -2414,6 +2458,109 @@ export default function App() {
                 </AnimatePresence>
               </div>
             </motion.div>
+          </div>
+        )}
+
+        {/* LIGHTBOX FOR ARTIST MASTERPIECES */}
+        {lightboxActive && lightboxWorks.length > 0 && (
+          <div className="fixed inset-0 bg-neutral-950/95 backdrop-blur-md z-[300] flex flex-col justify-between items-center p-4 md:p-8">
+            {/* Top Toolbar */}
+            <div className="w-full flex justify-between items-center border-b border-white/10 pb-4 max-w-7xl mx-auto z-[310] select-none text-left">
+              <div>
+                <span className="font-mono text-[8px] tracking-[0.3em] text-white/50 uppercase block mb-0.5">representative works • {lightboxArtistName}</span>
+                <h4 className="font-serif text-base font-bold text-white uppercase tracking-wide">
+                  {lightboxWorks[lightboxIndex]?.title}
+                </h4>
+              </div>
+              <div className="flex items-center gap-4">
+                <span className="font-mono text-xs text-white/60 bg-white/5 border border-white/10 px-3 py-1 rounded">
+                  {lightboxIndex + 1} / {lightboxWorks.length}
+                </span>
+                <button 
+                  onClick={() => setLightboxActive(false)}
+                  className="p-2.5 rounded-full bg-white/5 border border-white/10 text-white hover:bg-white/10 active:scale-95 transition-all"
+                  title="Close light box (Esc)"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            {/* Main Visual Centerpiece Area */}
+            <div className="flex-grow w-full max-w-6xl mx-auto flex items-center justify-center relative my-4">
+              {/* Prev Button */}
+              <button 
+                onClick={() => setLightboxIndex((prev) => (lightboxWorks.length > 0 ? (prev - 1 + lightboxWorks.length) % lightboxWorks.length : 0))}
+                className="absolute left-0 md:left-4 p-3 rounded-full bg-black/60 border border-white/10 text-white hover:bg-neutral-800 active:scale-95 transition-all z-[320] shadow-2xl"
+                title="Previous image"
+              >
+                <ChevronLeft size={24} />
+              </button>
+
+              {/* Artwork Image Frame */}
+              <motion.div 
+                key={lightboxIndex}
+                initial={{ opacity: 0, scale: 0.97 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.97 }}
+                transition={{ duration: 0.3 }}
+                className="max-h-[60vh] max-w-[85%] md:max-w-[70%] border border-white/15 bg-neutral-900 p-2 md:p-3 shadow-2xl flex items-center justify-center relative rounded overflow-hidden select-none"
+              >
+                <img 
+                  src={lightboxWorks[lightboxIndex]?.image || 'https://images.unsplash.com/photo-1518640467707-6811f4a6ab73?auto=format&fit=crop&q=80&w=1200'} 
+                  alt={lightboxWorks[lightboxIndex]?.title}
+                  referrerPolicy="no-referrer"
+                  className="max-h-[56vh] w-auto object-contain select-none shadow-inner"
+                />
+              </motion.div>
+
+              {/* Next Button */}
+              <button 
+                onClick={() => setLightboxIndex((prev) => (lightboxWorks.length > 0 ? (prev + 1) % lightboxWorks.length : 0))}
+                className="absolute right-0 md:right-4 p-3 rounded-full bg-black/60 border border-white/10 text-white hover:bg-neutral-800 active:scale-95 transition-all z-[320] shadow-2xl"
+                title="Next image"
+              >
+                <ChevronRight size={24} />
+              </button>
+            </div>
+
+            {/* Bottom Metadata Panel / Curator Label */}
+            <div className="w-full max-w-4xl mx-auto bg-neutral-900/60 border border-white/10 p-5 md:p-6 rounded-lg text-left shadow-2xl select-none overflow-y-auto max-h-[22vh]">
+              <div className="flex flex-col md:flex-row md:items-baseline justify-between gap-2 pb-3 mb-3 border-b border-white/5">
+                <div className="flex items-center gap-3">
+                  <span className="font-serif text-sm font-bold text-white bg-white/5 border border-white/10 px-2 py-0.5 rounded">
+                    {lightboxArtistName}
+                  </span>
+                  <h5 className="font-serif text-base font-bold text-[#E5E5E5]">
+                    {lightboxWorks[lightboxIndex]?.title}
+                  </h5>
+                </div>
+                {lightboxWorks[lightboxIndex]?.size && (
+                  <span className="font-mono text-xs text-white/70 bg-white/10 px-2.5 py-0.5 border border-white/10 rounded animate-none">
+                    {lightboxWorks[lightboxIndex]?.size}
+                  </span>
+                )}
+              </div>
+
+              <div className="space-y-4 text-xs select-text">
+                {lightboxWorks[lightboxIndex]?.introduction && (
+                  <div className="space-y-1">
+                    <span className="font-mono text-[9px] text-white/40 tracking-wider font-bold block uppercase">{lang === 'KR' ? '작품 및 제작 의도 소개' : 'Introduction'}</span>
+                    <p className="text-[11px] md:text-xs text-white/80 font-sans leading-relaxed">
+                      {lightboxWorks[lightboxIndex]?.introduction}
+                    </p>
+                  </div>
+                )}
+                {lightboxWorks[lightboxIndex]?.criticism && (
+                  <div className="space-y-1 pt-2 border-t border-white/5">
+                    <span className="font-mono text-[9px] text-white/40 tracking-wider font-bold block uppercase">{lang === 'KR' ? '평론 및 학술적 평가' : 'Art Criticism'}</span>
+                    <p className="text-[11px] md:text-xs text-[#CCCCCC] font-sans italic leading-relaxed">
+                      {lightboxWorks[lightboxIndex]?.criticism}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         )}
       </AnimatePresence>
