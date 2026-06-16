@@ -369,6 +369,7 @@ export default function App() {
   // Artist modal editor states
   const [isArtistModalOpen, setIsArtistModalOpen] = useState(false);
   const [editingArtist, setEditingArtist] = useState<Partial<Artist> | null>(null);
+  const [editingWorkIdx, setEditingWorkIdx] = useState<number | null>(null);
 
   // Lightbox / Image Popup states for artist masterpieces (작품도록)
   const [lightboxActive, setLightboxActive] = useState(false);
@@ -461,6 +462,7 @@ export default function App() {
 
       setIsArtistModalOpen(false);
       setEditingArtist(null);
+      setEditingWorkIdx(null);
       await fetchData();
     } catch (err: any) {
       console.error("Save artist failed:", err);
@@ -1766,6 +1768,7 @@ export default function App() {
                               language: lang,
                               works: []
                             });
+                            setEditingWorkIdx(null);
                             setIsArtistModalOpen(true);
                           }}
                           className="px-4 py-2 border border-black bg-black text-white hover:bg-[#322F2A] transition-colors text-[10px] tracking-widest font-bold uppercase rounded"
@@ -1827,6 +1830,7 @@ export default function App() {
                                   <button
                                     onClick={() => {
                                       setEditingArtist(artist);
+                                      setEditingWorkIdx(null);
                                       setIsArtistModalOpen(true);
                                     }}
                                     className="p-1.5 hover:text-blue-600 transition-colors inline-block"
@@ -2391,7 +2395,11 @@ export default function App() {
 
                   {/* Sub-form to prepend new masterpieces */}
                   <div className="bg-[#FAF9F6] border border-[#1C1A17]/10 p-4 rounded space-y-3 text-xs">
-                    <span className="font-bold block text-black">신규 작품 일품 추가 (Add New Piece to Gallery)</span>
+                    <span className="font-bold block text-black">
+                      {editingWorkIdx === null
+                        ? '신규 작품 일품 추가 (Add New Piece to Gallery)'
+                        : `선택한 작품 정보 수정 (Editing Selected Masterpiece #${editingWorkIdx + 1})`}
+                    </span>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <input 
                         type="text"
@@ -2452,72 +2460,159 @@ export default function App() {
                         className="bg-white border border-[#1C1A17]/15 rounded p-2 focus:outline-none md:col-span-2"
                       />
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const titleEl = document.getElementById('new-work-title') as HTMLInputElement;
-                        const sizeEl = document.getElementById('new-work-size') as HTMLInputElement;
-                        const imgEl = document.getElementById('new-work-image') as HTMLInputElement;
-                        const introEl = document.getElementById('new-work-intro') as HTMLTextAreaElement;
-                        const criticEl = document.getElementById('new-work-critic') as HTMLTextAreaElement;
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const titleEl = document.getElementById('new-work-title') as HTMLInputElement;
+                          const sizeEl = document.getElementById('new-work-size') as HTMLInputElement;
+                          const imgEl = document.getElementById('new-work-image') as HTMLInputElement;
+                          const introEl = document.getElementById('new-work-intro') as HTMLTextAreaElement;
+                          const criticEl = document.getElementById('new-work-critic') as HTMLTextAreaElement;
 
-                        if (!titleEl.value || !imgEl.value) {
-                          alert('작품명과 작품 이미지 주소는 필수입니다.');
-                          return;
-                        }
+                          if (!titleEl.value || !imgEl.value) {
+                            alert('작품명과 작품 이미지 주소는 필수입니다.');
+                            return;
+                          }
 
-                        const newWork: Work = {
-                          title: titleEl.value,
-                          size: sizeEl.value,
-                          image: imgEl.value,
-                          introduction: introEl.value || '',
-                          criticism: criticEl.value || ''
-                        };
+                          const newWork: Work = {
+                            title: titleEl.value,
+                            size: sizeEl.value,
+                            image: imgEl.value,
+                            introduction: introEl.value || '',
+                            criticism: criticEl.value || ''
+                          };
 
-                        const currentWorks = editingArtist.works ? [...editingArtist.works] : [];
-                        setEditingArtist({
-                          ...editingArtist,
-                          works: [...currentWorks, newWork]
-                        });
+                          const currentWorks = editingArtist.works ? [...editingArtist.works] : [];
+                          if (editingWorkIdx === null) {
+                            setEditingArtist({
+                              ...editingArtist,
+                              works: [...currentWorks, newWork]
+                            });
+                          } else {
+                            currentWorks[editingWorkIdx] = newWork;
+                            setEditingArtist({
+                              ...editingArtist,
+                              works: currentWorks
+                            });
+                            setEditingWorkIdx(null);
+                          }
 
-                        // Clear fields
-                        titleEl.value = '';
-                        sizeEl.value = '';
-                        imgEl.value = '';
-                        introEl.value = '';
-                        criticEl.value = '';
-                      }}
-                      className="w-full py-2 bg-neutral-800 hover:bg-neutral-900 text-white font-bold text-[9px] uppercase tracking-widest rounded"
-                    >
-                      + 목록에 이 작품 도록 삽입 (Insert Masterpiece to Active List)
-                    </button>
+                          // Clear fields
+                          titleEl.value = '';
+                          sizeEl.value = '';
+                          imgEl.value = '';
+                          introEl.value = '';
+                          criticEl.value = '';
+                        }}
+                        className="flex-1 py-2 bg-neutral-800 hover:bg-neutral-900 text-white font-bold text-[9px] uppercase tracking-widest rounded"
+                      >
+                        {editingWorkIdx === null 
+                          ? '+ 목록에 이 작품 도록 삽입 (Insert Masterpiece to Active List)'
+                          : '✓ 선택한 도록 작품정보 수정 적용 (Apply Changes to Masterpiece)'}
+                      </button>
+                      {editingWorkIdx !== null && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const titleEl = document.getElementById('new-work-title') as HTMLInputElement;
+                            const sizeEl = document.getElementById('new-work-size') as HTMLInputElement;
+                            const imgEl = document.getElementById('new-work-image') as HTMLInputElement;
+                            const introEl = document.getElementById('new-work-intro') as HTMLTextAreaElement;
+                            const criticEl = document.getElementById('new-work-critic') as HTMLTextAreaElement;
+
+                            if (titleEl) titleEl.value = '';
+                            if (sizeEl) sizeEl.value = '';
+                            if (imgEl) imgEl.value = '';
+                            if (introEl) introEl.value = '';
+                            if (criticEl) criticEl.value = '';
+
+                            setEditingWorkIdx(null);
+                          }}
+                          className="px-4 py-2 border border-[#1C1A17]/15 hover:bg-neutral-100 text-[#1C1A17] font-semibold text-[9px] uppercase tracking-widest rounded transition-colors"
+                        >
+                          수정 취소 (Cancel)
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   {/* List of current added works with delete action */}
                   <div className="space-y-2 max-h-[180px] overflow-y-auto pr-2">
                     {editingArtist.works && editingArtist.works.map((work, wIdx) => (
-                      <div key={wIdx} className="bg-white border border-[#1C1A17]/10 p-3 rounded flex items-center justify-between text-xs gap-4">
+                      <div 
+                        key={wIdx} 
+                        className={`p-3 rounded flex items-center justify-between text-xs gap-4 transition-colors ${
+                          editingWorkIdx === wIdx 
+                            ? 'bg-amber-50/75 border border-amber-300' 
+                            : 'bg-white border border-[#1C1A17]/10'
+                        }`}
+                      >
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 border border-black/10 rounded overflow-hidden">
+                          <div className="w-10 h-10 border border-black/10 rounded overflow-hidden bg-gray-50 flex-shrink-0">
                             <img src={work.image} alt={work.title} referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                           </div>
                           <div>
-                            <p className="font-bold text-black font-serif">{work.title}</p>
+                            <p className="font-bold text-black font-serif flex items-center gap-1.5">
+                              {work.title}
+                              {editingWorkIdx === wIdx && (
+                                <span className="bg-amber-100 text-amber-800 text-[8px] font-mono font-bold uppercase px-1.5 py-0.5 rounded">Editing</span>
+                              )}
+                            </p>
                             <p className="text-[10px] text-[#1C1A17]/60 font-mono">{work.size || 'Unspecified size'}</p>
                           </div>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const updatedWorks = [...editingArtist.works!];
-                            updatedWorks.splice(wIdx, 1);
-                            setEditingArtist({ ...editingArtist, works: updatedWorks });
-                          }}
-                          className="p-1 hover:text-red-600"
-                          title="Remove item"
-                        >
-                          <Trash2 size={13} />
-                        </button>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const titleEl = document.getElementById('new-work-title') as HTMLInputElement;
+                              const sizeEl = document.getElementById('new-work-size') as HTMLInputElement;
+                              const imgEl = document.getElementById('new-work-image') as HTMLInputElement;
+                              const introEl = document.getElementById('new-work-intro') as HTMLTextAreaElement;
+                              const criticEl = document.getElementById('new-work-critic') as HTMLTextAreaElement;
+
+                              if (titleEl) titleEl.value = work.title || '';
+                              if (sizeEl) sizeEl.value = work.size || '';
+                              if (imgEl) imgEl.value = work.image || '';
+                              if (introEl) introEl.value = work.introduction || '';
+                              if (criticEl) criticEl.value = work.criticism || '';
+
+                              setEditingWorkIdx(wIdx);
+                            }}
+                            className={`p-1 hover:text-blue-600 transition-colors ${editingWorkIdx === wIdx ? 'text-blue-600' : ''}`}
+                            title="Edit this work's details"
+                          >
+                            <Edit2 size={13} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updatedWorks = [...editingArtist.works!];
+                              updatedWorks.splice(wIdx, 1);
+                              setEditingArtist({ ...editingArtist, works: updatedWorks });
+                              if (editingWorkIdx === wIdx) {
+                                setEditingWorkIdx(null);
+                                const titleEl = document.getElementById('new-work-title') as HTMLInputElement;
+                                const sizeEl = document.getElementById('new-work-size') as HTMLInputElement;
+                                const imgEl = document.getElementById('new-work-image') as HTMLInputElement;
+                                const introEl = document.getElementById('new-work-intro') as HTMLTextAreaElement;
+                                const criticEl = document.getElementById('new-work-critic') as HTMLTextAreaElement;
+                                if (titleEl) titleEl.value = '';
+                                if (sizeEl) sizeEl.value = '';
+                                if (imgEl) imgEl.value = '';
+                                if (introEl) introEl.value = '';
+                                if (criticEl) criticEl.value = '';
+                              } else if (editingWorkIdx !== null && editingWorkIdx > wIdx) {
+                                setEditingWorkIdx(editingWorkIdx - 1);
+                              }
+                            }}
+                            className="p-1 hover:text-red-600 transition-colors"
+                            title="Remove item"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
                       </div>
                     ))}
                     {(!editingArtist.works || editingArtist.works.length === 0) && (
