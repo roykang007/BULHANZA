@@ -67,6 +67,44 @@ const uploadImageFile = async (file: File): Promise<string> => {
   }
 };
 
+const formatMonthDay = (createdAt: any) => {
+  if (!createdAt) return '—';
+  try {
+    let date: Date;
+    if (typeof createdAt.toDate === 'function') {
+      date = createdAt.toDate();
+    } else if (createdAt.seconds) {
+      date = new Date(createdAt.seconds * 1000);
+    } else {
+      date = new Date(createdAt);
+    }
+    
+    if (isNaN(date.getTime())) return '—';
+    
+    const mm = (date.getMonth() + 1).toString().padStart(2, '0');
+    const dd = date.getDate().toString().padStart(2, '0');
+    return `${mm}/${dd}`;
+  } catch (e) {
+    return '—';
+  }
+};
+
+const getTimestampMs = (item: any) => {
+  if (!item || !item.created_at) return 0;
+  try {
+    if (typeof item.created_at.toDate === 'function') {
+      return item.created_at.toDate().getTime();
+    }
+    if (item.created_at.seconds) {
+      return item.created_at.seconds * 1000;
+    }
+    const t = new Date(item.created_at).getTime();
+    return isNaN(t) ? 0 : t;
+  } catch (e) {
+    return 0;
+  }
+};
+
 export default function App() {
   const [lang, setLang] = useState<Language>('KR');
   const [page, setPage] = useState<Page>('home');
@@ -100,6 +138,10 @@ export default function App() {
 
   // Filter lists inside pages
   const [journeyFilter, setJourneyFilter] = useState<'all' | 'photo' | 'press'>('all');
+
+  // Admin category filter and search parameters
+  const [adminCategoryFilter, setAdminCategoryFilter] = useState<string>('all');
+  const [adminSearchQuery, setAdminSearchQuery] = useState<string>('');
 
   // Contact form state
   const [formData, setFormData] = useState({ name: '', email: '', message: '' });
@@ -147,7 +189,7 @@ export default function App() {
         // Create initial placeholder if doesn't exist
         const initialSettings: SiteSettings = {
           id: 'global',
-          logo_url: '/assets/logo_v2.jpg',
+          logo_url: '/assets/logo_v2.svg',
           hero_bg_url: '/assets/mountains_v2.jpg',
           tea_detail_url: '/assets/bulhansuncha_v2.jpg',
           tea_slider_images: [
@@ -269,14 +311,8 @@ export default function App() {
         ...DEFAULT_MULPA_WRITINGS
       ];
 
-      const now = Date.now();
-      for (let i = 0; i < allToSeed.length; i++) {
-        const item = allToSeed[i];
-        const created_at = new Date(now - (allToSeed.length - i) * 60000).toISOString();
-        await addDoc(collection(db, 'archive_items'), {
-          ...item,
-          created_at
-        });
+      for (const item of allToSeed) {
+        await addDoc(collection(db, 'archive_items'), item);
       }
 
       for (const artist of DEFAULT_ARTISTS) {
@@ -339,72 +375,6 @@ export default function App() {
   const [lightboxWorks, setLightboxWorks] = useState<Work[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [lightboxArtistName, setLightboxArtistName] = useState('');
-
-  // Search & Filter states for Admin item management
-  const [adminSearchQuery, setAdminSearchQuery] = useState('');
-  const [adminCategoryFilter, setAdminCategoryFilter] = useState('all');
-
-  // Helper: safely parse and retrieve timestamp
-  const getTimestamp = (dateVal: any) => {
-    if (!dateVal) return 0;
-    try {
-      if (typeof dateVal.toDate === 'function') {
-        return dateVal.toDate().getTime();
-      } else if (dateVal.seconds) {
-        return dateVal.seconds * 1000;
-      }
-      const t = new Date(dateVal).getTime();
-      return isNaN(t) ? 0 : t;
-    } catch (e) {
-      return 0;
-    }
-  };
-
-  // Helper: safely format timestamp/date to format like MM/DD
-  const formatMonthDay = (dateVal: any) => {
-    if (!dateVal) return 'N/A';
-    try {
-      let date: Date;
-      if (typeof dateVal.toDate === 'function') {
-        date = dateVal.toDate();
-      } else if (dateVal.seconds) {
-        date = new Date(dateVal.seconds * 1000);
-      } else {
-        date = new Date(dateVal);
-      }
-      if (isNaN(date.getTime())) return 'N/A';
-      return `${date.getMonth() + 1}/${date.getDate()}`;
-    } catch (e) {
-      return 'N/A';
-    }
-  };
-
-  // Filter and sort archive items for Admin Grid view (Newest saved at the top)
-  const processedArchiveItems = [...archiveItems]
-    .sort((a, b) => {
-      const valA = getTimestamp(a.created_at);
-      const valB = getTimestamp(b.created_at);
-      
-      if (valB !== valA) {
-        return valB - valA; // Descending (newest first)
-      }
-      return b.id.localeCompare(a.id);
-    })
-    .filter((item) => {
-      // 1. Category Filter
-      if (adminCategoryFilter !== 'all' && item.category !== adminCategoryFilter) {
-        return false;
-      }
-      // 2. Search query filter
-      if (adminSearchQuery.trim()) {
-        const query = adminSearchQuery.toLowerCase();
-        const matchesTitle = item.title?.toLowerCase().includes(query);
-        const matchesContent = item.content?.toLowerCase().includes(query);
-        const matchesCollection = item.poetry_collection_name?.toLowerCase().includes(query);
-        return matchesTitle || matchesContent || matchesCollection;
-      }
-      return true;
-    });
 
   // Lightbox keyboard navigation & overflow prevention
   useEffect(() => {
@@ -509,8 +479,32 @@ export default function App() {
   };
 
   // Dynamic image loaders
-  const finalLogo = siteSettings?.logo_url || '/assets/logo_v2.jpg';
+  const finalLogo = !siteSettings?.logo_url || 
+                    siteSettings.logo_url === '/assets/logo_v2.jpg' || 
+                    siteSettings.logo_url === '/assets/logo_v2.svg'
+    ? '/assets/logo.png'
+    : siteSettings.logo_url;
   const finalHeroBg = siteSettings?.hero_bg_url || 'https://images.unsplash.com/photo-1490127252417-7c393f993ee4?auto=format&fit=crop&q=80&w=1920';
+
+  // Admin filtered items
+  const filteredItems = [...archiveItems]
+    .sort((a, b) => getTimestampMs(b) - getTimestampMs(a))
+    .filter(item => {
+      // 1. Category Filter
+      if (adminCategoryFilter !== 'all' && item.category !== adminCategoryFilter) {
+        return false;
+      }
+      // 2. Keyword Search
+      if (adminSearchQuery.trim()) {
+        const queryClean = adminSearchQuery.toLowerCase();
+        return (
+          (item.title && item.title.toLowerCase().includes(queryClean)) ||
+          (item.content && item.content.toLowerCase().includes(queryClean)) ||
+          (item.poetry_collection_name && item.poetry_collection_name.toLowerCase().includes(queryClean))
+        );
+      }
+      return true;
+    });
 
   return (
     <div className="relative min-h-screen bg-[#FAF9F6] text-[#1C1A17] font-sans overflow-x-hidden selection:bg-[#E5DFD3] selection:text-[#1C1A17]">
@@ -527,14 +521,19 @@ export default function App() {
           <button 
             id="nav-logo"
             onClick={() => setPage('home')}
-            className="group flex items-center gap-3 text-left"
+            className="group flex items-center gap-2 md:gap-3.5 text-left select-none shrink-0"
           >
-            <div className="w-9 h-9 rounded-full overflow-hidden border border-[#1C1A17]/15 bg-white flex items-center justify-center transition-transform group-hover:rotate-180 duration-700">
-              <span className="font-serif text-[10px] tracking-widest font-black text-[#1C1A17]">物</span>
+            <div className="h-9 md:h-11 px-1.5 py-0.5 md:px-2 md:py-1 border border-[#1C1A17]/15 bg-white rounded flex items-center justify-center transition-transform hover:scale-[1.03] duration-300 shadow-sm shrink-0">
+              <img 
+                src={finalLogo} 
+                alt="BULHANZA"
+                referrerPolicy="no-referrer"
+                className="h-full w-auto object-contain"
+              />
             </div>
-            <div>
-              <span className="font-serif text-sm tracking-[0.2em] uppercase font-bold text-[#1C1A17]">BULHANZA</span>
-              <p className="text-[8px] tracking-[0.3em] uppercase opacity-45 font-mono">Mind-Matter Art</p>
+            <div className="flex flex-col justify-center">
+              <span className="font-serif text-xs md:text-sm tracking-[0.15em] md:tracking-[0.25em] uppercase font-bold text-[#1C1A17] block leading-none mb-1">BULHANZA</span>
+              <p className="text-[7.5px] md:text-[8px] tracking-[0.2em] md:tracking-[0.3em] uppercase opacity-45 font-mono leading-none">Mind-Matter Art</p>
             </div>
           </button>
 
@@ -1633,7 +1632,8 @@ export default function App() {
                               image_url: 'https://images.unsplash.com/photo-1518640467707-6811f4a6ab73?auto=format&fit=crop&q=80&w=1200',
                               category: 'poetry',
                               poetry_collection_name: t.poetryCollection.allCollections[0],
-                              language: lang
+                              language: lang,
+                              created_at: new Date().toISOString()
                             });
                             setIsEditModalOpen(true);
                           }}
@@ -1643,48 +1643,39 @@ export default function App() {
                         </button>
                       </div>
 
-                      {/* Search & Category Filter Controls (카테고리별 검색 및 분류) */}
-                      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 bg-[#FAF9F6] p-4 rounded border border-[#1C1A17]/10 text-left">
-                        <div className="md:col-span-8 relative">
-                          <label className="font-mono text-[9px] tracking-widest font-bold uppercase block mb-1 text-black/60">
-                            🔍 SEARCH KEYWORD (제목/내용 검색어)
-                          </label>
-                          <div className="relative">
-                            <input 
+                      {/* Search and Filters Bar */}
+                      <div className="bg-[#FAF9F6] border border-[#1C1A17]/10 p-5 rounded flex flex-col md:flex-row gap-4 items-center justify-between text-xs">
+                        <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
+                          <div className="flex flex-col gap-1 w-full sm:w-auto">
+                            <span className="font-mono text-[9px] tracking-widest font-bold uppercase text-black/50">📁 카테고리별 검색 (Filter Category)</span>
+                            <select
+                              value={adminCategoryFilter}
+                              onChange={e => setAdminCategoryFilter(e.target.value)}
+                              className="bg-white border border-[#1C1A17]/15 rounded p-2 text-xs font-mono text-[#1C1A17] focus:outline-none focus:border-black min-w-[200px] h-9"
+                            >
+                              <option value="all">ALL CATEGORIES (전체 보기)</option>
+                              <option value="poetry">Poetry (시집 수록전)</option>
+                              <option value="philosophy">Philosophy (심물철학 단상)</option>
+                              <option value="journey">Journey (활동 여정기록)</option>
+                              <option value="press">Press (언론 보도기사)</option>
+                              <option value="mulpa">Mulpaism (물파주의 기고글)</option>
+                            </select>
+                          </div>
+
+                          <div className="flex flex-col gap-1 w-full sm:w-auto">
+                            <span className="font-mono text-[9px] tracking-widest font-bold uppercase text-black/50">🔍 명칭 키워드 검색 (Search Name)</span>
+                            <input
                               type="text"
                               value={adminSearchQuery}
-                              onChange={(e) => setAdminSearchQuery(e.target.value)}
-                              placeholder="작품 제목, 본문 내용, 영단 수묵화 등 키워드를 기입..."
-                              className="bg-white border border-[#1C1A17]/15 rounded p-2.5 text-xs w-full focus:outline-none focus:border-black text-[#1C1A17] font-sans"
+                              onChange={e => setAdminSearchQuery(e.target.value)}
+                              placeholder="제목 키워드 입력..."
+                              className="bg-white border border-[#1C1A17]/15 rounded px-3 py-2 text-xs font-sans text-black placeholder-black/30 focus:outline-none focus:border-black min-w-[220px] h-9"
                             />
-                            {adminSearchQuery && (
-                              <button 
-                                onClick={() => setAdminSearchQuery('')}
-                                className="absolute right-3 top-2.5 text-black/40 hover:text-black text-xs font-bold font-mono px-1 hover:bg-neutral-100 rounded"
-                                title="Clear search"
-                              >
-                                clear
-                              </button>
-                            )}
                           </div>
                         </div>
-                        <div className="md:col-span-4">
-                          <label className="font-mono text-[9px] tracking-widest font-bold uppercase block mb-1 text-black/60">
-                            📂 FILTER BY CATEGORY (카테고리 분류)
-                          </label>
-                          <select
-                            value={adminCategoryFilter}
-                            onChange={(e) => setAdminCategoryFilter(e.target.value)}
-                            className="bg-white border border-[#1C1A17]/15 rounded p-2.5 text-xs w-full focus:outline-none focus:border-black text-[#1C1A17] font-sans font-medium h-[38px]"
-                          >
-                            <option value="all">전체 보관함 보기 (Show All)</option>
-                            <option value="poetry">시문학 (Poetry)</option>
-                            <option value="philosophy">철학 단상 (Philosophy)</option>
-                            <option value="journey">화제/소식 (Journey Photo)</option>
-                            <option value="press">보도자료 (Press Editorial)</option>
-                            <option value="tea">다기 수집 (Tea Item)</option>
-                            <option value="mulpa">물파주의 기고글 (Mulpa Writing)</option>
-                          </select>
+
+                        <div className="font-mono text-[10px] text-[#1C1A17]/60 bg-white border border-[#1C1A17]/10 px-3 py-2 rounded self-end md:self-auto shrink-0 shadow-sm">
+                          Total Filtered: <strong className="text-black">{filteredItems.length}</strong> / {archiveItems.length} units
                         </div>
                       </div>
 
@@ -1697,12 +1688,12 @@ export default function App() {
                               <th className="p-3 font-mono text-[9px] tracking-widest uppercase">Category</th>
                               <th className="p-3 font-mono text-[9px] tracking-widest uppercase">Title</th>
                               <th className="p-3 font-mono text-[9px] tracking-widest uppercase">Collection / Scope</th>
-                              <th className="p-3 font-mono text-[9px] tracking-widest uppercase">Saved Date (저장일)</th>
+                              <th className="p-3 font-mono text-[9px] tracking-widest uppercase">Saved Date (월/일)</th>
                               <th className="p-3 text-right font-mono text-[9px] tracking-widest uppercase">Actions</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-[#1C1A17]/5 font-sans">
-                            {processedArchiveItems.map((item) => (
+                            {filteredItems.map((item) => (
                               <tr key={item.id} className="hover:bg-gray-50/50">
                                 <td className="p-3">
                                   <span className="font-mono font-bold uppercase px-2 py-1 bg-gray-100 rounded text-[9px]">
@@ -1718,7 +1709,7 @@ export default function App() {
                                 <td className="p-3 text-[#1C1A17]/60 text-[11px] truncate max-w-xs font-serif">
                                   {item.poetry_collection_name || 'N/A (Unbound / Timeline)'}
                                 </td>
-                                <td className="p-3 text-[#1C1A17]/70 font-mono text-[11px]">
+                                <td className="p-3 text-[#1C1A17]/70 font-mono text-[11px] whitespace-nowrap">
                                   {formatMonthDay(item.created_at)}
                                 </td>
                                 <td className="p-3 text-right space-x-2 whitespace-nowrap">
@@ -1742,12 +1733,12 @@ export default function App() {
                                 </td>
                               </tr>
                             ))}
-                            {processedArchiveItems.length === 0 && (
+                            {filteredItems.length === 0 && (
                               <tr>
                                 <td colSpan={6} className="text-center py-12 text-black/40 italic font-mono uppercase tracking-wider">
-                                  {adminSearchQuery || adminCategoryFilter !== 'all' 
-                                    ? '검색 혹은 필터 조건에 부합하는 수집 데이터가 없습니다.' 
-                                    : 'No database records resolved. Please click restoration sync button above.'}
+                                  {archiveItems.length === 0
+                                    ? "No database records resolved. Please click restoration sync button above."
+                                    : "No matching records found for the selected category/keyword filter."}
                                 </td>
                               </tr>
                             )}

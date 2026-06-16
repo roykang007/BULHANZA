@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 90" width="150" height="90">
+  <!-- Rounded Rectangular border with raw carver thickness -->
+  <rect x="5.5" y="5.5" width="139" height="79" rx="10" fill="none" stroke="#8A0E12" stroke-width="7" stroke-linejoin="miter" />
+  
+  <!-- Right Character: 子 -->
+  <g stroke="#8A0E12" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <!-- Top head loop -->
+    <path d="M 120,22 C 126,22 129,26 129,31 C 129,36 124,39 120,39 C 115,39 111,36 111,31 C 111,26 114,22 120,22 Z" stroke-width="4.8" />
+    <!-- Horizontal arm curve -->
+    <path d="M 104,45 C 112,50 128,50 136,45" />
+    <!-- Vertical tail curve -->
+    <path d="M 120,39 L 120,59 C 120,68 116,71 108,71" />
+  </g>
+  
+  <!-- Middle Character: 寒 -->
+  <g stroke="#8A0E12" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <!-- Roof - Top segment -->
+    <path d="M 75,14 L 75,19" stroke-width="5.5" />
+    <path d="M 54.5,27.5 C 62,21.5 71,21 75,21 C 79,21 88,21.5 95.5,27.5" />
+    <!-- Roof - Left/Right vertical tips -->
+    <path d="M 54.5,27.5 L 56,34" />
+    <path d="M 95.5,27.5 L 94,34" />
+    
+    <!-- Central stacks -->
+    <path d="M 64.5,39 L 85.5,39" />
+    <path d="M 62,47 L 88,47" />
+    <path d="M 69.5,39 L 69.5,56" />
+    <path d="M 80.5,39 L 80.5,56" />
+    <path d="M 62,56 L 88,56" />
+    
+    <!-- Organic bottom split legs/dots -->
+    <path d="M 67.5,65.5 C 64.5,69 60,72.5 56,74.5" />
+    <path d="M 82.5,65.5 C 85.5,69 90,72.5 94,74.5" />
+  </g>
+  
+  <!-- Left Character: 弗 -->
+  <g stroke="#8A0E12" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <!-- Double core central pillars -->
+    <path d="M 27,21 L 27,69" />
+    <path d="M 38,21 L 38,69" />
+    <!-- Elegant outer curves/loops -->
+    <path d="M 27,28.5 C 13.5,28.5 13.5,61.5 27,61.5" />
+    <path d="M 38,28.5 C 51.5,28.5 51.5,61.5 38,61.5" />
+    <!-- Center ribbon cutting across -->
+    <path d="M 14.5,45 L 50.5,45" />
+  </g>
+</svg>
