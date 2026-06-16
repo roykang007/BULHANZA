@@ -1747,57 +1747,149 @@ export default function App() {
                         <h3 className="font-serif text-lg font-bold text-black flex items-center gap-2">
                           <Settings size={18} /> 글로벌 웹 호스팅 자산 커스텀 매니저
                         </h3>
-                        <p className="text-xs text-[#1C1A17]/60 font-sans mt-0.5">로고 이미지, 메인 히어로 배경의 CDN 연동 주소를 오탈자 없이 교체 수정한 뒤 즉시 디텍션합니다.</p>
+                        <p className="text-xs text-[#1C1A17]/60 font-sans mt-0.5">서버의 주요 디자인 자산(로고, 배경, 대표 다도 이미지)을 PC 내부 파일에서 직접 선택하여 교체 저장합니다.</p>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                          <label className="font-mono text-[9px] tracking-widest font-bold uppercase block mb-1">GLOBAL LOGO IMAGE URL</label>
-                          <input 
-                            type="text" 
-                            value={siteSettings?.logo_url || ''}
-                            onChange={async (e) => {
-                              const val = e.target.value;
-                              const updated = { ...siteSettings, logo_url: val } as SiteSettings;
-                              setSiteSettings(updated);
-                              await setDoc(doc(db, 'site_settings', 'global'), updated);
-                            }}
-                            className="w-full bg-[#FAF9F6] border border-[#1C1A17]/15 rounded p-3 text-xs font-mono text-[#1C1A17] focus:outline-none focus:border-black"
-                            placeholder="url pointing to web images..."
-                          />
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        
+                        {/* 1. Global Logo */}
+                        <div className="space-y-2">
+                          <label className="font-mono text-[9px] tracking-widest font-bold uppercase block text-[#1C1A17]/70">
+                            GLOBAL LOGO IMAGE (글로벌 고해상도 로고)
+                          </label>
+                          <div className="border border-[#1C1A17]/15 rounded p-4 bg-[#FAF9F6] flex flex-col items-center justify-center space-y-3 relative overflow-hidden group">
+                            {siteSettings?.logo_url ? (
+                              <div className="w-16 h-16 border border-black/10 rounded overflow-hidden bg-white shadow-sm flex items-center justify-center">
+                                <img src={siteSettings.logo_url} alt="Logo Preview" referrerPolicy="no-referrer" className="max-w-full max-h-full object-contain" />
+                              </div>
+                            ) : (
+                              <div className="w-16 h-16 border border-dashed border-black/20 rounded flex items-center justify-center text-black/30 text-xs">
+                                No Image
+                              </div>
+                            )}
+                            <div className="relative w-full text-center">
+                              <input 
+                                type="file" 
+                                accept="image/*"
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                onChange={async (e) => {
+                                  const file = e.target.files?.[0];
+                                  if (!file) return;
+                                  try {
+                                    const container = e.target.closest('.rounded') as HTMLDivElement;
+                                    if (container) container.style.opacity = '0.5';
+                                    const url = await uploadImageFile(file);
+                                    const updated = { ...siteSettings, logo_url: url } as SiteSettings;
+                                    setSiteSettings(updated);
+                                    await setDoc(doc(db, 'site_settings', 'global'), updated);
+                                    if (container) container.style.opacity = '1';
+                                  } catch (err: any) {
+                                    alert('로고 이미지 업로드에 실패했습니다: ' + (err?.message || err));
+                                  }
+                                }}
+                              />
+                              <button type="button" className="w-full py-1.5 border border-[#1C1A17]/15 hover:bg-neutral-100 text-black text-[10px] uppercase tracking-wider font-bold rounded bg-white transition-all shadow-sm">
+                                📁 파일 선택 및 저장
+                              </button>
+                            </div>
+                            <span className="text-[9px] text-[#1C1A17]/50 font-mono break-all text-center">
+                              {siteSettings?.logo_url ? siteSettings.logo_url.substring(siteSettings.logo_url.lastIndexOf('/') + 1) : '지정된 이미지 없음'}
+                            </span>
+                          </div>
                         </div>
 
-                        <div>
-                          <label className="font-mono text-[9px] tracking-widest font-bold uppercase block mb-1">HERO COVER HOME BG URL</label>
-                          <input 
-                            type="text" 
-                            value={siteSettings?.hero_bg_url || ''}
-                            onChange={async (e) => {
-                              const val = e.target.value;
-                              const updated = { ...siteSettings, hero_bg_url: val } as SiteSettings;
-                              setSiteSettings(updated);
-                              await setDoc(doc(db, 'site_settings', 'global'), updated);
-                            }}
-                            className="w-full bg-[#FAF9F6] border border-[#1C1A17]/15 rounded p-3 text-xs font-mono text-[#1C1A17] focus:outline-none focus:border-black"
-                            placeholder="url pointing to hero image background..."
-                          />
+                        {/* 2. Hero BG */}
+                        <div className="space-y-2">
+                          <label className="font-mono text-[9px] tracking-widest font-bold uppercase block text-[#1C1A17]/70">
+                            HERO COVER HOME BG (메인 히어로 홈 배경)
+                          </label>
+                          <div className="border border-[#1C1A17]/15 rounded p-4 bg-[#FAF9F6] flex flex-col items-center justify-center space-y-3 relative overflow-hidden group">
+                            {siteSettings?.hero_bg_url ? (
+                              <div className="w-full h-16 border border-black/10 rounded overflow-hidden bg-white shadow-sm">
+                                <img src={siteSettings.hero_bg_url} alt="Hero BG Preview" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
+                              </div>
+                            ) : (
+                              <div className="w-full h-16 border border-dashed border-black/20 rounded flex items-center justify-center text-black/30 text-xs">
+                                No Image
+                              </div>
+                            )}
+                            <div className="relative w-full text-center">
+                              <input 
+                                type="file" 
+                                accept="image/*"
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                onChange={async (e) => {
+                                  const file = e.target.files?.[0];
+                                  if (!file) return;
+                                  try {
+                                    const container = e.target.closest('.rounded') as HTMLDivElement;
+                                    if (container) container.style.opacity = '0.5';
+                                    const url = await uploadImageFile(file);
+                                    const updated = { ...siteSettings, hero_bg_url: url } as SiteSettings;
+                                    setSiteSettings(updated);
+                                    await setDoc(doc(db, 'site_settings', 'global'), updated);
+                                    if (container) container.style.opacity = '1';
+                                  } catch (err: any) {
+                                    alert('메인 히어로 이미지 업로드에 실패했습니다: ' + (err?.message || err));
+                                  }
+                                }}
+                              />
+                              <button type="button" className="w-full py-1.5 border border-[#1C1A17]/15 hover:bg-neutral-100 text-black text-[10px] uppercase tracking-wider font-bold rounded bg-white transition-all shadow-sm">
+                                📁 파일 선택 및 저장
+                              </button>
+                            </div>
+                            <span className="text-[9px] text-[#1C1A17]/50 font-mono break-all text-center">
+                              {siteSettings?.hero_bg_url ? siteSettings.hero_bg_url.substring(siteSettings.hero_bg_url.lastIndexOf('/') + 1) : '지정된 이미지 없음'}
+                            </span>
+                          </div>
                         </div>
 
-                        <div className="md:col-span-2">
-                          <label className="font-mono text-[9px] tracking-widest font-bold uppercase block mb-1">ZEN TEA COVER IMAGE URL</label>
-                          <input 
-                            type="text" 
-                            value={siteSettings?.tea_detail_url || ''}
-                            onChange={async (e) => {
-                              const val = e.target.value;
-                              const updated = { ...siteSettings, tea_detail_url: val } as SiteSettings;
-                              setSiteSettings(updated);
-                              await setDoc(doc(db, 'site_settings', 'global'), updated);
-                            }}
-                            className="w-full bg-[#FAF9F6] border border-[#1C1A17]/15 rounded p-3 text-xs font-mono text-[#1C1A17] focus:outline-none focus:border-black"
-                            placeholder="url pointing to tea image..."
-                          />
+                        {/* 3. Zen Tea Cover */}
+                        <div className="space-y-2">
+                          <label className="font-mono text-[9px] tracking-widest font-bold uppercase block text-[#1C1A17]/70">
+                            ZEN TEA COVER IMAGE (대표 다도 다기 이미지)
+                          </label>
+                          <div className="border border-[#1C1A17]/15 rounded p-4 bg-[#FAF9F6] flex flex-col items-center justify-center space-y-3 relative overflow-hidden group">
+                            {siteSettings?.tea_detail_url ? (
+                              <div className="w-full h-16 border border-black/10 rounded overflow-hidden bg-white shadow-sm">
+                                <img src={siteSettings.tea_detail_url} alt="Tea Preview" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
+                              </div>
+                            ) : (
+                              <div className="w-full h-16 border border-dashed border-black/20 rounded flex items-center justify-center text-black/30 text-xs">
+                                No Image
+                              </div>
+                            )}
+                            <div className="relative w-full text-center">
+                              <input 
+                                type="file" 
+                                accept="image/*"
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                onChange={async (e) => {
+                                  const file = e.target.files?.[0];
+                                  if (!file) return;
+                                  try {
+                                    const container = e.target.closest('.rounded') as HTMLDivElement;
+                                    if (container) container.style.opacity = '0.5';
+                                    const url = await uploadImageFile(file);
+                                    const updated = { ...siteSettings, tea_detail_url: url } as SiteSettings;
+                                    setSiteSettings(updated);
+                                    await setDoc(doc(db, 'site_settings', 'global'), updated);
+                                    if (container) container.style.opacity = '1';
+                                  } catch (err: any) {
+                                    alert('다기 이미지 업로드에 실패했습니다: ' + (err?.message || err));
+                                  }
+                                }}
+                              />
+                              <button type="button" className="w-full py-1.5 border border-[#1C1A17]/15 hover:bg-neutral-100 text-black text-[10px] uppercase tracking-wider font-bold rounded bg-white transition-all shadow-sm">
+                                📁 파일 선택 및 저장
+                              </button>
+                            </div>
+                            <span className="text-[9px] text-[#1C1A17]/50 font-mono break-all text-center">
+                              {siteSettings?.tea_detail_url ? siteSettings.tea_detail_url.substring(siteSettings.tea_detail_url.lastIndexOf('/') + 1) : '지정된 이미지 없음'}
+                            </span>
+                          </div>
                         </div>
+
                       </div>
                     </div>
 
@@ -1814,7 +1906,7 @@ export default function App() {
 
       {/* FOOTER */}
       <footer className="border-t border-[#1C1A17]/10 py-16 bg-[#FAF9F6] text-left">
-        <div className="max-w-7xl mx-auto px-6 md:px-12 grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="max-w-7xl mx-auto px-6 md:px-12 grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="space-y-4">
             <span className="font-serif text-sm tracking-[0.25em] font-bold text-black uppercase">BULHANZA</span>
             <p className="text-[11px] leading-relaxed text-[#1C1A17]/55 uppercase font-mono tracking-wider">
@@ -1832,7 +1924,7 @@ export default function App() {
           <div className="space-y-4 text-left">
             <h4 className="font-serif text-xs font-bold uppercase tracking-widest text-[#1C1A17]">Contact Desk</h4>
             <div className="text-[10px] font-mono tracking-wider space-y-1 text-black/60">
-              <p>EMAIL: info@bulhanza.com</p>
+              <p>EMAIL: cocogame@kakao.com</p>
               <p>PHONE: +82-2-588-4670</p>
               <p>SEOUL, MAIN HEADQUARTERS</p>
               
@@ -1845,18 +1937,10 @@ export default function App() {
               </button>
             </div>
           </div>
-          <div className="space-y-4 text-left">
-            <h4 className="font-serif text-xs font-bold uppercase tracking-widest text-[#1C1A17]">Cafe24 Web Hosting</h4>
-            <div className="text-[10px] font-mono tracking-wider space-y-1 text-black/60">
-              <p className="text-[10px] leading-relaxed text-[#1C1A17]/55 font-sans">
-                This client application is fully optimized for Cafe24 static file server deployment. Fully standalone Firebase client syncing.
-              </p>
-            </div>
-          </div>
         </div>
         <div className="max-w-7xl mx-auto px-6 md:px-12 pt-8 border-t border-[#1C1A17]/5 mt-12 flex justify-between items-center text-[9px] font-mono text-black/40">
           <span>&copy; {new Date().getFullYear()} BULHANZA. ALL RIGHTS REGISTERED.</span>
-          <span>Made for Cafe24 Hosting and VS Code Compiler</span>
+          <span>BULHANZA DIGITAL ARCHIVE SYSTEM</span>
         </div>
       </footer>
 
