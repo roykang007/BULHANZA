@@ -269,8 +269,14 @@ export default function App() {
         ...DEFAULT_MULPA_WRITINGS
       ];
 
-      for (const item of allToSeed) {
-        await addDoc(collection(db, 'archive_items'), item);
+      const now = Date.now();
+      for (let i = 0; i < allToSeed.length; i++) {
+        const item = allToSeed[i];
+        const created_at = new Date(now - (allToSeed.length - i) * 60000).toISOString();
+        await addDoc(collection(db, 'archive_items'), {
+          ...item,
+          created_at
+        });
       }
 
       for (const artist of DEFAULT_ARTISTS) {
@@ -334,6 +340,72 @@ export default function App() {
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [lightboxArtistName, setLightboxArtistName] = useState('');
 
+  // Search & Filter states for Admin item management
+  const [adminSearchQuery, setAdminSearchQuery] = useState('');
+  const [adminCategoryFilter, setAdminCategoryFilter] = useState('all');
+
+  // Helper: safely parse and retrieve timestamp
+  const getTimestamp = (dateVal: any) => {
+    if (!dateVal) return 0;
+    try {
+      if (typeof dateVal.toDate === 'function') {
+        return dateVal.toDate().getTime();
+      } else if (dateVal.seconds) {
+        return dateVal.seconds * 1000;
+      }
+      const t = new Date(dateVal).getTime();
+      return isNaN(t) ? 0 : t;
+    } catch (e) {
+      return 0;
+    }
+  };
+
+  // Helper: safely format timestamp/date to format like MM/DD
+  const formatMonthDay = (dateVal: any) => {
+    if (!dateVal) return 'N/A';
+    try {
+      let date: Date;
+      if (typeof dateVal.toDate === 'function') {
+        date = dateVal.toDate();
+      } else if (dateVal.seconds) {
+        date = new Date(dateVal.seconds * 1000);
+      } else {
+        date = new Date(dateVal);
+      }
+      if (isNaN(date.getTime())) return 'N/A';
+      return `${date.getMonth() + 1}/${date.getDate()}`;
+    } catch (e) {
+      return 'N/A';
+    }
+  };
+
+  // Filter and sort archive items for Admin Grid view (Newest saved at the top)
+  const processedArchiveItems = [...archiveItems]
+    .sort((a, b) => {
+      const valA = getTimestamp(a.created_at);
+      const valB = getTimestamp(b.created_at);
+      
+      if (valB !== valA) {
+        return valB - valA; // Descending (newest first)
+      }
+      return b.id.localeCompare(a.id);
+    })
+    .filter((item) => {
+      // 1. Category Filter
+      if (adminCategoryFilter !== 'all' && item.category !== adminCategoryFilter) {
+        return false;
+      }
+      // 2. Search query filter
+      if (adminSearchQuery.trim()) {
+        const query = adminSearchQuery.toLowerCase();
+        const matchesTitle = item.title?.toLowerCase().includes(query);
+        const matchesContent = item.content?.toLowerCase().includes(query);
+        const matchesCollection = item.poetry_collection_name?.toLowerCase().includes(query);
+        return matchesTitle || matchesContent || matchesCollection;
+      }
+      return true;
+    });
+
   // Lightbox keyboard navigation & overflow prevention
   useEffect(() => {
     if (!lightboxActive) return;
@@ -368,8 +440,9 @@ export default function App() {
         summary: editingItem.summary || '',
         image_url: editingItem.image_url || 'https://images.unsplash.com/photo-1518640467707-6811f4a6ab73?auto=format&fit=crop&q=80&w=1200',
         category: editingItem.category,
-        poetry_collection_name: editingItem.poetry_collection_name || null,
-        language: editingItem.language || lang
+        poetry_collection_name: editingItem.category === 'poetry' ? (editingItem.poetry_collection_name || null) : null,
+        language: editingItem.language || lang,
+        created_at: editingItem.created_at || new Date().toISOString()
       };
 
       if (editingItem.id) {
@@ -994,7 +1067,7 @@ export default function App() {
                     className="grid grid-cols-1 gap-4 py-4 text-left"
                   >
                     {t.poetryCollection.allCollections.map((name, i) => {
-                      const bookPoems = archiveItems.filter(p => p.poetry_collection_name === name && p.language === lang);
+                      const bookPoems = archiveItems.filter(p => p.category === 'poetry' && p.poetry_collection_name === name && p.language === lang);
                       return (
                         <div 
                           key={i}
@@ -1054,7 +1127,7 @@ export default function App() {
                       {/* Left: Poem indexes */}
                       <div className="lg:col-span-4 space-y-3 max-h-[500px] overflow-y-auto pr-4">
                         {archiveItems
-                          .filter(p => p.poetry_collection_name === selectedBook && p.language === lang)
+                          .filter(p => p.category === 'poetry' && p.poetry_collection_name === selectedBook && p.language === lang)
                           .map((item, idx) => (
                             <button
                               key={item.id}
@@ -1075,7 +1148,7 @@ export default function App() {
                             </button>
                         ))}
 
-                        {archiveItems.filter(p => p.poetry_collection_name === selectedBook && p.language === lang).length === 0 && (
+                        {archiveItems.filter(p => p.category === 'poetry' && p.poetry_collection_name === selectedBook && p.language === lang).length === 0 && (
                           <div className="text-center py-12 p-6 bg-white border border-dashed border-[#1C1A17]/15 rounded text-black/40 text-xs italic font-serif">
                             {t.poetryCollection.emptyNotice}
                           </div>
@@ -1570,6 +1643,51 @@ export default function App() {
                         </button>
                       </div>
 
+                      {/* Search & Category Filter Controls (카테고리별 검색 및 분류) */}
+                      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 bg-[#FAF9F6] p-4 rounded border border-[#1C1A17]/10 text-left">
+                        <div className="md:col-span-8 relative">
+                          <label className="font-mono text-[9px] tracking-widest font-bold uppercase block mb-1 text-black/60">
+                            🔍 SEARCH KEYWORD (제목/내용 검색어)
+                          </label>
+                          <div className="relative">
+                            <input 
+                              type="text"
+                              value={adminSearchQuery}
+                              onChange={(e) => setAdminSearchQuery(e.target.value)}
+                              placeholder="작품 제목, 본문 내용, 영단 수묵화 등 키워드를 기입..."
+                              className="bg-white border border-[#1C1A17]/15 rounded p-2.5 text-xs w-full focus:outline-none focus:border-black text-[#1C1A17] font-sans"
+                            />
+                            {adminSearchQuery && (
+                              <button 
+                                onClick={() => setAdminSearchQuery('')}
+                                className="absolute right-3 top-2.5 text-black/40 hover:text-black text-xs font-bold font-mono px-1 hover:bg-neutral-100 rounded"
+                                title="Clear search"
+                              >
+                                clear
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                        <div className="md:col-span-4">
+                          <label className="font-mono text-[9px] tracking-widest font-bold uppercase block mb-1 text-black/60">
+                            📂 FILTER BY CATEGORY (카테고리 분류)
+                          </label>
+                          <select
+                            value={adminCategoryFilter}
+                            onChange={(e) => setAdminCategoryFilter(e.target.value)}
+                            className="bg-white border border-[#1C1A17]/15 rounded p-2.5 text-xs w-full focus:outline-none focus:border-black text-[#1C1A17] font-sans font-medium h-[38px]"
+                          >
+                            <option value="all">전체 보관함 보기 (Show All)</option>
+                            <option value="poetry">시문학 (Poetry)</option>
+                            <option value="philosophy">철학 단상 (Philosophy)</option>
+                            <option value="journey">화제/소식 (Journey Photo)</option>
+                            <option value="press">보도자료 (Press Editorial)</option>
+                            <option value="tea">다기 수집 (Tea Item)</option>
+                            <option value="mulpa">물파주의 기고글 (Mulpa Writing)</option>
+                          </select>
+                        </div>
+                      </div>
+
                       {/* Main Records dynamic table */}
                       <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse text-xs">
@@ -1579,11 +1697,12 @@ export default function App() {
                               <th className="p-3 font-mono text-[9px] tracking-widest uppercase">Category</th>
                               <th className="p-3 font-mono text-[9px] tracking-widest uppercase">Title</th>
                               <th className="p-3 font-mono text-[9px] tracking-widest uppercase">Collection / Scope</th>
+                              <th className="p-3 font-mono text-[9px] tracking-widest uppercase">Saved Date (저장일)</th>
                               <th className="p-3 text-right font-mono text-[9px] tracking-widest uppercase">Actions</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-[#1C1A17]/5 font-sans">
-                            {archiveItems.map((item) => (
+                            {processedArchiveItems.map((item) => (
                               <tr key={item.id} className="hover:bg-gray-50/50">
                                 <td className="p-3">
                                   <span className="font-mono font-bold uppercase px-2 py-1 bg-gray-100 rounded text-[9px]">
@@ -1598,6 +1717,9 @@ export default function App() {
                                 </td>
                                 <td className="p-3 text-[#1C1A17]/60 text-[11px] truncate max-w-xs font-serif">
                                   {item.poetry_collection_name || 'N/A (Unbound / Timeline)'}
+                                </td>
+                                <td className="p-3 text-[#1C1A17]/70 font-mono text-[11px]">
+                                  {formatMonthDay(item.created_at)}
                                 </td>
                                 <td className="p-3 text-right space-x-2 whitespace-nowrap">
                                   <button
@@ -1620,10 +1742,12 @@ export default function App() {
                                 </td>
                               </tr>
                             ))}
-                            {archiveItems.length === 0 && (
+                            {processedArchiveItems.length === 0 && (
                               <tr>
-                                <td colSpan={5} className="text-center py-12 text-black/40 italic font-mono uppercase tracking-wider">
-                                  No database records resolved. Please click restoration sync button above.
+                                <td colSpan={6} className="text-center py-12 text-black/40 italic font-mono uppercase tracking-wider">
+                                  {adminSearchQuery || adminCategoryFilter !== 'all' 
+                                    ? '검색 혹은 필터 조건에 부합하는 수집 데이터가 없습니다.' 
+                                    : 'No database records resolved. Please click restoration sync button above.'}
                                 </td>
                               </tr>
                             )}
