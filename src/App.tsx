@@ -371,6 +371,13 @@ export default function App() {
   const [editingArtist, setEditingArtist] = useState<Partial<Artist> | null>(null);
   const [editingWorkIdx, setEditingWorkIdx] = useState<number | null>(null);
 
+  // Activity Journey details popup modal state
+  const [selectedJourneyItem, setSelectedJourneyItem] = useState<ArchiveItem | null>(null);
+
+  // Suncha promo & reviews edit modal state
+  const [isTeaPromoModalOpen, setIsTeaPromoModalOpen] = useState(false);
+  const [tempTeaPromo, setTempTeaPromo] = useState<Partial<SiteSettings> | null>(null);
+
   // Lightbox / Image Popup states for artist masterpieces (작품도록)
   const [lightboxActive, setLightboxActive] = useState(false);
   const [lightboxWorks, setLightboxWorks] = useState<Work[]>([]);
@@ -507,6 +514,10 @@ export default function App() {
       }
       return true;
     });
+
+  // Seoncha intro & reviews from archive items
+  const teaIntros = archiveItems.filter(item => item.category === 'suncha_intro' && (item.language === lang || (!item.language && lang === 'KR')));
+  const teaReviews = archiveItems.filter(item => item.category === 'suncha_review' && (item.language === lang || (!item.language && lang === 'KR')));
 
   return (
     <div className="relative min-h-screen bg-[#FAF9F6] text-[#1C1A17] font-sans overflow-x-hidden selection:bg-[#E5DFD3] selection:text-[#1C1A17]">
@@ -879,6 +890,18 @@ export default function App() {
                                   <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
                                     {article.content}
                                   </ReactMarkdown>
+
+                                  {/* Center-aligned flexible sized image display if present */}
+                                  {article.image_url && (
+                                    <div className="mt-8 flex justify-center w-full">
+                                      <img 
+                                        src={article.image_url} 
+                                        alt={article.title} 
+                                        referrerPolicy="no-referrer"
+                                        className="max-w-full max-h-[350px] md:max-h-[480px] h-auto object-contain rounded border border-[#1C1A17]/10 p-1.5 bg-white shadow-sm"
+                                      />
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             ))}
@@ -1197,6 +1220,18 @@ export default function App() {
                                 <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
                                   {readingPoem.content}
                                 </ReactMarkdown>
+
+                                {/* Responsive centered image display */}
+                                {readingPoem.image_url && (
+                                  <div className="mt-8 flex justify-center w-full">
+                                    <img 
+                                      src={readingPoem.image_url} 
+                                      alt={readingPoem.title} 
+                                      referrerPolicy="no-referrer"
+                                      className="max-w-full max-h-[350px] md:max-h-[480px] h-auto object-contain rounded border border-[#1C1A17]/10 p-1.5 bg-white shadow-sm"
+                                    />
+                                  </div>
+                                )}
                               </div>
                             </div>
 
@@ -1359,6 +1394,225 @@ export default function App() {
 
               </div>
 
+              {/* ----------------- Suncha Promotion & Review Sections ----------------- */}
+              <div className="mt-20 pt-16 border-t border-[#1C1A17]/10 space-y-16">
+                
+                {/* Title */}
+                <div className="text-center space-y-2">
+                  <span className="text-[10px] tracking-[0.4em] uppercase opacity-45 font-mono">
+                    {lang === 'KR' ? '불한선차 기획특별전' : lang === 'SC' ? '佛汉禅茶策划特别展' : 'Seoncha Curated Promotion'}
+                  </span>
+                  <h3 className="font-serif text-2xl md:text-3xl text-[#1C1A17] font-normal leading-snug">
+                    {lang === 'KR' ? '불한선차 소개 및 생생한 리뷰' : lang === 'SC' ? '佛汉禅茶介绍与茶友评价' : 'Suncha Introduction & Guest Reviews'}
+                  </h3>
+                  <div className="w-12 h-px bg-[#1C1A17]/20 mx-auto mt-6" />
+                </div>
+
+                {/* Suncha Promo Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-12 items-start">
+                  
+                  {/* Left Column: 불한선차소개 */}
+                  <div className="space-y-8">
+                    <h4 className="font-serif text-xs tracking-widest uppercase text-black/55 bg-neutral-100 p-2.5 rounded border border-black/5 block font-bold text-center">
+                      🍃 {lang === 'KR' ? '불한선차소개 아카이브' : lang === 'SC' ? '佛汉禅茶介绍' : 'Seoncha Introduction'}
+                    </h4>
+
+                    {teaIntros.length === 0 ? (
+                      /* Default Fallback Card */
+                      <div className="bg-white border border-[#1C1A17]/10 p-6 md:p-8 rounded hover:shadow-xl transition-all duration-300 relative flex flex-col justify-between">
+                        <div className="space-y-6">
+                          <div className="flex justify-between items-center border-b border-[#1C1A17]/5 pb-3">
+                            <span className="font-serif text-base md:text-lg font-bold text-black tracking-wide">
+                              {lang === 'KR' ? '불한선차소개' : lang === 'SC' ? '佛汉禅茶介绍' : 'Seoncha Introduction'}
+                            </span>
+                          </div>
+
+                          {/* Info Promo Image */}
+                          <div className="aspect-[16/10] w-full overflow-hidden rounded bg-gray-50 border border-[#1C1A17]/5 shadow-sm relative group">
+                            <img 
+                              src={siteSettings?.suncha_intro_image || '/assets/bulhansuncha_v2.jpg'} 
+                              alt="Seoncha Intro" 
+                              referrerPolicy="no-referrer"
+                              className="w-full h-full object-cover opacity-95 transition-transform duration-500 group-hover:scale-105"
+                            />
+                          </div>
+
+                          {/* Content Text block and fallbacks */}
+                          <p className="text-xs md:text-sm text-[#1C1A17]/80 leading-relaxed font-sans font-normal text-justify whitespace-pre-wrap">
+                            {lang === 'KR' 
+                              ? (siteSettings?.suncha_intro_text_kr || '불한선차(佛漢禪茶)는 깊은 산사의 무구한 기운과 선차 명인의 정밀한 정성을 거쳐 고온 가마에서 아홉 번 덖고 발효 시켜 흙내음และ 부드러운 우디향의 정수를 완성한 특별한 전통 수제 명차입니다.')
+                              : lang === 'SC' 
+                              ? (siteSettings?.suncha_intro_text_sc || siteSettings?.suncha_intro_text_kr || '佛汉禅茶(佛漢禪茶)是历经深山古刹的无垢灵气与禅茶名师的九蒸九晒发酵，在高温釜中多次揉捻烘焙而成的高端传统手工名茶。其茶汤通透，入口温润开胃。')
+                              : (siteSettings?.suncha_intro_text_en || siteSettings?.suncha_intro_text_kr || 'Bulhan Suncha is a premium, handcrafted traditional meditation tea cultivated deep within pristine mountain hermitages. Roasted multiple times in high-temperature kilns, it delivers a smooth body and rich earthy wood notes.')
+                            }
+                          </p>
+                        </div>
+
+                        <div className="mt-8 border-t border-[#1C1A17]/5 pt-4 flex justify-between items-center">
+                          <span className="font-mono text-[8px] tracking-widest opacity-45 uppercase font-bold">HERITAGE SEONCHA BRAND</span>
+                          <span className="font-serif text-[10px] italic opacity-40">Zen Steeping Experience</span>
+                        </div>
+                      </div>
+                    ) : (
+                      /* Dynamic List Cards */
+                      <div className="space-y-6">
+                        {teaIntros.map((item) => (
+                          <div 
+                            key={item.id}
+                            onClick={() => setSelectedJourneyItem(item)}
+                            className="group bg-white border border-[#1C1A17]/10 p-6 md:p-8 rounded hover:shadow-2xl hover:border-[#1C1A17]/30 transition-all duration-300 relative flex flex-col justify-between cursor-pointer hover:scale-[1.01]"
+                          >
+                            <div className="space-y-5">
+                              <div className="flex justify-between items-center border-b border-[#1C1A17]/5 pb-3">
+                                <span className="font-serif text-base md:text-lg font-bold text-black tracking-wide group-hover:text-black/80 transition-colors">
+                                  {item.title}
+                                </span>
+                                {item.category_tag && (
+                                  <span className="font-mono text-[8px] tracking-widest text-[#1C1A17]/50 bg-neutral-100 border border-black/5 px-2 py-0.5 rounded uppercase">
+                                    {item.category_tag}
+                                  </span>
+                                )}
+                              </div>
+
+                              {item.image_url && (
+                                <div className="aspect-[16/10] w-full overflow-hidden rounded bg-gray-50 border border-[#1C1A17]/5 shadow-sm relative">
+                                  <img 
+                                    src={item.image_url} 
+                                    alt={item.title} 
+                                    referrerPolicy="no-referrer"
+                                    className="w-full h-full object-cover opacity-95 transition-transform duration-500 group-hover:scale-105"
+                                  />
+                                  <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <span className="text-[10px] tracking-[0.2em] font-mono text-white bg-black/75 px-3 py-1.5 rounded uppercase font-bold shadow-md">
+                                      {lang === 'KR' ? '자세히 보기' : 'Read details'} &rarr;
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
+
+                              <p className="text-xs md:text-sm text-[#1C1A17]/85 leading-relaxed font-sans font-normal text-justify line-clamp-3">
+                                {item.summary || item.content}
+                              </p>
+                            </div>
+
+                            <div className="mt-8 border-t border-[#1C1A17]/5 pt-4 flex justify-between items-center text-[9px] tracking-widest uppercase font-mono font-bold text-neutral-400 group-hover:text-black transition-colors">
+                              <span>HERITAGE ARCHIVE</span>
+                              <span className="flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                                {lang === 'KR' ? '자세히 보기' : 'View details'} &rarr;
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Right Column: 음용후기 */}
+                  <div className="space-y-8">
+                    <h4 className="font-serif text-xs tracking-widest uppercase text-black/55 bg-neutral-100 p-2.5 rounded border border-black/5 block font-bold text-center">
+                      💬 {lang === 'KR' ? '다우들의 음용후기 리뷰' : lang === 'SC' ? '茶友品茗感受' : 'Guest Reviews'}
+                    </h4>
+
+                    {teaReviews.length === 0 ? (
+                      /* Default Fallback Card */
+                      <div className="bg-white border border-[#1C1A17]/10 p-6 md:p-8 rounded hover:shadow-xl transition-all duration-300 relative flex flex-col justify-between">
+                        <div className="space-y-6">
+                          <div className="flex justify-between items-center border-b border-[#1C1A17]/5 pb-3">
+                            <span className="font-serif text-base md:text-lg font-bold text-black tracking-wide">
+                              {lang === 'KR' ? '음용후기 (茶友 리뷰)' : lang === 'SC' ? '茶友品茗感受' : 'Guest Reviews & Experiences'}
+                            </span>
+                          </div>
+
+                          {/* Review Image */}
+                          <div className="aspect-[16/10] w-full overflow-hidden rounded bg-gray-50 border border-[#1C1A17]/5 shadow-sm relative group">
+                            <img 
+                              src={siteSettings?.suncha_review_image || 'https://images.unsplash.com/photo-1594631252845-29fc4cc8cde9?auto=format&fit=crop&q=80&w=1200'} 
+                              alt="Seoncha Review" 
+                              referrerPolicy="no-referrer"
+                              className="w-full h-full object-cover opacity-95 transition-transform duration-500 group-hover:scale-105"
+                            />
+                          </div>
+
+                          {/* Content Review with fallback quotation */}
+                          <div className="relative">
+                            <span className="font-serif text-3xl text-black/10 absolute -left-2 -top-4 select-none pr-3 block">“</span>
+                            <p className="text-xs md:text-sm text-[#1C1A17]/85 font-sans leading-relaxed italic text-justify pl-4 whitespace-pre-wrap">
+                              {lang === 'KR'
+                                ? (siteSettings?.suncha_review_text_kr || '따스한 찻사발을 쥐며 흘러나오는 은은한 차 기운을 들이마시니 머리까지 청명해지고 복잡했던 상념들이 맑게 가라앉는 신비로운 영적 몰입감을 느꼈습니다. 매일 참선 다도의 훌륭한 길잡이가 되고 있습니다.')
+                                : lang === 'SC'
+                                ? (siteSettings?.suncha_review_text_sc || siteSettings?.suncha_review_text_kr || '凝神端起温暖的茶盏，清新幽雅的茶香沁人心脾，瞬间感觉灵台一片清明，往日的嘈杂压力在大脑中消解无踪。非常适合日常冥想时饮用。')
+                                : (siteSettings?.suncha_review_text_en || siteSettings?.suncha_review_text_kr || 'Holding the warm tea bowl, the serene aroma centers my mind instantly. Deep thoughts settle into tranquil clarity, making it an indispensable partner for my daily early-morning meditation practice.')
+                              }
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="mt-8 border-t border-[#1C1A17]/5 pt-4 flex justify-between items-center">
+                          <span className="font-mono text-[8px] tracking-widest opacity-45 uppercase font-bold">GUEST RETROSPECTIVES</span>
+                          <span className="font-serif text-[10px] italic opacity-40">M-M Harmony Co.</span>
+                        </div>
+                      </div>
+                    ) : (
+                      /* Dynamic List Cards */
+                      <div className="space-y-6">
+                        {teaReviews.map((item) => (
+                          <div 
+                            key={item.id}
+                            onClick={() => setSelectedJourneyItem(item)}
+                            className="group bg-white border border-[#1C1A17]/10 p-6 md:p-8 rounded hover:shadow-2xl hover:border-[#1C1A17]/30 transition-all duration-300 relative flex flex-col justify-between cursor-pointer hover:scale-[1.01]"
+                          >
+                            <div className="space-y-5">
+                              <div className="flex justify-between items-center border-b border-[#1C1A17]/5 pb-3">
+                                <span className="font-serif text-base md:text-lg font-bold text-black tracking-wide group-hover:text-black/80 transition-colors">
+                                  {item.title}
+                                </span>
+                                {item.category_tag && (
+                                  <span className="font-mono text-[8px] tracking-widest text-[#1C1A17]/50 bg-neutral-100 border border-black/5 px-2 py-0.5 rounded uppercase">
+                                    {item.category_tag}
+                                  </span>
+                                )}
+                              </div>
+
+                              {item.image_url && (
+                                <div className="aspect-[16/10] w-full overflow-hidden rounded bg-gray-50 border border-[#1C1A17]/5 shadow-sm relative">
+                                  <img 
+                                    src={item.image_url} 
+                                    alt={item.title} 
+                                    referrerPolicy="no-referrer"
+                                    className="w-full h-full object-cover opacity-95 transition-transform duration-500 group-hover:scale-105"
+                                  />
+                                  <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <span className="text-[10px] tracking-[0.2em] font-mono text-white bg-black/75 px-3 py-1.5 rounded uppercase font-bold shadow-md">
+                                      {lang === 'KR' ? '자세히 보기' : 'Read details'} &rarr;
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
+
+                              <div className="relative">
+                                <span className="font-serif text-3xl text-black/10 absolute -left-2 -top-4 select-none pr-3 block">“</span>
+                                <p className="text-xs md:text-sm text-[#1C1A17]/85 font-sans leading-relaxed italic text-justify pl-4 line-clamp-3">
+                                  {item.summary || item.content}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="mt-8 border-t border-[#1C1A17]/5 pt-4 flex justify-between items-center text-[9px] tracking-widest uppercase font-mono font-bold text-neutral-400 group-hover:text-black transition-colors">
+                              <span>GUEST REVIEW</span>
+                              <span className="flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                                {lang === 'KR' ? '자세히 보기' : 'View details'} &rarr;
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                </div>
+
+              </div>
+
             </motion.div>
           )}
 
@@ -1432,36 +1686,49 @@ export default function App() {
                     .map((item) => (
                       <div 
                         key={item.id}
-                        className="bg-white border border-[#1C1A17]/10 p-6 rounded hover:shadow-2xl hover:border-[#1C1A17]/25 transition-all flex flex-col justify-between"
+                        onClick={() => setSelectedJourneyItem(item)}
+                        className="group bg-white border border-[#1C1A17]/10 p-6 rounded hover:shadow-2xl hover:border-[#1C1A17]/35 transition-all duration-300 flex flex-col justify-between cursor-pointer hover:scale-[1.01]"
                       >
                         <div className="space-y-4 text-left">
-                          <div className="aspect-[16/10] overflow-hidden rounded bg-gray-50 border border-[#1C1A17]/5">
+                          <div className="aspect-[16/10] overflow-hidden rounded bg-gray-50 border border-[#1C1A17]/5 relative">
                             <img 
                               src={item.image_url} 
                               alt={item.title} 
-                              className="w-full h-full object-cover opacity-90 transition-transform group-hover:scale-105"
+                              className="w-full h-full object-cover opacity-90 transition-transform duration-500 group-hover:scale-105"
                               referrerPolicy="no-referrer"
                             />
+                            {/* Hover Overlay indicator */}
+                            <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <span className="text-[10px] tracking-widest font-mono text-white bg-black/75 px-3 py-1.5 rounded uppercase font-bold shadow-md">
+                                {lang === 'KR' ? '자세히 보기' : 'Read details'} &rarr;
+                              </span>
+                            </div>
                           </div>
                           
                           <div className="space-y-2">
-                            <span className="font-mono text-[9px] tracking-widest text-[#1C1A17]/40 font-bold block uppercase">
-                              {item.category === 'journey' ? 'Activity Performance' : 'Press Editorial'}
-                            </span>
-                            <h4 className="font-serif text-lg font-bold text-black">{item.title}</h4>
-                            <p className="text-xs text-black/60 leading-relaxed font-sans font-normal antialiased">
+                            <div className="flex gap-2 items-center">
+                              <span className="font-mono text-[9px] tracking-widest text-[#1C1A17]/40 font-bold uppercase">
+                                {item.category === 'journey' ? 'Activity Performance' : 'Press Editorial'}
+                              </span>
+                              {item.category_tag && (
+                                <span className="font-mono text-[8px] tracking-widest text-black/55 bg-neutral-100 px-1.5 py-0.5 rounded border border-black/5 uppercase">
+                                  {item.category_tag}
+                                </span>
+                              )}
+                            </div>
+                            <h4 className="font-serif text-base md:text-lg font-bold text-black group-hover:text-black/80 transition-colors leading-snug">{item.title}</h4>
+                            <p className="text-xs text-black/60 leading-relaxed font-sans font-normal antialiased line-clamp-3">
                               {item.summary}
                             </p>
                           </div>
                         </div>
 
-                        {/* Expandable inline drawer content log */}
-                        <div className="pt-6 border-t border-[#1C1A17]/5 mt-6">
-                          <div className="markdown-body font-sans text-[11px] leading-relaxed text-[#1C1A17]/75">
-                            <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
-                              {item.content}
-                            </ReactMarkdown>
-                          </div>
+                        {/* Expandable details button at bottom */}
+                        <div className="pt-4 border-t border-[#1C1A17]/5 mt-6 flex justify-between items-center text-[9px] tracking-widest uppercase font-mono font-bold text-neutral-400 group-hover:text-black transition-all">
+                          <span>{item.category === 'journey' ? 'Perform Log' : 'Editorial'}</span>
+                          <span className="flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                            {lang === 'KR' ? '자세히 보기' : 'View details'} &rarr;
+                          </span>
                         </div>
                       </div>
                   ))}
@@ -1661,6 +1928,8 @@ export default function App() {
                               <option value="journey">Journey (활동 여정기록)</option>
                               <option value="press">Press (언론 보도기사)</option>
                               <option value="mulpa">Mulpaism (물파주의 기고글)</option>
+                              <option value="suncha_intro">Seoncha Intro (불한선차소개)</option>
+                              <option value="suncha_review">Seoncha Review (음용후기)</option>
                             </select>
                           </div>
 
@@ -1703,7 +1972,14 @@ export default function App() {
                                   </span>
                                 </td>
                                 <td className="p-3 text-[#1C1A17]/70 font-semibold text-[11px] uppercase tracking-wider">
-                                  {item.category}
+                                  {item.category === 'poetry' ? 'Poetry' :
+                                   item.category === 'philosophy' ? 'Philosophy' :
+                                   item.category === 'journey' ? 'Journey' :
+                                   item.category === 'press' ? 'Press' :
+                                   item.category === 'mulpa' ? 'Mulpaism' :
+                                   item.category === 'suncha_intro' ? 'Seoncha Intro' :
+                                   item.category === 'suncha_review' ? 'Seoncha Review' :
+                                   item.category}
                                 </td>
                                 <td className="p-3 font-medium text-black max-w-xs truncate font-serif">
                                   {item.title}
@@ -2118,6 +2394,8 @@ export default function App() {
                       <option value="journey">Journey (활동 여정기록)</option>
                       <option value="press">Press (언론 보도기사)</option>
                       <option value="mulpa">Mulpaism (물파주의 기고글)</option>
+                      <option value="suncha_intro">Seoncha Intro (불한선차소개)</option>
+                      <option value="suncha_review">Seoncha Review (음용후기)</option>
                     </select>
                   </div>
 
@@ -2855,6 +3133,315 @@ export default function App() {
                 )}
               </div>
             </div>
+          </div>
+        )}
+
+        {/* 1. Activity Journey details popup modal */}
+        {selectedJourneyItem && (
+          <div className="fixed inset-0 bg-[#1C1A17]/60 backdrop-blur-sm z-[250] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white border border-[#1C1A17]/15 rounded shadow-2xl w-full max-w-3xl max-h-[92vh] flex flex-col overflow-hidden text-left relative z-[260]"
+            >
+              <div className="p-5 bg-[#FAF9F6] border-b border-[#1C1A17]/10 flex justify-between items-start">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-[9px] tracking-widest text-[#1C1A17]/40 font-bold uppercase py-0.5 px-2 bg-[#E5DFD3]/40 rounded">
+                      {selectedJourneyItem.category === 'journey' ? 'Activity Performance' : 'Press Editorial'}
+                    </span>
+                    {selectedJourneyItem.category_tag && (
+                      <span className="font-mono text-[9px] tracking-widest text-[#1C1A17]/60 font-bold uppercase py-0.5 px-2 bg-neutral-100 rounded border border-black/5">
+                        {selectedJourneyItem.category_tag}
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="font-serif text-lg md:text-xl font-bold text-black mt-2 leading-snug">
+                    {selectedJourneyItem.title}
+                  </h3>
+                </div>
+                <button 
+                  onClick={() => setSelectedJourneyItem(null)}
+                  className="text-black/40 hover:text-black hover:bg-neutral-100 p-1.5 rounded transition-colors mt-1"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-6">
+                {selectedJourneyItem.image_url && (
+                  <div className="w-full flex justify-center bg-gray-50 rounded border border-[#1C1A17]/5 p-2 overflow-hidden max-h-[60vh]">
+                    <img 
+                      src={selectedJourneyItem.image_url} 
+                      alt={selectedJourneyItem.title} 
+                      referrerPolicy="no-referrer"
+                      className="max-h-[50vh] w-auto h-auto object-contain rounded shadow-sm"
+                    />
+                  </div>
+                )}
+
+                <div className="space-y-4">
+                  {selectedJourneyItem.summary && (
+                    <p className="text-xs md:text-sm font-semibold text-[#1C1A17]/85 font-sans border-l-2 border-[#1C1A17]/30 pl-3 leading-relaxed">
+                      {selectedJourneyItem.summary}
+                    </p>
+                  )}
+                  <div className="prose prose-stone max-w-none text-xs md:text-sm text-[#1C1A17]/85 font-sans leading-relaxed whitespace-pre-wrap markdown-body pt-2">
+                    <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
+                      {selectedJourneyItem.content || ''}
+                    </ReactMarkdown>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-4 bg-[#FAF9F6] border-t border-[#1C1A17]/5 flex justify-end font-mono">
+                <button 
+                  onClick={() => setSelectedJourneyItem(null)}
+                  className="px-6 py-2 bg-[#1C1A17] text-white hover:bg-black text-[10px] tracking-widest uppercase transition-colors rounded font-bold"
+                >
+                  Close Window
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* 2. Suncha promo & reviews edit modal */}
+        {isTeaPromoModalOpen && tempTeaPromo && (
+          <div className="fixed inset-0 bg-[#1C1A17]/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-[#FAF9F6] border border-[#1C1A17]/15 rounded shadow-2xl overflow-hidden w-full max-w-3xl max-h-[90vh] flex flex-col"
+            >
+              <div className="p-6 bg-white border-b border-[#1C1A17]/10 flex justify-between items-center text-left">
+                <div>
+                  <h3 className="font-serif text-lg font-bold text-black">
+                    불한선차 특별 홍보 및 음용후기 편집
+                  </h3>
+                  <p className="text-[10px] text-black/50 font-sans tracking-wide uppercase mt-0.5">Edit Seoncha Promotion & Reviews</p>
+                </div>
+                <button 
+                  onClick={() => {
+                    setIsTeaPromoModalOpen(false);
+                    setTempTeaPromo(null);
+                  }}
+                  className="text-black/40 hover:text-black hover:bg-neutral-100 p-2 rounded transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-6 space-y-8 text-left">
+                {/* 1. 불한선차소개 (Suncha Promo) */}
+                <div className="space-y-4 border-b border-black/5 pb-6">
+                  <h4 className="font-serif text-base font-bold text-[#1C1A17] flex items-center gap-2">
+                    <Sparkles size={16} /> 1. 불한선차소개 관리 (Introduction Promo)
+                  </h4>
+
+                  {/* Suncha Promo Image */}
+                  <div className="space-y-2">
+                    <label className="font-mono text-[9px] tracking-widest font-bold uppercase block text-[#1C1A17]/70">
+                      PROMOTIONAL IMAGE (소개 대표 이미지)
+                    </label>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="md:col-span-2 border border-dashed border-[#1C1A17]/25 hover:border-[#1C1A17]/50 rounded p-4 text-center bg-white cursor-pointer relative transition-colors">
+                        <input 
+                          type="file" 
+                          accept="image/*"
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            try {
+                              const btn = e.target.parentElement;
+                              if (btn) btn.style.opacity = '0.5';
+                              const url = await uploadImageFile(file);
+                              setTempTeaPromo(p => p ? { ...p, suncha_intro_image: url } : null);
+                              if (btn) btn.style.opacity = '1';
+                            } catch (err: any) {
+                              alert('이미지 업로드에 실패했습니다: ' + err);
+                            }
+                          }}
+                        />
+                        <div className="space-y-1">
+                          <span className="text-xs text-[#1C1A17]/80 block font-semibold">📁 클릭 또는 드래그하여 새 이미지 업로드</span>
+                          <span className="text-[9px] text-[#1C1A17]/40 block font-mono">Max size 20MB (.jpg, .png, .webp)</span>
+                        </div>
+                      </div>
+                      <div className="border border-[#1C1A17]/10 aspect-[16/10] bg-[#FAF9F6] rounded flex items-center justify-center p-2 relative overflow-hidden">
+                        {tempTeaPromo.suncha_intro_image ? (
+                          <img src={tempTeaPromo.suncha_intro_image} alt="Promo Preview" className="w-full h-full object-cover rounded" referrerPolicy="no-referrer" />
+                        ) : (
+                          <span className="text-[10px] text-black/35 font-mono">No Image</span>
+                        )}
+                      </div>
+                    </div>
+                    {/* Manual input URL */}
+                    <input 
+                      type="text" 
+                      placeholder="직접 이미지 URL 입력"
+                      value={tempTeaPromo.suncha_intro_image || ''}
+                      onChange={e => setTempTeaPromo(p => p ? { ...p, suncha_intro_image: e.target.value } : null)}
+                      className="w-full bg-white border border-[#1C1A17]/15 rounded p-2 text-xs font-mono text-[#1C1A17] focus:outline-none"
+                    />
+                  </div>
+
+                  {/* Suncha Promo Text Localized */}
+                  <div className="grid grid-cols-1 gap-4">
+                    <div>
+                      <label className="font-mono text-[9px] tracking-widest font-bold uppercase block mb-1">PROMOTIONAL TEXT - KOREAN (한국어 소개 문구)</label>
+                      <textarea 
+                        rows={3}
+                        value={tempTeaPromo.suncha_intro_text_kr || ''}
+                        onChange={e => setTempTeaPromo(p => p ? { ...p, suncha_intro_text_kr: e.target.value } : null)}
+                        className="w-full bg-white border border-[#1C1A17]/15 rounded p-3 text-xs text-[#1C1A17] focus:outline-none"
+                        placeholder="한국어 불한선차 소개글을 채워주세요."
+                      />
+                    </div>
+                    <div>
+                      <label className="font-mono text-[9px] tracking-widest font-bold uppercase block mb-1">PROMOTIONAL TEXT - CHINESE (중국어 소개 문구)</label>
+                      <textarea 
+                        rows={3}
+                        value={tempTeaPromo.suncha_intro_text_sc || ''}
+                        onChange={e => setTempTeaPromo(p => p ? { ...p, suncha_intro_text_sc: e.target.value } : null)}
+                        className="w-full bg-white border border-[#1C1A17]/15 rounded p-3 text-xs text-[#1C1A17] focus:outline-none"
+                        placeholder="중국어 불한선차 소개글을 채워주세요. (미입력 시 한국어가 대체 노출됩니다.)"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-mono text-[9px] tracking-widest font-bold uppercase block mb-1">PROMOTIONAL TEXT - ENGLISH (영어 소개 문구)</label>
+                      <textarea 
+                        rows={3}
+                        value={tempTeaPromo.suncha_intro_text_en || ''}
+                        onChange={e => setTempTeaPromo(p => p ? { ...p, suncha_intro_text_en: e.target.value } : null)}
+                        className="w-full bg-white border border-[#1C1A17]/15 rounded p-3 text-xs text-[#1C1A17] focus:outline-none"
+                        placeholder="영어 불한선차 소개글을 채워주세요. (미입력 시 한국어가 대체 노출됩니다.)"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. 음용후기 (Drinking Review) */}
+                <div className="space-y-4">
+                  <h4 className="font-serif text-base font-bold text-[#1C1A17] flex items-center gap-2">
+                    <MessageSquare size={16} /> 2. 대표 음용후기 관리 (Customer Review)
+                  </h4>
+
+                  {/* Suncha Review Image */}
+                  <div className="space-y-2">
+                    <label className="font-mono text-[9px] tracking-widest font-bold uppercase block text-[#1C1A17]/70">
+                      REVIEW IMAGE (후기 대표 이미지)
+                    </label>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="md:col-span-2 border border-dashed border-[#1C1A17]/25 hover:border-[#1C1A17]/50 rounded p-4 text-center bg-white cursor-pointer relative transition-colors">
+                        <input 
+                          type="file" 
+                          accept="image/*"
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            try {
+                              const btn = e.target.parentElement;
+                              if (btn) btn.style.opacity = '0.5';
+                              const url = await uploadImageFile(file);
+                              setTempTeaPromo(p => p ? { ...p, suncha_review_image: url } : null);
+                              if (btn) btn.style.opacity = '1';
+                            } catch (err: any) {
+                              alert('이미지 업로드에 실패했습니다: ' + err);
+                            }
+                          }}
+                        />
+                        <div className="space-y-1">
+                          <span className="text-xs text-[#1C1A17]/80 block font-semibold">📁 클릭 또는 드래그하여 새 이미지 업로드</span>
+                          <span className="text-[9px] text-[#1C1A17]/40 block font-mono">Max size 20MB (.jpg, .png, .webp)</span>
+                        </div>
+                      </div>
+                      <div className="border border-[#1C1A17]/10 aspect-[16/10] bg-[#FAF9F6] rounded flex items-center justify-center p-2 relative overflow-hidden">
+                        {tempTeaPromo.suncha_review_image ? (
+                          <img src={tempTeaPromo.suncha_review_image} alt="Review Preview" className="w-full h-full object-cover rounded" referrerPolicy="no-referrer" />
+                        ) : (
+                          <span className="text-[10px] text-black/35 font-mono">No Image</span>
+                        )}
+                      </div>
+                    </div>
+                    {/* Manual input URL */}
+                    <input 
+                      type="text" 
+                      placeholder="직접 이미지 URL 입력"
+                      value={tempTeaPromo.suncha_review_image || ''}
+                      onChange={e => setTempTeaPromo(p => p ? { ...p, suncha_review_image: e.target.value } : null)}
+                      className="w-full bg-white border border-[#1C1A17]/15 rounded p-2 text-xs font-mono text-[#1C1A17] focus:outline-none"
+                    />
+                  </div>
+
+                  {/* Suncha Review Text Localized */}
+                  <div className="grid grid-cols-1 gap-4">
+                    <div>
+                      <label className="font-mono text-[9px] tracking-widest font-bold uppercase block mb-1">REVIEW TEXT - KOREAN (한국어 음용후기 글)</label>
+                      <textarea 
+                        rows={3}
+                        value={tempTeaPromo.suncha_review_text_kr || ''}
+                        onChange={e => setTempTeaPromo(p => p ? { ...p, suncha_review_text_kr: e.target.value } : null)}
+                        className="w-full bg-white border border-[#1C1A17]/15 rounded p-3 text-xs text-[#1C1A17] focus:outline-none"
+                        placeholder="한국어 음용후기를 채워주세요."
+                      />
+                    </div>
+                    <div>
+                      <label className="font-mono text-[9px] tracking-widest font-bold uppercase block mb-1">REVIEW TEXT - CHINESE (중국어 음용후기 글)</label>
+                      <textarea 
+                        rows={3}
+                        value={tempTeaPromo.suncha_review_text_sc || ''}
+                        onChange={e => setTempTeaPromo(p => p ? { ...p, suncha_review_text_sc: e.target.value } : null)}
+                        className="w-full bg-white border border-[#1C1A17]/15 rounded p-3 text-xs text-[#1C1A17] focus:outline-none"
+                        placeholder="중국어 음용후기를 채워주세요. (미입력 시 한국어가 대체 노출됩니다.)"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-mono text-[9px] tracking-widest font-bold uppercase block mb-1">REVIEW TEXT - ENGLISH (영어 음용후기 글)</label>
+                      <textarea 
+                        rows={3}
+                        value={tempTeaPromo.suncha_review_text_en || ''}
+                        onChange={e => setTempTeaPromo(p => p ? { ...p, suncha_review_text_en: e.target.value } : null)}
+                        className="w-full bg-white border border-[#1C1A17]/15 rounded p-3 text-xs text-[#1C1A17] focus:outline-none"
+                        placeholder="영어 음용후기를 채워주세요. (미입력 시 한국어가 대체 노출됩니다.)"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 bg-white border-t border-[#1C1A17]/10 flex justify-end gap-3 font-mono">
+                <button 
+                  onClick={() => {
+                    setIsTeaPromoModalOpen(false);
+                    setTempTeaPromo(null);
+                  }}
+                  className="px-6 py-2 border border-[#1C1A17]/10 hover:bg-neutral-100 text-[10px] tracking-widest uppercase transition-colors rounded"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={async () => {
+                    if (!tempTeaPromo) return;
+                    try {
+                      await setDoc(doc(db, 'site_settings', 'global'), tempTeaPromo);
+                      setSiteSettings(tempTeaPromo as SiteSettings);
+                      setIsTeaPromoModalOpen(false);
+                      setTempTeaPromo(null);
+                    } catch (err: any) {
+                      alert('저장에 실패하였습니다: ' + err.message);
+                    }
+                  }}
+                  className="px-6 py-2 bg-black text-white hover:bg-[#1C1A17] text-[10px] tracking-widest uppercase transition-colors rounded font-bold"
+                >
+                  Save to Firebase
+                </button>
+              </div>
+            </motion.div>
           </div>
         )}
       </AnimatePresence>

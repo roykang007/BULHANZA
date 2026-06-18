@@ -31,6 +31,14 @@ export interface SiteSettings {
   tea_slider_speed?: number;
   artists?: Artist[];
   created_at?: any;
+  suncha_intro_image?: string;
+  suncha_intro_text_kr?: string;
+  suncha_intro_text_sc?: string;
+  suncha_intro_text_en?: string;
+  suncha_review_image?: string;
+  suncha_review_text_kr?: string;
+  suncha_review_text_sc?: string;
+  suncha_review_text_en?: string;
 }
 
 export interface Work {
