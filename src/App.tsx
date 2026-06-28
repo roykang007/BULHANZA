@@ -1015,11 +1015,59 @@ export default function App() {
                         </p>
                       </div>
                     ) : (
-                      <div className="space-y-24">
-                        {artists
-                          .filter(a => a.language === lang || !a.language)
-                          .map((artist, idx) => (
-                            <div key={idx} className="bg-white border border-[#1C1A17]/10 p-8 md:p-12 shadow-xl rounded space-y-12">
+                      <div className="space-y-12">
+                        {/* 100+ Artists Adaptive Directory */}
+                        <div className="bg-white border border-[#1C1A17]/10 p-6 md:p-8 rounded shadow-md space-y-4">
+                          <div className="border-b border-[#1C1A17]/5 pb-3 flex justify-between items-baseline">
+                            <h4 className="font-serif text-sm font-bold text-black uppercase tracking-wider">
+                              {lang === 'KR' ? '물파작가 바로가기 일람 (가나다순)' : lang === 'SC' ? '物波艺术家快速导航' : 'Directory of Mulpa Artists'}
+                            </h4>
+                            <span className="font-mono text-[9px] text-[#1C1A17]/50 font-bold bg-neutral-100 px-2.5 py-1 rounded border border-black/5 uppercase">
+                              {lang === 'KR' ? `총 ${artists.filter(a => a.language === lang || !a.language).length}명` : `Total: ${artists.filter(a => a.language === lang || !a.language).length}`}
+                            </span>
+                          </div>
+                          
+                          {/* Adaptive wrap designed for 100+ items. Wraps naturally with a maximum height scroll box. */}
+                          <div className="flex flex-wrap gap-2 md:gap-2.5 justify-start max-h-[160px] overflow-y-auto pr-2 py-1 scrollbar-thin scrollbar-thumb-neutral-200 scrollbar-track-transparent">
+                            {artists
+                              .filter(a => a.language === lang || !a.language)
+                              .sort((a, b) => a.name.localeCompare(b.name, lang === 'KR' ? 'ko' : lang === 'SC' ? 'zh' : 'en'))
+                              .map((artist, aIdx) => (
+                                <button
+                                  key={aIdx}
+                                  onClick={() => {
+                                    const element = document.getElementById(`artist-profile-${artist.id || artist.name}`);
+                                    if (element) {
+                                      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                    }
+                                  }}
+                                  className="text-xs font-serif font-medium bg-[#FAF9F6] border border-[#1C1A17]/10 hover:border-[#1C1A17]/40 hover:bg-[#E5DFD3] text-[#1C1A17] py-1.5 px-3 md:px-4 rounded transition-all duration-300 shadow-sm hover:scale-[1.02] active:scale-95 whitespace-nowrap flex items-center gap-1.5"
+                                >
+                                  <span className="w-1 h-1 rounded-full bg-black/30" />
+                                  {artist.name}
+                                </button>
+                              ))
+                            }
+                          </div>
+                          
+                          <p className="text-[10px] text-black/45 font-sans italic">
+                            {lang === 'KR' ? '* 작가 이름을 선택하면 상세 프로필과 소장 작품 도록 공간으로 즉시 이동합니다.' : '* Click an artist to scroll directly to their detailed profile and masterpiece gallery.'}
+                          </p>
+                        </div>
+
+                        {/* Flexible spacing adjusting gracefully */}
+                        <div className="h-2 md:h-6" />
+
+                        {/* Artists Details */}
+                        <div className="space-y-24">
+                          {artists
+                            .filter(a => a.language === lang || !a.language)
+                            .map((artist, idx) => (
+                              <div 
+                                key={idx} 
+                                id={`artist-profile-${artist.id || artist.name}`}
+                                className="bg-white border border-[#1C1A17]/10 p-8 md:p-12 shadow-xl rounded space-y-12 scroll-mt-28"
+                              >
                               
                               {/* Artist Profile Row */}
                               <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
@@ -1129,6 +1177,7 @@ export default function App() {
 
                             </div>
                           ))}
+                        </div>
                       </div>
                     )}
                   </motion.div>
