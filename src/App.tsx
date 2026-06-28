@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Menu, X, Plus, Trash2, Edit2, ArrowLeft, Newspaper, Image as ImageIcon, Check,
   Upload, ChevronLeft, ChevronRight, BookOpen, Settings, ChevronDown, Database,
-  Activity, Key, RefreshCw, Sparkles, MessageSquare, Compass, Send, Calendar, Monitor
+  Activity, Key, RefreshCw, Sparkles, MessageSquare, Compass, Send, Calendar, Monitor,
+  ArrowUpDown
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -384,6 +385,13 @@ export default function App() {
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [lightboxArtistName, setLightboxArtistName] = useState('');
 
+  // Sorting states for uploaded content lists
+  const [poetrySortOrder, setPoetrySortOrder] = useState<'default' | 'titleAsc' | 'titleDesc'>('default');
+  const [journeySortOrder, setJourneySortOrder] = useState<'default' | 'titleAsc' | 'titleDesc'>('default');
+  const [mulpaSortOrder, setMulpaSortOrder] = useState<'default' | 'titleAsc' | 'titleDesc'>('default');
+  const [teaSortOrder, setTeaSortOrder] = useState<'default' | 'titleAsc' | 'titleDesc'>('default');
+  const [adminSortOrder, setAdminSortOrder] = useState<'default' | 'titleAsc' | 'titleDesc'>('default');
+
   // Lightbox keyboard navigation & overflow prevention
   useEffect(() => {
     if (!lightboxActive) return;
@@ -495,29 +503,52 @@ export default function App() {
     : siteSettings.logo_url;
   const finalHeroBg = siteSettings?.hero_bg_url || 'https://images.unsplash.com/photo-1490127252417-7c393f993ee4?auto=format&fit=crop&q=80&w=1920';
 
-  // Admin filtered items
-  const filteredItems = [...archiveItems]
-    .sort((a, b) => getTimestampMs(b) - getTimestampMs(a))
-    .filter(item => {
-      // 1. Category Filter
-      if (adminCategoryFilter !== 'all' && item.category !== adminCategoryFilter) {
-        return false;
+  // Helper to sort dynamic content lists by title/name
+  const sortItems = (items: ArchiveItem[], order: 'default' | 'titleAsc' | 'titleDesc') => {
+    if (order === 'default') return items;
+    return [...items].sort((a, b) => {
+      const titleA = a.title || '';
+      const titleB = b.title || '';
+      if (order === 'titleAsc') {
+        return titleA.localeCompare(titleB, lang === 'KR' ? 'ko' : lang === 'SC' ? 'zh' : 'en');
+      } else {
+        return titleB.localeCompare(titleA, lang === 'KR' ? 'ko' : lang === 'SC' ? 'zh' : 'en');
       }
-      // 2. Keyword Search
-      if (adminSearchQuery.trim()) {
-        const queryClean = adminSearchQuery.toLowerCase();
-        return (
-          (item.title && item.title.toLowerCase().includes(queryClean)) ||
-          (item.content && item.content.toLowerCase().includes(queryClean)) ||
-          (item.poetry_collection_name && item.poetry_collection_name.toLowerCase().includes(queryClean))
-        );
-      }
-      return true;
     });
+  };
+
+  // Admin filtered items
+  const filteredItems = sortItems(
+    [...archiveItems]
+      .sort((a, b) => getTimestampMs(b) - getTimestampMs(a))
+      .filter(item => {
+        // 1. Category Filter
+        if (adminCategoryFilter !== 'all' && item.category !== adminCategoryFilter) {
+          return false;
+        }
+        // 2. Keyword Search
+        if (adminSearchQuery.trim()) {
+          const queryClean = adminSearchQuery.toLowerCase();
+          return (
+            (item.title && item.title.toLowerCase().includes(queryClean)) ||
+            (item.content && item.content.toLowerCase().includes(queryClean)) ||
+            (item.poetry_collection_name && item.poetry_collection_name.toLowerCase().includes(queryClean))
+          );
+        }
+        return true;
+      }),
+    adminSortOrder
+  );
 
   // Seoncha intro & reviews from archive items
-  const teaIntros = archiveItems.filter(item => item.category === 'suncha_intro' && (item.language === lang || (!item.language && lang === 'KR')));
-  const teaReviews = archiveItems.filter(item => item.category === 'suncha_review' && (item.language === lang || (!item.language && lang === 'KR')));
+  const teaIntros = sortItems(
+    archiveItems.filter(item => item.category === 'suncha_intro' && (item.language === lang || (!item.language && lang === 'KR'))),
+    teaSortOrder
+  );
+  const teaReviews = sortItems(
+    archiveItems.filter(item => item.category === 'suncha_review' && (item.language === lang || (!item.language && lang === 'KR'))),
+    teaSortOrder
+  );
 
   return (
     <div className="relative min-h-screen bg-[#FAF9F6] text-[#1C1A17] font-sans overflow-x-hidden selection:bg-[#E5DFD3] selection:text-[#1C1A17]">
@@ -852,11 +883,52 @@ export default function App() {
 
                     {/* Dynamic Mulpaism Writings/Essays */}
                     <div className="space-y-8">
-                      <div className="border-b border-[#1C1A17]/10 pb-4">
-                        <h3 className="font-serif text-xl md:text-2xl font-semibold text-black">
-                          {lang === 'KR' ? '물파주의 기고문 및 학술 고찰' : lang === 'SC' ? '物波主义论文与学术探讨' : 'Mulpa Doctrine Essays'}
-                        </h3>
-                        <p className="text-xs text-black/50 mt-1 uppercase tracking-wider font-mono">Dynamic academic collection</p>
+                      <div className="border-b border-[#1C1A17]/10 pb-4 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                        <div>
+                          <h3 className="font-serif text-xl md:text-2xl font-semibold text-black">
+                            {lang === 'KR' ? '물파주의 기고문 및 학술 고찰' : lang === 'SC' ? '物波主义论文与学术探讨' : 'Mulpa Doctrine Essays'}
+                          </h3>
+                          <p className="text-xs text-black/50 mt-1 uppercase tracking-wider font-mono">Dynamic academic collection</p>
+                        </div>
+
+                        {/* Sort Controller */}
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-[9px] tracking-widest text-[#1C1A17]/40 font-bold uppercase shrink-0">
+                            {lang === 'KR' ? '정렬 방식' : 'Sort Order'}
+                          </span>
+                          <div className="flex gap-1">
+                            <button
+                              onClick={() => setMulpaSortOrder('default')}
+                              className={`text-[9px] font-mono tracking-wider px-2.5 py-1 rounded transition-all font-bold ${
+                                mulpaSortOrder === 'default'
+                                  ? 'bg-[#1C1A17] text-[#FAF9F6]'
+                                  : 'bg-white border border-[#1C1A17]/10 text-black/50 hover:bg-neutral-50'
+                              }`}
+                            >
+                              {lang === 'KR' ? '기본순' : 'Default'}
+                            </button>
+                            <button
+                              onClick={() => setMulpaSortOrder('titleAsc')}
+                              className={`text-[9px] font-mono tracking-wider px-2.5 py-1 rounded transition-all font-bold flex items-center gap-0.5 ${
+                                mulpaSortOrder === 'titleAsc'
+                                  ? 'bg-[#1C1A17] text-[#FAF9F6]'
+                                  : 'bg-white border border-[#1C1A17]/10 text-black/50 hover:bg-neutral-50'
+                              }`}
+                            >
+                              ▲ A-Z
+                            </button>
+                            <button
+                              onClick={() => setMulpaSortOrder('titleDesc')}
+                              className={`text-[9px] font-mono tracking-wider px-2.5 py-1 rounded transition-all font-bold flex items-center gap-0.5 ${
+                                mulpaSortOrder === 'titleDesc'
+                                  ? 'bg-[#1C1A17] text-[#FAF9F6]'
+                                  : 'bg-white border border-[#1C1A17]/10 text-black/50 hover:bg-neutral-50'
+                              }`}
+                            >
+                              ▼ Z-A
+                            </button>
+                          </div>
+                        </div>
                       </div>
 
                       {archiveItems.filter(item => item.category === 'mulpa' && (item.language === lang || !item.language)).length === 0 ? (
@@ -865,9 +937,10 @@ export default function App() {
                         </div>
                       ) : (
                         <div className="grid grid-cols-1 gap-6">
-                          {archiveItems
-                            .filter(item => item.category === 'mulpa' && (item.language === lang || !item.language))
-                            .map((article) => (
+                          {sortItems(
+                            archiveItems.filter(item => item.category === 'mulpa' && (item.language === lang || !item.language)),
+                            mulpaSortOrder
+                          ).map((article) => (
                               <div 
                                 key={article.id} 
                                 className="bg-white border border-[#1C1A17]/10 p-6 md:p-8 rounded hover:border-[#1C1A17]/40 transition-all duration-300 shadow-sm"
@@ -1149,10 +1222,51 @@ export default function App() {
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
                       
                       {/* Left: Poem indexes */}
-                      <div className="lg:col-span-4 space-y-3 max-h-[500px] overflow-y-auto pr-4">
-                        {archiveItems
-                          .filter(p => p.category === 'poetry' && p.poetry_collection_name === selectedBook && p.language === lang)
-                          .map((item, idx) => (
+                      <div className="lg:col-span-4 space-y-3">
+                        {/* Sort Controller */}
+                        <div className="flex items-center justify-between border-b border-[#1C1A17]/5 pb-2.5 mb-2">
+                          <span className="font-mono text-[9px] tracking-widest text-[#1C1A17]/40 font-bold uppercase">
+                            {lang === 'KR' ? '정렬 방식' : 'Sort Order'}
+                          </span>
+                          <div className="flex gap-1.5">
+                            <button
+                              onClick={() => setPoetrySortOrder('default')}
+                              className={`text-[9px] font-mono tracking-wider px-2 py-0.5 rounded transition-all font-bold ${
+                                poetrySortOrder === 'default'
+                                  ? 'bg-[#1C1A17] text-[#FAF9F6]'
+                                  : 'bg-neutral-100 hover:bg-neutral-200 text-black/50'
+                              }`}
+                            >
+                              {lang === 'KR' ? '기본순' : 'Default'}
+                            </button>
+                            <button
+                              onClick={() => setPoetrySortOrder('titleAsc')}
+                              className={`text-[9px] font-mono tracking-wider px-2 py-0.5 rounded transition-all font-bold flex items-center gap-0.5 ${
+                                poetrySortOrder === 'titleAsc'
+                                  ? 'bg-[#1C1A17] text-[#FAF9F6]'
+                                  : 'bg-neutral-100 hover:bg-neutral-200 text-black/50'
+                              }`}
+                            >
+                              ▲ A-Z
+                            </button>
+                            <button
+                              onClick={() => setPoetrySortOrder('titleDesc')}
+                              className={`text-[9px] font-mono tracking-wider px-2 py-0.5 rounded transition-all font-bold flex items-center gap-0.5 ${
+                                poetrySortOrder === 'titleDesc'
+                                  ? 'bg-[#1C1A17] text-[#FAF9F6]'
+                                  : 'bg-neutral-100 hover:bg-neutral-200 text-black/50'
+                              }`}
+                            >
+                              ▼ Z-A
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="space-y-3 max-h-[500px] overflow-y-auto pr-4">
+                          {sortItems(
+                            archiveItems.filter(p => p.category === 'poetry' && p.poetry_collection_name === selectedBook && p.language === lang),
+                            poetrySortOrder
+                          ).map((item, idx) => (
                             <button
                               key={item.id}
                               onClick={() => setReadingPoem(item)}
@@ -1170,13 +1284,14 @@ export default function App() {
                               </div>
                               <ChevronRight size={14} className="opacity-30 group-hover:translate-x-1 transition-transform" />
                             </button>
-                        ))}
+                          ))}
 
-                        {archiveItems.filter(p => p.category === 'poetry' && p.poetry_collection_name === selectedBook && p.language === lang).length === 0 && (
-                          <div className="text-center py-12 p-6 bg-white border border-dashed border-[#1C1A17]/15 rounded text-black/40 text-xs italic font-serif">
-                            {t.poetryCollection.emptyNotice}
-                          </div>
-                        )}
+                          {archiveItems.filter(p => p.category === 'poetry' && p.poetry_collection_name === selectedBook && p.language === lang).length === 0 && (
+                            <div className="text-center py-12 p-6 bg-white border border-dashed border-[#1C1A17]/15 rounded text-black/40 text-xs italic font-serif">
+                              {t.poetryCollection.emptyNotice}
+                            </div>
+                          )}
+                        </div>
                       </div>
 
                       {/* Right: Immersive Reading Slate */}
@@ -1398,14 +1513,55 @@ export default function App() {
               <div className="mt-20 pt-16 border-t border-[#1C1A17]/10 space-y-16">
                 
                 {/* Title */}
-                <div className="text-center space-y-2">
-                  <span className="text-[10px] tracking-[0.4em] uppercase opacity-45 font-mono">
-                    {lang === 'KR' ? '불한선차 기획특별전' : lang === 'SC' ? '佛汉禅茶策划特别展' : 'Seoncha Curated Promotion'}
-                  </span>
-                  <h3 className="font-serif text-2xl md:text-3xl text-[#1C1A17] font-normal leading-snug">
-                    {lang === 'KR' ? '불한선차 소개 및 생생한 리뷰' : lang === 'SC' ? '佛汉禅茶介绍与茶友评价' : 'Suncha Introduction & Guest Reviews'}
-                  </h3>
-                  <div className="w-12 h-px bg-[#1C1A17]/20 mx-auto mt-6" />
+                <div className="text-center space-y-4">
+                  <div className="space-y-2">
+                    <span className="text-[10px] tracking-[0.4em] uppercase opacity-45 font-mono">
+                      {lang === 'KR' ? '불한선차 기획특별전' : lang === 'SC' ? '佛汉禅茶策划特别展' : 'Seoncha Curated Promotion'}
+                    </span>
+                    <h3 className="font-serif text-2xl md:text-3xl text-[#1C1A17] font-normal leading-snug">
+                      {lang === 'KR' ? '불한선차 소개 및 생생한 리뷰' : lang === 'SC' ? '佛汉禅茶介绍与茶友评价' : 'Suncha Introduction & Guest Reviews'}
+                    </h3>
+                    <div className="w-12 h-px bg-[#1C1A17]/20 mx-auto mt-6" />
+                  </div>
+
+                  {/* Sort Controller */}
+                  <div className="flex items-center justify-center gap-3 pt-2">
+                    <span className="font-mono text-[9px] tracking-widest text-[#1C1A17]/40 font-bold uppercase">
+                      {lang === 'KR' ? '정렬 방식' : 'Sort Order'}
+                    </span>
+                    <div className="flex gap-1 bg-white border border-[#1C1A17]/10 p-0.5 rounded-sm inline-flex">
+                      <button
+                        onClick={() => setTeaSortOrder('default')}
+                        className={`text-[9px] font-mono tracking-wider px-2.5 py-1 rounded transition-all font-bold ${
+                          teaSortOrder === 'default'
+                            ? 'bg-[#1C1A17] text-[#FAF9F6]'
+                            : 'text-black/50 hover:bg-neutral-50'
+                        }`}
+                      >
+                        {lang === 'KR' ? '기본순' : 'Default'}
+                      </button>
+                      <button
+                        onClick={() => setTeaSortOrder('titleAsc')}
+                        className={`text-[9px] font-mono tracking-wider px-2.5 py-1 rounded transition-all font-bold flex items-center gap-0.5 ${
+                          teaSortOrder === 'titleAsc'
+                            ? 'bg-[#1C1A17] text-[#FAF9F6]'
+                            : 'text-black/50 hover:bg-neutral-50'
+                        }`}
+                      >
+                        ▲ A-Z
+                      </button>
+                      <button
+                        onClick={() => setTeaSortOrder('titleDesc')}
+                        className={`text-[9px] font-mono tracking-wider px-2.5 py-1 rounded transition-all font-bold flex items-center gap-0.5 ${
+                          teaSortOrder === 'titleDesc'
+                            ? 'bg-[#1C1A17] text-[#FAF9F6]'
+                            : 'text-black/50 hover:bg-neutral-50'
+                        }`}
+                      >
+                        ▼ Z-A
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Suncha Promo Grid */}
@@ -1632,37 +1788,78 @@ export default function App() {
               </div>
 
               {/* Filter tabs */}
-              <div className="flex justify-center gap-4 mb-16 text-[10px] tracking-widest uppercase font-mono font-bold">
-                <button 
-                  onClick={() => setJourneyFilter('all')}
-                  className={`px-6 py-2 rounded-full border transition-all ${
-                    journeyFilter === 'all' 
-                      ? 'bg-black text-white border-black' 
-                      : 'bg-transparent border-[#1C1A17]/10 text-black hover:border-black/30'
-                  }`}
-                >
-                  All Archive
-                </button>
-                <button 
-                  onClick={() => setJourneyFilter('photo')}
-                  className={`px-6 py-2 rounded-full border transition-all ${
-                    journeyFilter === 'photo' 
-                      ? 'bg-black text-white border-black' 
-                      : 'bg-transparent border-[#1C1A17]/10 text-black hover:border-black/30'
-                  }`}
-                >
-                  Performances / Photos
-                </button>
-                <button 
-                  onClick={() => setJourneyFilter('press')}
-                  className={`px-6 py-2 rounded-full border transition-all ${
-                    journeyFilter === 'press' 
-                      ? 'bg-black text-white border-black' 
-                      : 'bg-transparent border-[#1C1A17]/10 text-black hover:border-black/30'
-                  }`}
-                >
-                  Press Coverage / Publications
-                </button>
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-16 pb-6 border-b border-[#1C1A17]/10">
+                <div className="flex flex-wrap gap-4 text-[10px] tracking-widest uppercase font-mono font-bold">
+                  <button 
+                    onClick={() => setJourneyFilter('all')}
+                    className={`px-6 py-2 rounded-full border transition-all ${
+                      journeyFilter === 'all' 
+                        ? 'bg-black text-white border-black' 
+                        : 'bg-transparent border-[#1C1A17]/10 text-black hover:border-black/30'
+                    }`}
+                  >
+                    All Archive
+                  </button>
+                  <button 
+                    onClick={() => setJourneyFilter('photo')}
+                    className={`px-6 py-2 rounded-full border transition-all ${
+                      journeyFilter === 'photo' 
+                        ? 'bg-black text-white border-black' 
+                        : 'bg-transparent border-[#1C1A17]/10 text-black hover:border-black/30'
+                    }`}
+                  >
+                    Performances / Photos
+                  </button>
+                  <button 
+                    onClick={() => setJourneyFilter('press')}
+                    className={`px-6 py-2 rounded-full border transition-all ${
+                      journeyFilter === 'press' 
+                        ? 'bg-black text-white border-black' 
+                        : 'bg-transparent border-[#1C1A17]/10 text-black hover:border-black/30'
+                    }`}
+                  >
+                    Press Coverage / Publications
+                  </button>
+                </div>
+
+                {/* Sort Controller */}
+                <div className="flex items-center gap-2 self-start md:self-auto shrink-0">
+                  <span className="font-mono text-[9px] tracking-widest text-[#1C1A17]/40 font-bold uppercase">
+                    {lang === 'KR' ? '정렬 방식' : 'Sort Order'}
+                  </span>
+                  <div className="flex gap-1 bg-white border border-[#1C1A17]/10 p-0.5 rounded-sm inline-flex">
+                    <button
+                      onClick={() => setJourneySortOrder('default')}
+                      className={`text-[9px] font-mono tracking-wider px-2.5 py-1 rounded transition-all font-bold ${
+                        journeySortOrder === 'default'
+                          ? 'bg-[#1C1A17] text-[#FAF9F6]'
+                          : 'text-black/50 hover:bg-neutral-50'
+                      }`}
+                    >
+                      {lang === 'KR' ? '기본순' : 'Default'}
+                    </button>
+                    <button
+                      onClick={() => setJourneySortOrder('titleAsc')}
+                      className={`text-[9px] font-mono tracking-wider px-2.5 py-1 rounded transition-all font-bold flex items-center gap-0.5 ${
+                        journeySortOrder === 'titleAsc'
+                          ? 'bg-[#1C1A17] text-[#FAF9F6]'
+                          : 'text-black/50 hover:bg-neutral-50'
+                      }`}
+                    >
+                      ▲ A-Z
+                    </button>
+                    <button
+                      onClick={() => setJourneySortOrder('titleDesc')}
+                      className={`text-[9px] font-mono tracking-wider px-2.5 py-1 rounded transition-all font-bold flex items-center gap-0.5 ${
+                        journeySortOrder === 'titleDesc'
+                          ? 'bg-[#1C1A17] text-[#FAF9F6]'
+                          : 'text-black/50 hover:bg-neutral-50'
+                      }`}
+                    >
+                      ▼ Z-A
+                    </button>
+                  </div>
+                </div>
               </div>
 
               {/* Timeline layouts */}
@@ -1676,14 +1873,15 @@ export default function App() {
                 )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  {archiveItems
-                    .filter(item => {
+                  {sortItems(
+                    archiveItems.filter(item => {
                       if (item.language !== lang) return false;
                       if (journeyFilter === 'photo') return item.category === 'journey';
                       if (journeyFilter === 'press') return item.category === 'press';
                       return (item.category === 'journey' || item.category === 'press');
-                    })
-                    .map((item) => (
+                    }),
+                    journeySortOrder
+                  ).map((item) => (
                       <div 
                         key={item.id}
                         onClick={() => setSelectedJourneyItem(item)}
@@ -1942,6 +2140,19 @@ export default function App() {
                               placeholder="제목 키워드 입력..."
                               className="bg-white border border-[#1C1A17]/15 rounded px-3 py-2 text-xs font-sans text-black placeholder-black/30 focus:outline-none focus:border-black min-w-[220px] h-9"
                             />
+                          </div>
+
+                          <div className="flex flex-col gap-1 w-full sm:w-auto">
+                            <span className="font-mono text-[9px] tracking-widest font-bold uppercase text-black/50">⇅ 정렬 방식 (Sort Order)</span>
+                            <select
+                              value={adminSortOrder}
+                              onChange={e => setAdminSortOrder(e.target.value as any)}
+                              className="bg-white border border-[#1C1A17]/15 rounded p-2 text-xs font-mono text-[#1C1A17] focus:outline-none focus:border-black min-w-[160px] h-9"
+                            >
+                              <option value="default">등록순 (Default)</option>
+                              <option value="titleAsc">이름 오름차순 (A-Z ▲)</option>
+                              <option value="titleDesc">이름 내림차순 (Z-A ▼)</option>
+                            </select>
                           </div>
                         </div>
 
