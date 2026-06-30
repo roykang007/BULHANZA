@@ -550,6 +550,8 @@ export default function App() {
     teaSortOrder
   );
 
+  const isHomeDarkHeader = page === 'home' && !scrolled;
+
   return (
     <div className="relative min-h-screen bg-[#FAF9F6] text-[#1C1A17] font-sans overflow-x-hidden selection:bg-[#E5DFD3] selection:text-[#1C1A17]">
       
@@ -576,11 +578,15 @@ export default function App() {
               />
             </div>
             <div className="flex flex-col justify-center">
-              <span className="font-serif text-xs md:text-sm tracking-[0.15em] md:tracking-[0.25em] uppercase font-bold text-[#1C1A17] block leading-none mb-1">BULHANZA</span>
-              <p className="text-[7.5px] md:text-[8px] tracking-[0.2em] md:tracking-[0.3em] uppercase opacity-45 font-mono leading-none">Mind-Matter Art</p>
+              <span className={`font-serif text-xs md:text-sm tracking-[0.15em] md:tracking-[0.25em] uppercase font-bold block leading-none mb-1 transition-colors duration-300 ${
+                isHomeDarkHeader ? 'text-white' : 'text-[#1C1A17]'
+              }`}>BULHANZA</span>
+              <p className={`text-[7.5px] md:text-[8px] tracking-[0.2em] md:tracking-[0.3em] uppercase font-mono leading-none transition-colors duration-300 ${
+                isHomeDarkHeader ? 'text-white/60' : 'opacity-45 text-[#1C1A17]'
+              }`}>Mind-Matter Art</p>
             </div>
           </button>
-
+ 
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center gap-6 text-[18px] tracking-[0.12em] font-extrabold">
             {(Object.keys(t.nav) as Page[]).filter(p => p !== 'contact').map((p) => (
@@ -588,31 +594,39 @@ export default function App() {
                 key={p}
                 id={`nav-${p}`}
                 onClick={() => setPage(p)}
-                className={`relative py-1 transition-colors duration-300 hover:text-black ${
-                  page === p ? 'text-[#1C1A17]' : 'text-[#1C1A17]/70'
+                className={`relative py-1 transition-colors duration-300 ${
+                  isHomeDarkHeader 
+                    ? page === p ? 'text-white' : 'text-white/70 hover:text-white'
+                    : page === p ? 'text-[#1C1A17]' : 'text-[#1C1A17]/70 hover:text-black'
                 }`}
               >
                 {t.nav[p]}
                 {page === p && (
                   <motion.span 
                     layoutId="activeHeaderLine"
-                    className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-[#1C1A17]"
+                    className={`absolute bottom-0 left-0 right-0 h-[2.5px] ${
+                      isHomeDarkHeader ? 'bg-white' : 'bg-[#1C1A17]'
+                    }`}
                   />
                 )}
               </button>
             ))}
           </nav>
-
+ 
           {/* Language Toggle & Burger */}
           <div className="flex items-center gap-4">
             
             {/* Lang Dropdown Select */}
-            <div className="relative group/lang font-bold text-[10px] tracking-widest border border-[#1C1A17]/15 rounded-full px-3 py-1 flex items-center gap-1 bg-white hover:border-[#1C1A17]/40 transition-[colors,border]">
-              <span className="text-[#1C1A17]">{lang === 'SC' ? '简体' : lang === 'KR' ? '언어' : 'EN'}</span>
-              <ChevronDown size={11} className="opacity-40" />
+            <div className={`relative group/lang font-bold text-[10px] tracking-widest border rounded-full px-3 py-1 flex items-center gap-1 transition-[colors,border,background-color] ${
+              isHomeDarkHeader 
+                ? 'bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/40' 
+                : 'bg-white border-[#1C1A17]/15 text-[#1C1A17] hover:border-[#1C1A17]/40'
+            }`}>
+              <span>{lang === 'SC' ? '简体' : lang === 'KR' ? '언어' : 'EN'}</span>
+              <ChevronDown size={11} className={isHomeDarkHeader ? 'opacity-75 text-white' : 'opacity-40 text-[#1C1A17]'} />
               
               <div className="absolute right-0 top-full pt-1 hidden group-hover/lang:block min-w-[70px] z-[100]">
-                <div className="bg-[#FAF9F6] border border-[#1C1A17]/10 shadow-lg rounded-lg overflow-hidden flex flex-col font-mono">
+                <div className="bg-[#FAF9F6] border border-[#1C1A17]/10 shadow-lg rounded-lg overflow-hidden flex flex-col font-mono text-black">
                   <button 
                     onClick={() => setLang('KR')}
                     className="px-3 py-2 text-left hover:bg-[#E5DFD3] transition-colors"
@@ -634,12 +648,14 @@ export default function App() {
                 </div>
               </div>
             </div>
-
+ 
             {/* Mobile Menu Icon */}
             <button 
               id="mobile-menu-toggle"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="lg:hidden p-1 text-[#1C1A17] hover:opacity-75"
+              className={`lg:hidden p-1 transition-colors duration-300 ${
+                isHomeDarkHeader ? 'text-white hover:text-white/80' : 'text-[#1C1A17] hover:opacity-75'
+              }`}
             >
               {isMenuOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
@@ -685,93 +701,156 @@ export default function App() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="relative max-w-7xl mx-auto px-6 md:px-12 pb-32"
+              className="relative w-full -mt-28"
             >
-              
-              {/* Overlapping Immersive Hero */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center min-h-[75vh] py-12">
-                <div className="lg:col-span-6 space-y-8 z-10 text-left">
-                  <span className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-mono block">ESTABLISHED 1997</span>
-                  <h1 className="text-4xl md:text-6xl font-serif leading-[1.2] tracking-wide text-[#1C1A17] whitespace-pre-line">
-                    {t.hero.title}
-                  </h1>
-                  <p className="text-sm md:text-base font-sans text-[#1C1A17]/70 leading-relaxed font-normal max-w-md">
-                    {t.hero.subtitle}
-                  </p>
-                  
-                  <div className="pt-4 flex flex-wrap gap-4">
-                    <button 
-                      id="hero-explore-btn"
-                      onClick={() => setPage('philosophy')}
-                      className="px-8 py-4 bg-[#1C1A17] text-white hover:bg-[#322F2A] hover:shadow-lg text-[10px] tracking-[0.3em] uppercase transition-all flex items-center gap-3 rounded-sm font-semibold"
-                    >
-                      <Compass size={14} /> {t.hero.cta}
-                    </button>
-                    <button 
-                      id="hero-tea-btn"
-                      onClick={() => setPage('tea')}
-                      className="px-8 py-4 border border-[#1C1A17] text-[#1C1A17] hover:bg-[#1C1A17]/5 text-[10px] tracking-[0.3em] uppercase transition-all rounded-sm font-semibold"
-                    >
-                      {translations[lang].nav.tea}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Hero Minimalist Art Frame */}
-                <div className="lg:col-span-6 relative aspect-[4/3] lg:aspect-[1.1] w-full rounded overflow-hidden shadow-2xl border border-[#1C1A17]/10 bg-black group">
-                  <div className="absolute inset-0 bg-[#322F2A]/20 z-10 mix-blend-multiply group-hover:opacity-40 transition-opacity duration-750" />
-                  <motion.img 
-                    initial={{ scale: 1.15 }}
-                    animate={{ scale: 1.05 }}
-                    transition={{ duration: 1.5 }}
-                    src={finalHeroBg} 
-                    alt="Scenic Mountain Peaks" 
-                    className="w-full h-full object-cover grayscale opacity-90 brightness-95"
-                    referrerPolicy="no-referrer"
-                  />
-                  
-                  {/* Absolute subtle wave simulation card */}
-                  <div className="absolute bottom-6 right-6 bg-[#FAF9F6] p-6 max-w-xs text-left shadow-lg border border-[#1C1A17]/10 z-20 hover:scale-105 transition-transform">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="w-2 h-2 rounded-full bg-[#1C1A17] animate-ping" />
-                      <span className="font-mono text-[8px] tracking-widest uppercase opacity-60">Rhythm of Mind</span>
-                    </div>
-                    <p className="font-serif text-[11px] leading-relaxed italic text-[#1C1A17]">
-                      "Every particle of matter oscillates with intention. When it captures human emotion, it transforms into high art."
-                    </p>
-                  </div>
-                </div>
+              {/* Immersive background image with advanced vignette and overlay filters */}
+              <div className="absolute inset-0 z-0 overflow-hidden">
+                <img 
+                  src={finalHeroBg} 
+                  alt="Immersive Backdrop" 
+                  className="w-full h-full object-cover scale-105 brightness-[0.25] contrast-[1.05] transition-transform duration-[4000ms] ease-out"
+                  referrerPolicy="no-referrer"
+                />
+                <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/55 to-black/90" />
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(250,249,246,0.07),transparent_85%)]" />
               </div>
 
-              {/* Three Bento Cards Section */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-24 border-t border-[#1C1A17]/10">
+              <div className="relative z-10 max-w-7xl mx-auto px-6 md:px-12 pt-36 md:pt-44 pb-32 flex flex-col justify-between min-h-screen">
                 
-                <div onClick={() => setPage('philosophy')} className="group p-8 bg-[#FAF9F6] border border-[#1C1A17]/10 rounded hover:border-[#1C1A17] hover:bg-white transition-all cursor-pointer text-left space-y-4">
-                  <div className="w-10 h-10 rounded-full bg-[#E5DFD3] flex items-center justify-center text-[#1C1A17] group-hover:scale-110 transition-transform">
-                    <Activity size={16} />
+                {/* Hero Headline content */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center py-8">
+                  <div className="lg:col-span-7 space-y-8 text-left">
+                    <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-white/10 bg-white/5 backdrop-blur-sm">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#E5DFD3] animate-pulse" />
+                      <span className="text-[9px] tracking-[0.3em] uppercase text-[#E5DFD3] font-mono font-bold">ESTABLISHED 1997</span>
+                    </div>
+
+                    <h1 className="text-4xl sm:text-5xl md:text-7xl font-serif leading-[1.15] tracking-wide text-white whitespace-pre-line drop-shadow-md">
+                      {t.hero.title}
+                    </h1>
+
+                    <p className="text-sm md:text-lg font-sans text-white/80 leading-relaxed font-normal max-w-xl drop-shadow-sm">
+                      {t.hero.subtitle}
+                    </p>
+                    
+                    <div className="pt-4 flex flex-wrap gap-4">
+                      <button 
+                        id="hero-explore-btn"
+                        onClick={() => setPage('philosophy')}
+                        className="px-8 py-4 bg-white text-[#1C1A17] hover:bg-[#FAF9F6] hover:scale-105 active:scale-95 text-[10px] tracking-[0.3em] uppercase transition-all flex items-center gap-3 rounded-full font-bold shadow-lg shadow-white/5"
+                      >
+                        <Compass size={14} /> {t.hero.cta}
+                      </button>
+                      <button 
+                        id="hero-tea-btn"
+                        onClick={() => setPage('tea')}
+                        className="px-8 py-4 border border-white/30 text-white bg-white/5 backdrop-blur-sm hover:bg-white hover:text-black hover:border-white hover:scale-105 active:scale-95 text-[10px] tracking-[0.3em] uppercase transition-all rounded-full font-bold"
+                      >
+                        {translations[lang].nav.tea}
+                      </button>
+                    </div>
                   </div>
-                  <h3 className="font-serif text-lg text-black font-semibold uppercase tracking-wide">{t.nav.philosophy}</h3>
-                  <p className="text-xs text-[#1C1A17]/60 leading-relaxed font-sans">{t.philosophy.text}</p>
+
+                  {/* Aesthetic Floating Parchment style quotation block */}
+                  <div className="lg:col-span-5 relative w-full flex justify-center lg:justify-end">
+                    <div className="bg-white/5 backdrop-blur-md p-8 md:p-10 max-w-sm text-left shadow-2xl border border-white/10 rounded-2xl relative overflow-hidden group hover:border-white/30 transition-colors duration-500">
+                      <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-white/10 to-transparent rounded-full blur-xl pointer-events-none" />
+                      
+                      <div className="flex items-center gap-2 mb-4">
+                        <span className="w-2 h-2 rounded-full bg-white animate-ping" />
+                        <span className="font-mono text-[9px] tracking-widest uppercase text-white/60 font-bold">Rhythm of Mind & Matter</span>
+                      </div>
+                      
+                      <p className="font-serif text-[12px] md:text-sm leading-relaxed italic text-white/90">
+                        {lang === 'KR' 
+                          ? '"모든 존재의 미세한 파동이 사람의 심적 감응과 만날 때, 보이지 않는 영성이 거룩한 예술로 피어납니다."' 
+                          : lang === 'SC'
+                          ? '"当物质的微细波动与人的心灵感应相遇时，无形的灵性便绽放出神圣的艺术。"'
+                          : '"When the micro-oscillations of matter meet human conscious sensory vibration, invisible spirituality blossoms into genuine sacred art."'}
+                      </p>
+
+                      <div className="mt-6 flex items-center gap-3 border-t border-white/10 pt-4">
+                        <div className="w-8 h-8 rounded-full border border-white/20 overflow-hidden flex items-center justify-center bg-white/5 text-white/70">
+                          <Activity size={12} className="animate-pulse" />
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold text-white uppercase tracking-wider font-mono">MULPA DOCTRINE</p>
+                          <p className="text-[8px] text-white/40 font-mono">21st Century New Aesthetics</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
-                <div onClick={() => setPage('art')} className="group p-8 bg-[#FAF9F6] border border-[#1C1A17]/10 rounded hover:border-[#1C1A17] hover:bg-white transition-all cursor-pointer text-left space-y-4">
-                  <div className="w-10 h-10 rounded-full bg-[#E5DFD3] flex items-center justify-center text-[#1C1A17] group-hover:scale-110 transition-transform">
-                    <Sparkles size={16} />
+                {/* Glassmorphic bento blocks */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 pt-16 border-t border-white/10 mt-16">
+                  
+                  {/* Card 1 */}
+                  <div 
+                    onClick={() => setPage('philosophy')} 
+                    className="group p-8 bg-white/[0.03] backdrop-blur-md border border-white/10 rounded-2xl hover:border-white/45 hover:bg-white/[0.08] transition-all cursor-pointer text-left space-y-5 relative overflow-hidden"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    <div className="w-12 h-12 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center text-white group-hover:scale-110 transition-transform duration-500 shadow-inner">
+                      <Activity size={18} />
+                    </div>
+                    <div className="space-y-2">
+                      <h3 className="font-serif text-lg text-white font-bold tracking-wide flex items-center gap-2">
+                        {t.nav.philosophy}
+                        <span className="text-[9px] font-mono text-[#E5DFD3] border border-[#E5DFD3]/30 px-1.5 py-0.5 rounded uppercase">MIND</span>
+                      </h3>
+                      <p className="text-xs text-white/70 leading-relaxed font-sans line-clamp-3">{t.philosophy.text}</p>
+                    </div>
+                    <div className="pt-2 text-[9px] font-mono font-bold tracking-widest text-white/40 group-hover:text-white transition-colors flex items-center gap-1.5">
+                      EXPLORE DOCTRINE <span className="transform group-hover:translate-x-1 transition-transform">&rarr;</span>
+                    </div>
                   </div>
-                  <h3 className="font-serif text-lg text-black font-semibold uppercase tracking-wide">{t.nav.art}</h3>
-                  <p className="text-xs text-[#1C1A17]/60 leading-relaxed font-sans">{t.art.intro}</p>
-                </div>
 
-                <div onClick={() => setPage('tea')} className="group p-8 bg-[#FAF9F6] border border-[#1C1A17]/10 rounded hover:border-[#1C1A17] hover:bg-white transition-all cursor-pointer text-left space-y-4">
-                  <div className="w-10 h-10 rounded-full bg-[#E5DFD3] flex items-center justify-center text-[#1C1A17] group-hover:scale-110 transition-transform">
-                    <BookOpen size={16} />
+                  {/* Card 2 */}
+                  <div 
+                    onClick={() => setPage('art')} 
+                    className="group p-8 bg-white/[0.03] backdrop-blur-md border border-white/10 rounded-2xl hover:border-white/45 hover:bg-white/[0.08] transition-all cursor-pointer text-left space-y-5 relative overflow-hidden"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    <div className="w-12 h-12 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center text-white group-hover:scale-110 transition-transform duration-500 shadow-inner">
+                      <Sparkles size={18} />
+                    </div>
+                    <div className="space-y-2">
+                      <h3 className="font-serif text-lg text-white font-bold tracking-wide flex items-center gap-2">
+                        {t.nav.art}
+                        <span className="text-[9px] font-mono text-[#E5DFD3] border border-[#E5DFD3]/30 px-1.5 py-0.5 rounded uppercase">SPACE</span>
+                      </h3>
+                      <p className="text-xs text-white/70 leading-relaxed font-sans line-clamp-3">{t.art.intro}</p>
+                    </div>
+                    <div className="pt-2 text-[9px] font-mono font-bold tracking-widest text-white/40 group-hover:text-white transition-colors flex items-center gap-1.5">
+                      VIEW MASTERPIECES <span className="transform group-hover:translate-x-1 transition-transform">&rarr;</span>
+                    </div>
                   </div>
-                  <h3 className="font-serif text-lg text-black font-semibold uppercase tracking-wide">{t.nav.tea}</h3>
-                  <p className="text-xs text-[#1C1A17]/60 leading-relaxed font-sans">{t.tea.storyContent.substring(0, 70)}...</p>
+
+                  {/* Card 3 */}
+                  <div 
+                    onClick={() => setPage('tea')} 
+                    className="group p-8 bg-white/[0.03] backdrop-blur-md border border-white/10 rounded-2xl hover:border-white/45 hover:bg-white/[0.08] transition-all cursor-pointer text-left space-y-5 relative overflow-hidden"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    <div className="w-12 h-12 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center text-white group-hover:scale-110 transition-transform duration-500 shadow-inner">
+                      <BookOpen size={18} />
+                    </div>
+                    <div className="space-y-2">
+                      <h3 className="font-serif text-lg text-white font-bold tracking-wide flex items-center gap-2">
+                        {t.nav.tea}
+                        <span className="text-[9px] font-mono text-[#E5DFD3] border border-[#E5DFD3]/30 px-1.5 py-0.5 rounded uppercase">TEA</span>
+                      </h3>
+                      <p className="text-xs text-white/70 leading-relaxed font-sans line-clamp-3">{t.tea.storyContent}</p>
+                    </div>
+                    <div className="pt-2 text-[9px] font-mono font-bold tracking-widest text-white/40 group-hover:text-white transition-colors flex items-center gap-1.5">
+                      SUNCHATEA CEREMONY <span className="transform group-hover:translate-x-1 transition-transform">&rarr;</span>
+                    </div>
+                  </div>
+
                 </div>
 
               </div>
-
             </motion.div>
           )}
 
