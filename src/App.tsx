@@ -552,8 +552,55 @@ export default function App() {
 
   const isHomeDarkHeader = page === 'home' && !scrolled;
 
+  const pageBackgrounds: Record<string, { url: string; opacity: string }> = {
+    philosophy: {
+      url: 'https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&q=80&w=1920',
+      opacity: 'opacity-[0.06]'
+    },
+    art: {
+      url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=1920',
+      opacity: 'opacity-[0.05]'
+    },
+    poetryCollection: {
+      url: 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?auto=format&fit=crop&q=80&w=1920',
+      opacity: 'opacity-[0.07]'
+    },
+    tea: {
+      url: 'https://images.unsplash.com/photo-1597481499750-3e6b22637e12?auto=format&fit=crop&q=80&w=1920',
+      opacity: 'opacity-[0.05]'
+    },
+    journey: {
+      url: 'https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?auto=format&fit=crop&q=80&w=1920',
+      opacity: 'opacity-[0.05]'
+    }
+  };
+
   return (
     <div className="relative min-h-screen bg-[#FAF9F6] text-[#1C1A17] font-sans overflow-x-hidden selection:bg-[#E5DFD3] selection:text-[#1C1A17]">
+      
+      {/* Dynamic Emotional Backgrounds with smooth crossfade */}
+      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none" style={{ minHeight: '100%' }}>
+        {Object.entries(pageBackgrounds).map(([pKey, bg]) => {
+          const isActive = page === pKey;
+          return (
+            <div
+              key={pKey}
+              className={`absolute inset-0 transition-all duration-[1500ms] ease-in-out ${
+                isActive ? `${bg.opacity} scale-100 rotate-0` : 'opacity-0 scale-105 pointer-events-none'
+              } transform`}
+            >
+              <img
+                src={bg.url}
+                alt=""
+                className="w-full h-full object-cover select-none"
+                referrerPolicy="no-referrer"
+              />
+              {/* Overlay fade layer matching background color */}
+              <div className="absolute inset-0 bg-gradient-to-b from-[#FAF9F6] via-transparent to-[#FAF9F6] opacity-85" />
+            </div>
+          );
+        })}
+      </div>
       
       {/* Dynamic Header */}
       <header className={`fixed top-0 inset-x-0 z-50 transition-all duration-500 border-b ${
@@ -869,6 +916,23 @@ export default function App() {
                 <div className="w-12 h-px bg-[#1C1A17]/25 mx-auto mt-6" />
               </div>
 
+              {/* Elegant Atmospheric Philosophy Cover Banner */}
+              <div className="w-full h-48 md:h-64 rounded-xl overflow-hidden mb-16 relative border border-[#1C1A17]/10 shadow-lg group select-none">
+                <img 
+                  src="https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&q=80&w=1200" 
+                  alt="Philosophy Banner" 
+                  className="w-full h-full object-cover brightness-[0.85] contrast-[1.05] transition-transform duration-[4000ms] group-hover:scale-103"
+                  referrerPolicy="no-referrer"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/15 to-transparent" />
+                <div className="absolute bottom-6 left-6 text-white text-left space-y-1">
+                  <span className="text-[9px] tracking-[0.3em] font-mono text-white/70 uppercase block font-bold">Mind-Matter Philosophy</span>
+                  <h3 className="font-serif text-lg md:text-2xl font-normal text-white drop-shadow-md">
+                    {lang === 'KR' ? '심물지철 (心物之哲) ㆍ 우주와의 거룩한 교감' : lang === 'SC' ? '心物之哲 ㆍ 与宇宙的神圣交融' : 'Mind & Matter Philosophy'}
+                  </h3>
+                </div>
+              </div>
+
               {/* Beautiful drop cap layout */}
               <div className="prose prose-stone max-w-none mb-16 justified-text">
                 <p className="drop-cap text-lg md:text-xl leading-[1.8] text-[#1C1A17] font-serif italic mb-8">
@@ -907,6 +971,23 @@ export default function App() {
                 <span className="text-[10px] tracking-[0.4em] uppercase opacity-45 font-mono">{t.art.subtitle}</span>
                 <h2 className="text-3xl md:text-5xl font-serif text-[#1C1A17] font-normal">{t.art.title}</h2>
                 <div className="w-12 h-px bg-[#1C1A17]/25 mx-auto mt-6" />
+              </div>
+
+              {/* Elegant Atmospheric Art Cover Banner */}
+              <div className="w-full h-48 md:h-64 rounded-xl overflow-hidden mb-12 relative border border-[#1C1A17]/10 shadow-lg group select-none">
+                <img 
+                  src="https://images.unsplash.com/photo-1541701494587-cb58502866ab?auto=format&fit=crop&q=80&w=1200" 
+                  alt="Art Banner" 
+                  className="w-full h-full object-cover brightness-[0.85] contrast-[1.05] transition-transform duration-[4000ms] group-hover:scale-103"
+                  referrerPolicy="no-referrer"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/15 to-transparent" />
+                <div className="absolute bottom-6 left-6 text-white text-left space-y-1">
+                  <span className="text-[9px] tracking-[0.3em] font-mono text-white/70 uppercase block font-bold">Visualizing Resonance</span>
+                  <h3 className="font-serif text-lg md:text-2xl font-normal text-white drop-shadow-md">
+                    {lang === 'KR' ? '물파공간 (物波空間) ㆍ 우주적 파동의 흔적' : lang === 'SC' ? '物波空间 ㆍ 宇宙波动的轨迹' : 'Mulpa Art Resonance'}
+                  </h3>
+                </div>
               </div>
 
               {/* Sub-navigation tabs */}
@@ -1280,6 +1361,23 @@ export default function App() {
                 <div className="w-12 h-px bg-[#1C1A17]/25 mx-auto mt-6" />
               </div>
 
+              {/* Elegant Atmospheric Poetry Cover Banner */}
+              <div className="w-full h-48 md:h-64 rounded-xl overflow-hidden mb-12 relative border border-[#1C1A17]/10 shadow-lg group select-none">
+                <img 
+                  src="https://images.unsplash.com/photo-1528459801416-a9e53bbf4e17?auto=format&fit=crop&q=80&w=1200" 
+                  alt="Poetry Banner" 
+                  className="w-full h-full object-cover brightness-[0.85] contrast-[1.05] transition-transform duration-[4000ms] group-hover:scale-103"
+                  referrerPolicy="no-referrer"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/15 to-transparent" />
+                <div className="absolute bottom-6 left-6 text-white text-left space-y-1">
+                  <span className="text-[9px] tracking-[0.3em] font-mono text-white/70 uppercase block font-bold">Poetic Musings of Stone & Mist</span>
+                  <h3 className="font-serif text-lg md:text-2xl font-normal text-white drop-shadow-md">
+                    {lang === 'KR' ? '석하서시 (石下逝詩) ㆍ 영혼을 새기는 먹빛의 고백' : lang === 'SC' ? '石下逝诗 ㆍ 雕刻灵魂的墨色告白' : 'Seokha Stone Poetry Collection'}
+                  </h3>
+                </div>
+              </div>
+
               <AnimatePresence mode="wait">
                 {!selectedBook ? (
                   
@@ -1517,6 +1615,23 @@ export default function App() {
                 <span className="text-[10px] tracking-[0.4em] uppercase opacity-45 font-mono">{t.tea.subtitle}</span>
                 <h2 className="text-3xl md:text-5xl font-serif text-[#1C1A17] font-normal">{t.tea.title}</h2>
                 <div className="w-12 h-px bg-[#1C1A17]/25 mx-auto mt-6" />
+              </div>
+
+              {/* Elegant Atmospheric Tea Cover Banner */}
+              <div className="w-full h-48 md:h-64 rounded-xl overflow-hidden mb-16 relative border border-[#1C1A17]/10 shadow-lg group select-none">
+                <img 
+                  src="https://images.unsplash.com/photo-1597481499750-3e6b22637e12?auto=format&fit=crop&q=80&w=1200" 
+                  alt="Tea Banner" 
+                  className="w-full h-full object-cover brightness-[0.85] contrast-[1.05] transition-transform duration-[4000ms] group-hover:scale-103"
+                  referrerPolicy="no-referrer"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/15 to-transparent" />
+                <div className="absolute bottom-6 left-6 text-white text-left space-y-1">
+                  <span className="text-[9px] tracking-[0.3em] font-mono text-white/70 uppercase block font-bold">The Quiet Way of Seon Tea</span>
+                  <h3 className="font-serif text-lg md:text-2xl font-normal text-white drop-shadow-md">
+                    {lang === 'KR' ? '선다원 (禪茶苑) ㆍ 은은한 찻잔에 고이는 참선' : lang === 'SC' ? '禅茶苑 ㆍ 静谧茶盏中凝聚的坐禅' : 'Zen Tea Meditation Ceremony'}
+                  </h3>
+                </div>
               </div>
 
               {/* 불한선차 이미지 삽입: 섹션 가로폭의 2/3 크기 */}
@@ -1913,6 +2028,23 @@ export default function App() {
                 <span className="text-[10px] tracking-[0.4em] uppercase opacity-45 font-mono">{t.journey.subtitle}</span>
                 <h2 className="text-3xl md:text-5xl font-serif text-[#1C1A17] font-normal">{t.journey.title}</h2>
                 <div className="w-12 h-px bg-[#1C1A17]/25 mx-auto mt-6" />
+              </div>
+
+              {/* Elegant Atmospheric Journey Cover Banner */}
+              <div className="w-full h-48 md:h-64 rounded-xl overflow-hidden mb-12 relative border border-[#1C1A17]/10 shadow-lg group select-none">
+                <img 
+                  src="https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?auto=format&fit=crop&q=80&w=1200" 
+                  alt="Journey Banner" 
+                  className="w-full h-full object-cover brightness-[0.85] contrast-[1.05] transition-transform duration-[4000ms] group-hover:scale-103"
+                  referrerPolicy="no-referrer"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/15 to-transparent" />
+                <div className="absolute bottom-6 left-6 text-white text-left space-y-1">
+                  <span className="text-[9px] tracking-[0.3em] font-mono text-white/70 uppercase block font-bold">The Path of True Aesthetics</span>
+                  <h3 className="font-serif text-lg md:text-2xl font-normal text-white drop-shadow-md">
+                    {lang === 'KR' ? '활동여정 (活動旅程) ㆍ 어제와 오늘을 잇는 발자취' : lang === 'SC' ? '活动旅程 ㆍ 连结过去与现在的足迹' : 'The Path of True Aesthetics'}
+                  </h3>
+                </div>
               </div>
 
               {/* Filter tabs */}
