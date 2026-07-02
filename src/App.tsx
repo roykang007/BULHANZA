@@ -386,6 +386,7 @@ export default function App() {
   const [lightboxArtistName, setLightboxArtistName] = useState('');
 
   // Sorting states for uploaded content lists
+  const [philosophySortOrder, setPhilosophySortOrder] = useState<'default' | 'titleAsc' | 'titleDesc'>('default');
   const [poetrySortOrder, setPoetrySortOrder] = useState<'default' | 'titleAsc' | 'titleDesc'>('default');
   const [journeySortOrder, setJourneySortOrder] = useState<'default' | 'titleAsc' | 'titleDesc'>('default');
   const [mulpaSortOrder, setMulpaSortOrder] = useState<'default' | 'titleAsc' | 'titleDesc'>('default');
@@ -952,6 +953,119 @@ export default function App() {
                     </p>
                   </div>
                 ))}
+              </div>
+
+              {/* Dynamic Philosophy Writings Section */}
+              <div className="mt-20 pt-16 border-t border-[#1C1A17]/15">
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+                  <div>
+                    <span className="text-[10px] tracking-[0.3em] font-mono text-black/45 uppercase block mb-2 font-bold">
+                      {lang === 'KR' ? '심물철학 에세이 & 단상' : lang === 'SC' ? '心物哲学随笔与感悟' : 'Mind-Matter Essays & Reflections'}
+                    </span>
+                    <h3 className="font-serif text-2xl md:text-3xl text-black font-normal">
+                      {lang === 'KR' ? '학술 단상 및 집필 기록' : lang === 'SC' ? '学术感悟与执笔记录' : 'Academic Writings & Archive'}
+                    </h3>
+                    <p className="text-xs text-black/50 mt-1 uppercase tracking-wider font-mono">
+                      {lang === 'KR' ? '관리자 대시보드에서 등록된 심물철학 단상 목록입니다' : lang === 'SC' ? '管理员控制台注册的心物哲学随笔列表' : 'Dynamic collection of philosophical thoughts from manager'}
+                    </p>
+                  </div>
+
+                  {/* Sort Controller */}
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-[9px] tracking-widest text-[#1C1A17]/40 font-bold uppercase shrink-0">
+                      {lang === 'KR' ? '정렬 방식' : 'Sort Order'}
+                    </span>
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => setPhilosophySortOrder('default')}
+                        className={`text-[9px] font-mono tracking-wider px-2.5 py-1 rounded transition-all font-bold ${
+                          philosophySortOrder === 'default'
+                            ? 'bg-[#1C1A17] text-[#FAF9F6]'
+                            : 'bg-white border border-[#1C1A17]/10 text-black/50 hover:bg-neutral-50'
+                        }`}
+                      >
+                        {lang === 'KR' ? '최신순' : 'Latest'}
+                      </button>
+                      <button
+                        onClick={() => setPhilosophySortOrder('titleAsc')}
+                        className={`text-[9px] font-mono tracking-wider px-2.5 py-1 rounded transition-all font-bold flex items-center gap-0.5 ${
+                          philosophySortOrder === 'titleAsc'
+                            ? 'bg-[#1C1A17] text-[#FAF9F6]'
+                            : 'bg-white border border-[#1C1A17]/10 text-black/50 hover:bg-neutral-50'
+                        }`}
+                      >
+                        ▲ A-Z
+                      </button>
+                      <button
+                        onClick={() => setPhilosophySortOrder('titleDesc')}
+                        className={`text-[9px] font-mono tracking-wider px-2.5 py-1 rounded transition-all font-bold flex items-center gap-0.5 ${
+                          philosophySortOrder === 'titleDesc'
+                            ? 'bg-[#1C1A17] text-[#FAF9F6]'
+                            : 'bg-white border border-[#1C1A17]/10 text-black/50 hover:bg-neutral-50'
+                        }`}
+                      >
+                        ▼ Z-A
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {archiveItems.filter(item => item.category === 'philosophy' && (item.language === lang || !item.language)).length === 0 ? (
+                  <div className="text-center py-16 bg-white/40 border border-dashed border-[#1C1A17]/15 rounded-xl text-xs text-black/45 font-mono">
+                    {lang === 'KR' 
+                      ? '등록된 심물철학 단상이 없습니다. 관리자 대시보드에서 새로운 글을 등록하실 수 있습니다.' 
+                      : lang === 'SC'
+                      ? '暂无已登记的心物哲学随笔。您可以在管理员控制台发布新文章。'
+                      : 'No philosophy reflections found in this collection. Feel free to register one in the admin dashboard.'}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-8">
+                    {sortItems(
+                      archiveItems.filter(item => item.category === 'philosophy' && (item.language === lang || !item.language)),
+                      philosophySortOrder
+                    ).map((post) => (
+                      <div 
+                        key={post.id} 
+                        className="bg-white border border-[#1C1A17]/10 p-6 md:p-8 rounded-xl hover:border-[#1C1A17]/30 hover:shadow-md transition-all duration-300 relative overflow-hidden group text-left"
+                      >
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4 border-b border-[#1C1A17]/5 pb-4">
+                          <div>
+                            <span className="font-mono text-[8px] tracking-[0.2em] uppercase text-black/40 block mb-1">
+                              {lang === 'KR' ? '심물철학 단상' : lang === 'SC' ? '心物哲学感悟' : 'Mind-Matter Essay'}
+                            </span>
+                            <h4 className="font-serif text-lg md:text-xl font-bold text-black group-hover:text-[#1C1A17] transition-colors">{post.title}</h4>
+                          </div>
+                          <span className="font-mono text-[10px] bg-[#FAF9F6] border border-[#1C1A17]/10 px-3 py-1 rounded-full text-[#1C1A17]/60">
+                            {post.created_at ? (lang === 'KR' ? '동기화 완료' : lang === 'SC' ? '已同步' : 'Synced') : 'Archive'}
+                          </span>
+                        </div>
+                        
+                        {post.summary && (
+                          <p className="text-xs md:text-sm text-[#1C1A17]/75 font-sans leading-relaxed mb-6 font-normal antialiased border-l-2 border-[#1C1A17]/15 pl-4 italic">
+                            {post.summary}
+                          </p>
+                        )}
+
+                        <div className="prose prose-stone max-w-none text-xs md:text-sm leading-[1.8] text-[#1C1A17]/90 font-sans break-words whitespace-pre-line bg-[#FAF9F6]/50 border border-[#1C1A17]/5 p-6 rounded-lg">
+                          <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
+                            {post.content}
+                          </ReactMarkdown>
+
+                          {post.image_url && (
+                            <div className="mt-8 flex justify-center w-full">
+                              <img 
+                                src={post.image_url} 
+                                alt={post.title} 
+                                referrerPolicy="no-referrer"
+                                className="max-w-full max-h-[350px] md:max-h-[480px] h-auto object-contain rounded-lg border border-[#1C1A17]/10 p-1.5 bg-white shadow-sm"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
             </motion.div>
