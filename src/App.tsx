@@ -19,6 +19,7 @@ import { signInWithPopup, GoogleAuthProvider, signOut as fbSignOut, onAuthStateC
 
 import { translations } from './lib/translations';
 import { Language, Page, ArchiveItem, SiteSettings, Artist, Work } from './types';
+import { FallingLeaves } from './components/FallingLeaves';
 import { 
   DEFAULT_TEA_POEMS, DEFAULT_PHILOSOPHY_ITEMS, DEFAULT_JOURNEY_PHOTOS, DEFAULT_JOURNEY_PRESS,
   DEFAULT_MULPA_WRITINGS, DEFAULT_ARTISTS
@@ -393,6 +394,19 @@ export default function App() {
   const [teaSortOrder, setTeaSortOrder] = useState<'default' | 'titleAsc' | 'titleDesc'>('default');
   const [adminSortOrder, setAdminSortOrder] = useState<'default' | 'titleAsc' | 'titleDesc'>('default');
 
+  // Language Dropdown open state for both desktop and mobile
+  const [isLangDropdownOpen, setIsLangDropdownOpen] = useState(false);
+
+  useEffect(() => {
+    const handleOutsideClick = () => {
+      setIsLangDropdownOpen(false);
+    };
+    window.addEventListener('click', handleOutsideClick);
+    return () => {
+      window.removeEventListener('click', handleOutsideClick);
+    };
+  }, []);
+
   // Lightbox keyboard navigation & overflow prevention
   useEffect(() => {
     if (!lightboxActive) return;
@@ -665,15 +679,21 @@ export default function App() {
           <div className="flex items-center gap-4">
             
             {/* Lang Dropdown Select */}
-            <div className={`relative group/lang font-bold text-[10px] tracking-widest border rounded-full px-3 py-1 flex items-center gap-1 transition-[colors,border,background-color] ${
-              isHomeDarkHeader 
-                ? 'bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/40' 
-                : 'bg-white border-[#1C1A17]/15 text-[#1C1A17] hover:border-[#1C1A17]/40'
-            }`}>
+            <div 
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsLangDropdownOpen(!isLangDropdownOpen);
+              }}
+              className={`relative group/lang font-bold text-[10px] tracking-widest border rounded-full px-3 py-1 flex items-center gap-1 transition-[colors,border,background-color] cursor-pointer select-none ${
+                isHomeDarkHeader 
+                  ? 'bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/40' 
+                  : 'bg-white border-[#1C1A17]/15 text-[#1C1A17] hover:border-[#1C1A17]/40'
+              }`}
+            >
               <span>{lang === 'SC' ? '简体' : lang === 'KR' ? '언어' : 'EN'}</span>
               <ChevronDown size={11} className={isHomeDarkHeader ? 'opacity-75 text-white' : 'opacity-40 text-[#1C1A17]'} />
               
-              <div className="absolute right-0 top-full pt-1 hidden group-hover/lang:block min-w-[70px] z-[100]">
+              <div className={`absolute right-0 top-full pt-1 min-w-[70px] z-[100] ${isLangDropdownOpen ? 'block' : 'hidden group-hover/lang:block'}`}>
                 <div className="bg-[#FAF9F6] border border-[#1C1A17]/10 shadow-lg rounded-lg overflow-hidden flex flex-col font-mono text-black">
                   <button 
                     onClick={() => setLang('KR')}
@@ -733,6 +753,31 @@ export default function App() {
                   {t.nav[p]}
                 </button>
               ))}
+
+              {/* Dedicated Mobile Language Switcher block */}
+              <div className="pt-4 flex flex-col gap-3">
+                <span className="font-mono text-[9px] tracking-widest text-[#1C1A17]/45 font-bold uppercase">
+                  {lang === 'KR' ? '언어 선택 (Language)' : lang === 'SC' ? '选择语言 (Language)' : 'Select Language'}
+                </span>
+                <div className="flex gap-2">
+                  {(['KR', 'SC', 'EN'] as const).map((l) => (
+                    <button
+                      key={l}
+                      onClick={() => {
+                        setLang(l);
+                        setIsMenuOpen(false);
+                      }}
+                      className={`px-4 py-2 text-xs font-bold tracking-widest rounded-full border transition-all ${
+                        lang === l
+                          ? 'bg-[#1C1A17] border-[#1C1A17] text-[#FAF9F6]'
+                          : 'bg-white border-[#1C1A17]/15 text-[#1C1A17]'
+                      }`}
+                    >
+                      {l === 'KR' ? '한국어' : l === 'SC' ? '简体' : 'ENGLISH'}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -762,6 +807,9 @@ export default function App() {
                 <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/55 to-black/90" />
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(250,249,246,0.07),transparent_85%)]" />
               </div>
+
+              {/* Gentle Snowy Falling Leaves Overlay */}
+              <FallingLeaves />
 
               <div className="relative z-10 max-w-7xl mx-auto px-6 md:px-12 pt-36 md:pt-44 pb-32 flex flex-col justify-between min-h-screen">
                 
