@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="100%" height="100%">
+  <defs>
+    <!-- Soft blur filter for realistic smoke dissipation -->
+    <filter id="smoke-blur" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6" />
+    </filter>
+    <filter id="ember-glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" />
+    </filter>
+    <!-- Dark, warm radial gradient for an intimate, tranquil atmosphere -->
+    <radialGradient id="dim-light" cx="60%" cy="80%" r="80%" fx="60%" fy="80%">
+      <stop offset="0%" stop-color="#4E3E34" />
+      <stop offset="50%" stop-color="#211A16" />
+      <stop offset="100%" stop-color="#110D0B" />
+    </radialGradient>
+  </defs>
+
+  <!-- Deep dark room background -->
+  <rect width="600" height="600" fill="url(#dim-light)" />
+
+  <!-- Weathered Wood Block (on the left) with organic rustic bark lines -->
+  <g>
+    <!-- Solid dark brown wood shape -->
+    <path d="M 0 0 L 155 0 C 140 150, 160 300, 135 450 C 145 520, 125 570, 115 600 L 0 600 Z" fill="#2E1C14" />
+    
+    <!-- Highlights and vertical grain lines to mimic old bark texture -->
+    <g stroke="#1F110B" stroke-width="2" fill="none" opacity="0.8">
+      <path d="M 30 0 C 40 180, 20 380, 35 600" />
+      <path d="M 65 0 C 50 120, 75 320, 55 600" />
+      <path d="M 95 0 C 110 210, 85 410, 100 600" />
+      <path d="M 125 0 C 135 150, 115 350, 110 600" />
+      <path d="M 145 0 C 130 150, 140 310, 120 480" />
+    </g>
+    <!-- Lighter highlights on the wood edge for three-dimensional feel -->
+    <g stroke="#5D4037" stroke-width="1.5" fill="none" opacity="0.35">
+      <path d="M 35 0 C 45 180, 25 380, 40 600" />
+      <path d="M 100 0 C 115 210, 90 410, 105 600" />
+      <path d="M 130 0 C 140 150, 120 350, 115 600" stroke-width="2.5" />
+    </g>
+    <path d="M 0 0 L 155 0 C 140 150, 160 300, 135 450 C 145 520, 125 570, 115 600 L 0 600 Z" fill="black" opacity="0.15" />
+  </g>
+
+  <!-- Incense Stick extending horizontally from the bottom right -->
+  <g transform="translate(250, 490)">
+    <!-- Thin wooden stick holder -->
+    <line x1="350" y1="30" x2="10" y2="2" stroke="#8D6E63" stroke-width="1.8" />
+    <!-- Main dark brown incense compound on the stick -->
+    <line x1="280" y1="24" x2="10" y2="2" stroke="#5D4037" stroke-width="3" stroke-linecap="round" />
+    
+    <!-- Glowing Ember Point (burning tip) -->
+    <circle cx="10" cy="2" r="3" fill="#FFCC80" filter="url(#ember-glow)" />
+    <circle cx="10" cy="2" r="1.5" fill="#FF5722" />
+  </g>
+
+  <!-- Elegant wisps of curling smoke rising vertically in the center -->
+  <g filter="url(#smoke-blur)" opacity="0.65">
+    <!-- Wisp 1: Thick ambient smoke -->
+    <path d="M 260 490 C 260 430, 240 370, 250 310 C 265 220, 310 140, 255 50" fill="none" stroke="#ECEFF1" stroke-width="8" stroke-linecap="round" opacity="0.15" />
+    
+    <!-- Wisp 2: Main defined twisting wisp -->
+    <path d="M 260 490 C 260 440, 242 390, 248 340 C 256 270, 285 200, 250 110 C 235 70, 260 40, 255 10" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" opacity="0.6" />
+    
+    <!-- Wisp 3: Secondary feathering wisp branching off -->
+    <path d="M 260 488 C 255 428, 235 372, 242 312 C 250 240, 298 170, 262 80 C 248 45, 275 20, 270 0" fill="none" stroke="#F5F5F5" stroke-width="2.2" stroke-linecap="round" opacity="0.5" />
+
+    <!-- Wisp 4: Faint trailing smoke on the left -->
+    <path d="M 258 490 C 250 435, 230 380, 235 320 C 242 250, 275 180, 240 90" fill="none" stroke="#ECEFF1" stroke-width="1.8" stroke-linecap="round" opacity="0.35" />
+  </g>
+
+  <!-- Soft light haze over the burning point -->
+  <circle cx="260" cy="492" r="24" fill="#FFE0B2" opacity="0.06" filter="url(#smoke-blur)" />
+</svg>

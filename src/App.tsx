@@ -4,7 +4,7 @@ import {
   Menu, X, Plus, Trash2, Edit2, ArrowLeft, Newspaper, Image as ImageIcon, Check,
   Upload, ChevronLeft, ChevronRight, BookOpen, Settings, ChevronDown, Database,
   Activity, Key, RefreshCw, Sparkles, MessageSquare, Compass, Send, Calendar, Monitor,
-  ArrowUpDown
+  ArrowUpDown, List, PenTool
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -25,15 +25,127 @@ import {
   DEFAULT_MULPA_WRITINGS, DEFAULT_ARTISTS
 } from './lib/seedDataToFirebase';
 
-const uploadImageFile = async (file: File): Promise<string> => {
+const convertImageToJpg = async (file: File): Promise<File> => {
+  const fileNameLower = file.name.toLowerCase();
+  const fileTypeLower = file.type.toLowerCase();
+  const isHeic = fileNameLower.endsWith('.heic') || fileNameLower.endsWith('.heif') || fileTypeLower === 'image/heic' || fileTypeLower === 'image/heif';
+
+  let currentFile = file;
+
+  // 1. If it's HEIC, convert it using heic2any client-side first
+  if (isHeic) {
+    try {
+      console.log('Converting HEIC/HEIF to JPEG...');
+      const heic2anyModule = await import('heic2any');
+      // heic2any default or direct module call
+      const heicConverter = (heic2anyModule.default || heic2anyModule) as any;
+      
+      const converted = await heicConverter({
+        blob: file,
+        toType: 'image/jpeg',
+        quality: 0.85
+      });
+      
+      const blob = Array.isArray(converted) ? converted[0] : converted;
+      const newName = file.name.replace(/\.(heic|heif)$/i, '') + '.jpg';
+      currentFile = new File([blob], newName, { type: 'image/jpeg' });
+      console.log('HEIC conversion successful:', currentFile.name, currentFile.size);
+    } catch (err) {
+      console.error('HEIC client-side conversion failed, attempting raw canvas or fallback:', err);
+    }
+  }
+
+  // 2. Normalise/compress all other images to high quality JPG to save bandwidth & guarantee compatibility
+  try {
+    return await new Promise<File>((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
+
+            // Downscale to reasonable dimensions if extremely large (e.g. max 2048px)
+            const MAX_DIM = 2048;
+            if (width > MAX_DIM || height > MAX_DIM) {
+              if (width > height) {
+                height = Math.round((height * MAX_DIM) / width);
+                width = MAX_DIM;
+              } else {
+                width = Math.round((width * MAX_DIM) / height);
+                height = MAX_DIM;
+              }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+              resolve(currentFile);
+              return;
+            }
+
+            // Fill white background (useful for transparent PNGs converted to JPEG)
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, width, height);
+
+            ctx.drawImage(img, 0, 0, width, height);
+
+            canvas.toBlob(
+              (blob) => {
+                if (blob) {
+                  const newName = currentFile.name.replace(/\.[^.]+$/, '') + '.jpg';
+                  const compressedFile = new File([blob], newName, {
+                    type: 'image/jpeg',
+                    lastModified: Date.now()
+                  });
+                  resolve(compressedFile);
+                } else {
+                  resolve(currentFile);
+                }
+              },
+              'image/jpeg',
+              0.85
+            );
+          } catch (e) {
+            console.warn('Canvas conversion error:', e);
+            resolve(currentFile);
+          }
+        };
+        img.onerror = () => {
+          resolve(currentFile);
+        };
+        img.src = event.target?.result as string;
+      };
+      reader.onerror = () => {
+        resolve(currentFile);
+      };
+      reader.readAsDataURL(currentFile);
+    });
+  } catch (err) {
+    console.warn('Error during image-to-JPG normalization:', err);
+    return currentFile;
+  }
+};
+
+const uploadImageFile = async (rawFile: File): Promise<string> => {
+  // Convert & compress the uploaded file client-side to JPG (handling HEIC/HEIF and other formats)
+  const file = await convertImageToJpg(rawFile);
+
   const formData = new FormData();
   formData.append('image', file);
+
+  let apiError: any = null;
 
   try {
     const response = await fetch('/api/upload', {
       method: 'POST',
       body: formData,
     });
+    
     if (response.ok) {
       const contentType = response.headers.get('content-type');
       if (contentType && contentType.includes('application/json')) {
@@ -42,9 +154,36 @@ const uploadImageFile = async (file: File): Promise<string> => {
           return data.url;
         }
       }
+      throw new Error("Server returned success but response was not valid JSON or url was missing");
+    } else {
+      let errMsg = `Status ${response.status}`;
+      try {
+        const errData = await response.json();
+        if (errData && errData.error) {
+          errMsg = errData.error;
+        }
+      } catch (e) {
+        try {
+          const text = await response.text();
+          if (text) errMsg = text.substring(0, 100);
+        } catch (_) {}
+      }
+      throw new Error(errMsg);
     }
-  } catch (err) {
-    console.warn("Express backend upload not available, attempting PHP fallback:", err);
+  } catch (err: any) {
+    apiError = err;
+    console.warn("Express backend upload failed/not available:", err);
+  }
+
+  // If the error was a real backend error (e.g., file too large, multer error),
+  // and NOT a network/missing-endpoint error (like 404 or failed to fetch),
+  // we should throw it directly instead of hiding it behind PHP fallback!
+  if (apiError) {
+    const msg = apiError.message || String(apiError);
+    const isNetworkOr404 = msg.includes("404") || msg.includes("fetch") || msg.includes("Network") || msg.includes("Failed to fetch");
+    if (!isNetworkOr404) {
+      throw apiError;
+    }
   }
 
   // Fallback for Cafe24 / static PHP web hosting
@@ -65,7 +204,11 @@ const uploadImageFile = async (file: File): Promise<string> => {
     }
   } catch (e: any) {
     console.error("PHP file upload fallback failed:", e);
-    throw new Error(`Image upload failed. If hosted on Cafe24, ensure /upload.php is present and folder permissions are correct. Error: ${e.message || e}`);
+    // Include both errors to help debugging
+    const finalErrorMsg = apiError 
+      ? `Backend Upload Error: ${apiError.message}. PHP Fallback Error: ${e.message || e}`
+      : `Image upload failed. If hosted on Cafe24, ensure /upload.php is present. Error: ${e.message || e}`;
+    throw new Error(finalErrorMsg);
   }
 };
 
@@ -129,6 +272,274 @@ export default function App() {
   // Reader / Interactive States
   const [selectedBook, setSelectedBook] = useState<string | null>(null);
   const [readingPoem, setReadingPoem] = useState<ArchiveItem | null>(null);
+  const [readingMulpa, setReadingMulpa] = useState<ArchiveItem | null>(null);
+  const [readingSuncha, setReadingSuncha] = useState<ArchiveItem | null>(null);
+  const [readingPhilosophy, setReadingPhilosophy] = useState<ArchiveItem | null>(null);
+  const [philosophyTab, setPhilosophyTab] = useState<'chapters' | 'essays'>('chapters');
+  const [sunchaFilter, setSunchaFilter] = useState<'all' | 'suncha_seo' | 'suncha_hwa' | 'suncha_cha' | 'suncha_hyang'>('all');
+
+  // Reset all reading/detail states when the page or sub tab changes
+  useEffect(() => {
+    setReadingPoem(null);
+    setReadingMulpa(null);
+    setReadingSuncha(null);
+    setReadingPhilosophy(null);
+    setSelectedJourneyItem(null);
+    setSunchaFilter('all');
+    setPhilosophyTab('chapters');
+  }, [page, artSubTab]);
+
+  // User direct writing states (8888 passcode)
+  const [isUserAuthorized, setIsUserAuthorized] = useState(localStorage.getItem('authorized_write') === 'true');
+  const [editingPostId, setEditingPostId] = useState<string | null>(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [userPasscode, setUserPasscode] = useState('');
+  const [onSuccessAuth, setOnSuccessAuth] = useState<(() => void) | null>(null);
+
+  const [isWriteModalOpen, setIsWriteModalOpen] = useState(false);
+  const [writeFormCategory, setWriteFormCategory] = useState('poetry');
+  const [writeFormCollection, setWriteFormCollection] = useState('');
+  const [writeFormTitle, setWriteFormTitle] = useState('');
+  const [writeFormContent, setWriteFormContent] = useState('');
+  const [writeFormSummary, setWriteFormSummary] = useState('');
+  const [writeFormTopImg, setWriteFormTopImg] = useState('');
+  const [writeFormMidImg, setWriteFormMidImg] = useState('');
+  const [writeFormBotImg, setWriteFormBotImg] = useState('');
+  const [writeFormLang, setWriteFormLang] = useState<Language>('KR');
+  const [writeFormUploading, setWriteFormUploading] = useState({ top: false, mid: false, bot: false });
+
+  const handleWriteClick = (targetCategory?: string, targetCollection?: string) => {
+    const isAuthorized = localStorage.getItem('authorized_write') === 'true';
+    const proceed = () => {
+      setEditingPostId(null);
+      setWriteFormCategory(targetCategory || 'poetry');
+      setWriteFormCollection(targetCollection || t.poetryCollection.allCollections[0]);
+      setWriteFormTitle('');
+      setWriteFormContent('');
+      setWriteFormSummary('');
+      setWriteFormTopImg('');
+      setWriteFormMidImg('');
+      setWriteFormBotImg('');
+      setWriteFormLang(lang);
+      setIsWriteModalOpen(true);
+    };
+
+    if (isAuthorized) {
+      proceed();
+    } else {
+      setOnSuccessAuth(() => proceed);
+      setIsAuthModalOpen(true);
+    }
+  };
+
+  const handleEditClick = (item: ArchiveItem) => {
+    const isAuthorized = localStorage.getItem('authorized_write') === 'true';
+    const proceed = () => {
+      setEditingPostId(item.id);
+      setWriteFormCategory(item.category || 'poetry');
+      setWriteFormCollection(item.poetry_collection_name || '');
+      setWriteFormTitle(item.title || '');
+      setWriteFormContent(item.content || '');
+      setWriteFormSummary(item.summary || '');
+      setWriteFormTopImg(item.image_url || '');
+      setWriteFormMidImg(item.image_mid_url || '');
+      setWriteFormBotImg(item.image_bot_url || '');
+      setWriteFormLang(item.language || lang);
+      setIsWriteModalOpen(true);
+    };
+
+    if (isAuthorized) {
+      proceed();
+    } else {
+      setOnSuccessAuth(() => proceed);
+      setIsAuthModalOpen(true);
+    }
+  };
+
+  const handleVerifyPasscode = () => {
+    if (userPasscode === '8888') {
+      localStorage.setItem('authorized_write', 'true');
+      setIsUserAuthorized(true);
+      setIsAuthModalOpen(false);
+      setUserPasscode('');
+      if (onSuccessAuth) {
+        onSuccessAuth();
+      }
+    } else {
+      alert('비밀번호가 일치하지 않습니다. (암호: 8888)');
+    }
+  };
+
+  const handleTextAreaPaste = (
+    e: React.ClipboardEvent<HTMLTextAreaElement>,
+    setValue: (val: string) => void,
+    currentValue: string
+  ) => {
+    e.preventDefault();
+    const pastedText = e.clipboardData.getData('text/plain') || '';
+    
+    // Normalize CRLF (\r\n) and CR (\r) to LF (\n)
+    let cleaned = pastedText.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    
+    // Check if the pasted text has an empty line after almost every single line
+    const lines = cleaned.split('\n');
+    if (lines.length > 2) {
+      let alternatingOddEmpty = true;
+      let nonEmptyOddCount = 0;
+      for (let i = 1; i < lines.length; i += 2) {
+        if (lines[i].trim() !== '') {
+          alternatingOddEmpty = false;
+          break;
+        } else {
+          nonEmptyOddCount++;
+        }
+      }
+      
+      let alternatingEvenEmpty = true;
+      let nonEmptyEvenCount = 0;
+      for (let i = 0; i < lines.length; i += 2) {
+        if (lines[i].trim() !== '') {
+          alternatingEvenEmpty = false;
+          break;
+        } else {
+          nonEmptyEvenCount++;
+        }
+      }
+      
+      if (alternatingOddEmpty && nonEmptyOddCount > 0) {
+        cleaned = lines.filter((_, idx) => idx % 2 === 0).join('\n');
+      } else if (alternatingEvenEmpty && nonEmptyEvenCount > 0) {
+        cleaned = lines.filter((_, idx) => idx % 2 === 1).join('\n');
+      } else {
+        cleaned = cleaned.replace(/\n\s*\n/g, '\n');
+      }
+    } else {
+      cleaned = cleaned.replace(/\n\s*\n/g, '\n');
+    }
+    
+    const textarea = e.currentTarget;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const newValue = currentValue.substring(0, start) + cleaned + currentValue.substring(end);
+    
+    setValue(newValue);
+    
+    setTimeout(() => {
+      textarea.selectionStart = textarea.selectionEnd = start + cleaned.length;
+    }, 0);
+  };
+
+  const handleSaveUserPost = async (e?: React.FormEvent | React.MouseEvent) => {
+    if (e) e.preventDefault();
+    if (!writeFormTitle || !writeFormCategory) {
+      alert('제목을 입력해 주세요.');
+      return;
+    }
+    try {
+      const payload: any = {
+        title: writeFormTitle,
+        content: writeFormContent,
+        summary: writeFormSummary || '',
+        image_url: writeFormTopImg || 'https://images.unsplash.com/photo-1518640467707-6811f4a6ab73?auto=format&fit=crop&q=80&w=1200',
+        image_mid_url: writeFormMidImg || '',
+        image_bot_url: writeFormBotImg || '',
+        category: writeFormCategory,
+        poetry_collection_name: writeFormCategory === 'poetry' ? writeFormCollection : null,
+        language: writeFormLang,
+      };
+
+      if (editingPostId) {
+        await updateDoc(doc(db, 'archive_items', editingPostId), payload);
+        alert('성공적으로 게시글이 수정되었습니다!');
+      } else {
+        payload.created_at = new Date().toISOString();
+        await addDoc(collection(db, 'archive_items'), payload);
+        alert('성공적으로 게시글이 업로드되었습니다!');
+      }
+      
+      setIsWriteModalOpen(false);
+      setEditingPostId(null);
+      await fetchData();
+    } catch (err: any) {
+      console.error("Direct write failed:", err);
+      alert(`게시글 업로드/수정에 실패했습니다: ${err.message || err}`);
+    }
+  };
+
+  const formatFullDate = (createdAt: any) => {
+    if (!createdAt) return '—';
+    try {
+      let date: Date;
+      if (typeof createdAt.toDate === 'function') {
+        date = createdAt.toDate();
+      } else if (createdAt.seconds) {
+        date = new Date(createdAt.seconds * 1000);
+      } else {
+        date = new Date(createdAt);
+      }
+      
+      if (isNaN(date.getTime())) return '—';
+      
+      const yyyy = date.getFullYear();
+      const mm = (date.getMonth() + 1).toString().padStart(2, '0');
+      const dd = date.getDate().toString().padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    } catch (e) {
+      return '—';
+    }
+  };
+
+  const renderContentWithImages = (content: string, midImg?: string, botImg?: string) => {
+    const paragraphs = content.split('\n');
+    const midPoint = Math.floor(paragraphs.length / 2);
+    
+    const firstHalf = paragraphs.slice(0, midPoint).join('\n');
+    const secondHalf = paragraphs.slice(midPoint).join('\n');
+    
+    return (
+      <div className="space-y-6">
+        {/* Content first half */}
+        <div className="markdown-body font-serif text-lg md:text-xl leading-relaxed text-[#1C1A17]/90 text-justify whitespace-pre-wrap">
+          <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
+            {firstHalf}
+          </ReactMarkdown>
+        </div>
+        
+        {/* Middle Image */}
+        {midImg && (
+          <div className="my-8 flex justify-center w-full">
+            <img 
+              src={midImg} 
+              alt="Middle decoration" 
+              referrerPolicy="no-referrer"
+              className="max-w-full max-h-[300px] sm:max-h-[400px] h-auto object-contain rounded-xl border border-[#1C1A17]/10 p-1 bg-white shadow-sm"
+            />
+          </div>
+        )}
+        
+        {/* Content second half */}
+        {secondHalf && (
+          <div className="markdown-body font-serif text-lg md:text-xl leading-relaxed text-[#1C1A17]/90 text-justify whitespace-pre-wrap">
+            <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
+              {secondHalf}
+            </ReactMarkdown>
+          </div>
+        )}
+        
+        {/* Bottom Image */}
+        {botImg && (
+          <div className="mt-8 flex justify-center w-full">
+            <img 
+              src={botImg} 
+              alt="Bottom decoration" 
+              referrerPolicy="no-referrer"
+              className="max-w-full max-h-[300px] sm:max-h-[400px] h-auto object-contain rounded-xl border border-[#1C1A17]/10 p-1 bg-white shadow-sm"
+            />
+          </div>
+        )}
+      </div>
+    );
+  };
   const [breathingMode, setBreathingMode] = useState(false);
   const [breathingText, setBreathingText] = useState('Inhale');
   const [breathingProgress, setBreathingProgress] = useState(0);
@@ -176,6 +587,13 @@ export default function App() {
     });
     return () => unsub();
   }, []);
+
+  // Sync selectedBook to the first collection when language changes or poetryCollection page loads
+  useEffect(() => {
+    if (t.poetryCollection?.allCollections?.[0]) {
+      setSelectedBook(t.poetryCollection.allCollections[0]);
+    }
+  }, [page, lang]);
 
   // Sync core collections
   const fetchData = async () => {
@@ -517,6 +935,7 @@ export default function App() {
     ? '/assets/logo.png'
     : siteSettings.logo_url;
   const finalHeroBg = siteSettings?.hero_bg_url || 'https://images.unsplash.com/photo-1490127252417-7c393f993ee4?auto=format&fit=crop&q=80&w=1920';
+  const finalHeroScroll = siteSettings?.hero_scroll_url || '/assets/mainsub.jpg';
 
   // Helper to sort dynamic content lists by title/name
   const sortItems = (items: ArchiveItem[], order: 'default' | 'titleAsc' | 'titleDesc') => {
@@ -565,7 +984,30 @@ export default function App() {
     teaSortOrder
   );
 
-  const isHomeDarkHeader = page === 'home' && !scrolled;
+  const sunchaItems = archiveItems.filter(item => {
+    const isSunchaCategory = ['suncha_seo', 'suncha_hwa', 'suncha_cha', 'suncha_hyang', 'suncha_intro', 'suncha_review'].includes(item.category);
+    if (!isSunchaCategory) return false;
+    
+    // Language filter
+    const matchesLang = item.language === lang || (!item.language && lang === 'KR');
+    if (!matchesLang) return false;
+
+    // Category filter
+    if (sunchaFilter === 'all') {
+      return true;
+    } else if (sunchaFilter === 'suncha_cha') {
+      return ['suncha_cha', 'suncha_intro', 'suncha_review'].includes(item.category);
+    } else {
+      return item.category === sunchaFilter;
+    }
+  });
+
+  const sortedSunchaItems = sortItems(
+    [...sunchaItems].sort((a, b) => getTimestampMs(b) - getTimestampMs(a)),
+    teaSortOrder
+  );
+
+  const isHomeDarkHeader = false;
 
   const pageBackgrounds: Record<string, { url: string; opacity: string }> = {
     philosophy: {
@@ -690,7 +1132,7 @@ export default function App() {
                   : 'bg-white border-[#1C1A17]/15 text-[#1C1A17] hover:border-[#1C1A17]/40'
               }`}
             >
-              <span>{lang === 'SC' ? '简体' : lang === 'KR' ? '언어' : 'EN'}</span>
+              <span>Language</span>
               <ChevronDown size={11} className={isHomeDarkHeader ? 'opacity-75 text-white' : 'opacity-40 text-[#1C1A17]'} />
               
               <div className={`absolute right-0 top-full pt-1 min-w-[70px] z-[100] ${isLangDropdownOpen ? 'block' : 'hidden group-hover/lang:block'}`}>
@@ -705,7 +1147,7 @@ export default function App() {
                     onClick={() => setLang('SC')}
                     className="px-3 py-2 text-left hover:bg-[#E5DFD3] transition-colors"
                   >
-                    简体
+                    中文(简体)
                   </button>
                   <button 
                     onClick={() => setLang('EN')}
@@ -773,7 +1215,7 @@ export default function App() {
                           : 'bg-white border-[#1C1A17]/15 text-[#1C1A17]'
                       }`}
                     >
-                      {l === 'KR' ? '한국어' : l === 'SC' ? '简体' : 'ENGLISH'}
+                      {l === 'KR' ? '한국어' : l === 'SC' ? '中文(简体)' : 'ENGLISH'}
                     </button>
                   ))}
                 </div>
@@ -797,15 +1239,15 @@ export default function App() {
               className="relative w-full -mt-28"
             >
               {/* Immersive background image with advanced vignette and overlay filters */}
-              <div className="absolute inset-0 z-0 overflow-hidden">
+              <div className="absolute inset-0 z-0 overflow-hidden bg-[#FAF9F6]">
                 <img 
                   src={finalHeroBg} 
                   alt="Immersive Backdrop" 
-                  className="w-full h-full object-cover scale-105 brightness-[0.25] contrast-[1.05] transition-transform duration-[4000ms] ease-out"
+                  className="w-full h-full object-cover scale-100 brightness-[0.95] contrast-[1.02] opacity-35 transition-transform duration-[4000ms] ease-out"
                   referrerPolicy="no-referrer"
                 />
-                <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/55 to-black/90" />
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(250,249,246,0.07),transparent_85%)]" />
+                <div className="absolute inset-0 bg-gradient-to-b from-[#FAF9F6]/80 via-transparent to-[#FAF9F6]" />
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(250,249,246,0.8),transparent_95%)]" />
               </div>
 
               {/* Gentle Snowy Falling Leaves Overlay */}
@@ -815,89 +1257,160 @@ export default function App() {
                 
                 {/* Hero Headline content */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center py-8">
-                  <div className="lg:col-span-7 space-y-8 text-left">
-                    <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-white/10 bg-white/5 backdrop-blur-sm">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#E5DFD3] animate-pulse" />
-                      <span className="text-[9px] tracking-[0.3em] uppercase text-[#E5DFD3] font-mono font-bold">ESTABLISHED 1997</span>
+                  
+                  {/* Left Column - Empty top space, with Sub-copies and actions aligned at the bottom */}
+                  <div className="lg:col-span-7 flex flex-col justify-end min-h-[360px] space-y-8 text-left">
+                    <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-[#1C1A17]/10 bg-[#1C1A17]/5 self-start">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#1C1A17] animate-pulse" />
+                      <span className="text-[9px] tracking-[0.3em] uppercase text-[#1C1A17] font-mono font-bold">ESTABLISHED 1997</span>
                     </div>
 
-                    <h1 className="text-4xl sm:text-5xl md:text-7xl font-serif leading-[1.15] tracking-wide text-white whitespace-pre-line drop-shadow-md">
-                      {t.hero.title}
-                    </h1>
-
-                    <p className="text-sm md:text-lg font-sans text-white/80 leading-relaxed font-normal max-w-xl drop-shadow-sm">
-                      {t.hero.subtitle}
-                    </p>
-                    
-                    <div className="pt-4 flex flex-wrap gap-4">
-                      <button 
-                        id="hero-explore-btn"
-                        onClick={() => setPage('philosophy')}
-                        className="px-8 py-4 bg-white text-[#1C1A17] hover:bg-[#FAF9F6] hover:scale-105 active:scale-95 text-[10px] tracking-[0.3em] uppercase transition-all flex items-center gap-3 rounded-full font-bold shadow-lg shadow-white/5"
-                      >
-                        <Compass size={14} /> {t.hero.cta}
-                      </button>
-                      <button 
-                        id="hero-tea-btn"
-                        onClick={() => setPage('tea')}
-                        className="px-8 py-4 border border-white/30 text-white bg-white/5 backdrop-blur-sm hover:bg-white hover:text-black hover:border-white hover:scale-105 active:scale-95 text-[10px] tracking-[0.3em] uppercase transition-all rounded-full font-bold"
-                      >
-                        {translations[lang].nav.tea}
-                      </button>
+                    <div className="space-y-6">
+                      {/* Sub-copies placed and aligned at the bottom of the Hero section */}
+                      <p className="text-base md:text-xl font-serif text-[#1C1A17]/85 leading-relaxed font-normal max-w-xl">
+                        {t.hero.subtitle}
+                      </p>
+                      
+                      <div className="pt-2 flex flex-wrap gap-4">
+                        <button 
+                          id="hero-explore-btn"
+                          onClick={() => setPage('philosophy')}
+                          className="px-8 py-4 bg-[#1C1A17] text-white hover:bg-neutral-800 hover:scale-105 active:scale-95 text-[10px] tracking-[0.3em] uppercase transition-all flex items-center gap-3 rounded-full font-bold shadow-lg shadow-black/10"
+                        >
+                          <Compass size={14} /> {t.hero.cta}
+                        </button>
+                        <button 
+                          id="hero-tea-btn"
+                          onClick={() => setPage('tea')}
+                          className="px-8 py-4 border border-[#1C1A17]/25 text-[#1C1A17] bg-transparent hover:bg-[#1C1A17] hover:text-white hover:scale-105 active:scale-95 text-[10px] tracking-[0.3em] uppercase transition-all rounded-full font-bold"
+                        >
+                          {translations[lang].nav.tea}
+                        </button>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Aesthetic Floating Parchment style quotation block */}
-                  <div className="lg:col-span-5 relative w-full flex justify-center lg:justify-end">
-                    <div className="bg-white/5 backdrop-blur-md p-8 md:p-10 max-w-sm text-left shadow-2xl border border-white/10 rounded-2xl relative overflow-hidden group hover:border-white/30 transition-colors duration-500">
-                      <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-white/10 to-transparent rounded-full blur-xl pointer-events-none" />
-                      
-                      <div className="flex items-center gap-2 mb-4">
-                        <span className="w-2 h-2 rounded-full bg-white animate-ping" />
-                        <span className="font-mono text-[9px] tracking-widest uppercase text-white/60 font-bold">Rhythm of Mind & Matter</span>
+                  {/* Right Column - Premium Hanging Calligraphy Scroll Frame (세로형 액자) */}
+                  <div className="lg:col-span-5 relative w-full flex justify-center lg:justify-end py-6">
+                    <div className="relative border-[10px] border-[#2C231E] bg-[#FCFAF2] p-4 md:p-6 shadow-2xl flex flex-col items-center justify-center rounded-sm max-w-xs w-64 md:w-72">
+                      {/* Hanging Scroll string detail */}
+                      <div className="absolute -top-7 left-1/2 -translate-x-1/2 flex flex-col items-center">
+                        <div className="w-2.5 h-2.5 rounded-full bg-[#2C231E]" />
+                        <div className="w-0.5 h-6 bg-[#2C231E]" />
                       </div>
                       
-                      <p className="font-serif text-[12px] md:text-sm leading-relaxed italic text-white/90">
-                        {lang === 'KR' 
-                          ? '"모든 존재의 미세한 파동이 사람의 심적 감응과 만날 때, 보이지 않는 영성이 거룩한 예술로 피어납니다."' 
-                          : lang === 'SC'
-                          ? '"当物质的微细波动与人的心灵感应相遇时，无形的灵性便绽放出神圣的艺术。"'
-                          : '"When the micro-oscillations of matter meet human conscious sensory vibration, invisible spirituality blossoms into genuine sacred art."'}
-                      </p>
+                      {/* Inner Parchment Scroll */}
+                      <div className="w-full aspect-[2/3.8] bg-white border border-[#2C231E]/10 p-4 md:p-6 flex flex-col justify-between shadow-inner relative overflow-hidden min-h-[380px]">
+                        {finalHeroScroll ? (
+                          <img 
+                            src={finalHeroScroll} 
+                            alt="Calligraphy Scroll" 
+                            className="w-full h-full object-contain"
+                            referrerPolicy="no-referrer"
+                          />
+                        ) : (
+                          /* Authentic Brush Calligraphy CSS Representation */
+                          <div className="w-full h-full flex justify-around items-stretch py-2 font-serif relative">
+                            {/* Right column: 如映寫眞 */}
+                            <div className="flex flex-col justify-between items-center text-black/85 text-3xl md:text-4xl font-serif font-bold tracking-[0.3em] select-none leading-none">
+                              <span>如</span>
+                              <span>映</span>
+                              <span>寫</span>
+                              <span>眞</span>
+                            </div>
+                            
+                            {/* Left column: 心물之哲 */}
+                            <div className="flex flex-col justify-between items-center text-black/85 text-3xl md:text-4xl font-serif font-bold tracking-[0.3em] select-none leading-none">
+                              <span>心</span>
+                              <span>物</span>
+                              <span>之</span>
+                              <span>哲</span>
+                            </div>
 
-                      <div className="mt-6 flex items-center gap-3 border-t border-white/10 pt-4">
-                        <div className="w-8 h-8 rounded-full border border-white/20 overflow-hidden flex items-center justify-center bg-white/5 text-white/70">
-                          <Activity size={12} className="animate-pulse" />
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-bold text-white uppercase tracking-wider font-mono">MULPA DOCTRINE</p>
-                          <p className="text-[8px] text-white/40 font-mono">21st Century New Aesthetics</p>
-                        </div>
+                            {/* Small Red Signature Seal (낙관) at the bottom left */}
+                            <div className="absolute bottom-2 left-1.5 w-6 h-6 border border-[#9A221F] bg-[#9A221F]/15 flex items-center justify-center text-[7px] text-[#9A221F] font-bold font-serif select-none p-0.5 leading-none">
+                              <span className="scale-90 block">弗寒</span>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Admin upload button overlay */}
+                        {isAuthAdmin && (
+                          <div className="absolute inset-0 bg-black/60 backdrop-blur-xs opacity-0 hover:opacity-100 flex flex-col items-center justify-center transition-opacity gap-2 p-4 z-20">
+                            <label className="cursor-pointer bg-white text-black px-4 py-2 rounded-full text-[10px] font-bold hover:scale-105 transition-transform flex items-center gap-1 shadow-md">
+                              <Upload size={12} />
+                              {lang === 'KR' ? '액자 그림 변경' : 'Change Scroll Image'}
+                              <input 
+                                type="file" 
+                                accept="image/*,image/heic,image/heif,.heic,.heif" 
+                                className="hidden" 
+                                onChange={async (e) => {
+                                  if (e.target.files && e.target.files[0]) {
+                                    try {
+                                      const url = await uploadImageFile(e.target.files[0]);
+                                      // Update site settings
+                                      const settingsRef = doc(db, 'site_settings', 'global');
+                                      const updated = { ...siteSettings, hero_scroll_url: url } as SiteSettings;
+                                      await setDoc(settingsRef, updated);
+                                      setSiteSettings(updated);
+                                      alert('액자 그림이 성공적으로 업데이트되었습니다!');
+                                    } catch (err: any) {
+                                      alert(`업로드 실패: ${err.message || err}`);
+                                    }
+                                  }
+                                }}
+                              />
+                            </label>
+                            {siteSettings?.hero_scroll_url && (
+                              <button
+                                onClick={async () => {
+                                  if (confirm('기본 액자 그림으로 복원하시겠습니까?')) {
+                                    const settingsRef = doc(db, 'site_settings', 'global');
+                                    const updated = { ...siteSettings } as SiteSettings;
+                                    delete updated.hero_scroll_url;
+                                    await setDoc(settingsRef, updated);
+                                    setSiteSettings(updated);
+                                    alert('기본 액자 그림으로 복원되었습니다.');
+                                  }
+                                }}
+                                className="bg-red-600 text-white px-3 py-1 rounded-full text-[9px] font-bold hover:scale-105 transition-transform"
+                              >
+                                기본값 복원
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Wooden rollers detail at the bottom */}
+                      <div className="absolute -bottom-3.5 left-1/2 -translate-x-1/2 w-[105%] h-7 bg-[#2C231E] rounded-full shadow-md flex justify-between px-2">
+                        <div className="w-3.5 h-full bg-[#1C1A17] rounded-full" />
+                        <div className="w-3.5 h-full bg-[#1C1A17] rounded-full" />
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Glassmorphic bento blocks */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 pt-16 border-t border-white/10 mt-16">
+                {/* Elegant Translucent Bento Blocks with Dark Borders */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 pt-16 border-t border-[#1C1A17]/10 mt-16">
                   
                   {/* Card 1 */}
                   <div 
                     onClick={() => setPage('philosophy')} 
-                    className="group p-8 bg-white/[0.03] backdrop-blur-md border border-white/10 rounded-2xl hover:border-white/45 hover:bg-white/[0.08] transition-all cursor-pointer text-left space-y-5 relative overflow-hidden"
+                    className="group p-8 bg-white/60 backdrop-blur-md border border-[#1C1A17]/10 rounded-2xl hover:border-[#1C1A17]/35 hover:bg-white/90 hover:shadow-xl transition-all duration-300 cursor-pointer text-left space-y-5 relative overflow-hidden"
                   >
-                    <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                    <div className="w-12 h-12 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center text-white group-hover:scale-110 transition-transform duration-500 shadow-inner">
+                    <div className="absolute inset-0 bg-gradient-to-br from-[#1C1A17]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    <div className="w-12 h-12 rounded-xl bg-[#1C1A17]/5 border border-[#1C1A17]/10 flex items-center justify-center text-[#1C1A17] group-hover:scale-110 transition-transform duration-500 shadow-inner">
                       <Activity size={18} />
                     </div>
                     <div className="space-y-2">
-                      <h3 className="font-serif text-lg text-white font-bold tracking-wide flex items-center gap-2">
+                      <h3 className="font-serif text-lg text-[#1C1A17] font-bold tracking-wide flex items-center gap-2">
                         {t.nav.philosophy}
-                        <span className="text-[9px] font-mono text-[#E5DFD3] border border-[#E5DFD3]/30 px-1.5 py-0.5 rounded uppercase">MIND</span>
+                        <span className="text-[9px] font-mono text-[#1C1A17]/60 border border-[#1C1A17]/20 px-1.5 py-0.5 rounded uppercase">MIND</span>
                       </h3>
-                      <p className="text-xs text-white/70 leading-relaxed font-sans line-clamp-3">{t.philosophy.text}</p>
+                      <p className="text-xs text-[#1C1A17]/70 leading-relaxed font-sans line-clamp-3">{t.philosophy.text}</p>
                     </div>
-                    <div className="pt-2 text-[9px] font-mono font-bold tracking-widest text-white/40 group-hover:text-white transition-colors flex items-center gap-1.5">
+                    <div className="pt-2 text-[9px] font-mono font-bold tracking-widest text-[#1C1A17]/40 group-hover:text-black transition-colors flex items-center gap-1.5">
                       EXPLORE DOCTRINE <span className="transform group-hover:translate-x-1 transition-transform">&rarr;</span>
                     </div>
                   </div>
@@ -905,20 +1418,20 @@ export default function App() {
                   {/* Card 2 */}
                   <div 
                     onClick={() => setPage('art')} 
-                    className="group p-8 bg-white/[0.03] backdrop-blur-md border border-white/10 rounded-2xl hover:border-white/45 hover:bg-white/[0.08] transition-all cursor-pointer text-left space-y-5 relative overflow-hidden"
+                    className="group p-8 bg-white/60 backdrop-blur-md border border-[#1C1A17]/10 rounded-2xl hover:border-[#1C1A17]/35 hover:bg-white/90 hover:shadow-xl transition-all duration-300 cursor-pointer text-left space-y-5 relative overflow-hidden"
                   >
-                    <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                    <div className="w-12 h-12 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center text-white group-hover:scale-110 transition-transform duration-500 shadow-inner">
+                    <div className="absolute inset-0 bg-gradient-to-br from-[#1C1A17]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    <div className="w-12 h-12 rounded-xl bg-[#1C1A17]/5 border border-[#1C1A17]/10 flex items-center justify-center text-[#1C1A17] group-hover:scale-110 transition-transform duration-500 shadow-inner">
                       <Sparkles size={18} />
                     </div>
                     <div className="space-y-2">
-                      <h3 className="font-serif text-lg text-white font-bold tracking-wide flex items-center gap-2">
+                      <h3 className="font-serif text-lg text-[#1C1A17] font-bold tracking-wide flex items-center gap-2">
                         {t.nav.art}
-                        <span className="text-[9px] font-mono text-[#E5DFD3] border border-[#E5DFD3]/30 px-1.5 py-0.5 rounded uppercase">SPACE</span>
+                        <span className="text-[9px] font-mono text-[#1C1A17]/60 border border-[#1C1A17]/20 px-1.5 py-0.5 rounded uppercase">SPACE</span>
                       </h3>
-                      <p className="text-xs text-white/70 leading-relaxed font-sans line-clamp-3">{t.art.intro}</p>
+                      <p className="text-xs text-[#1C1A17]/70 leading-relaxed font-sans line-clamp-3">{t.art.intro}</p>
                     </div>
-                    <div className="pt-2 text-[9px] font-mono font-bold tracking-widest text-white/40 group-hover:text-white transition-colors flex items-center gap-1.5">
+                    <div className="pt-2 text-[9px] font-mono font-bold tracking-widest text-[#1C1A17]/40 group-hover:text-black transition-colors flex items-center gap-1.5">
                       VIEW MASTERPIECES <span className="transform group-hover:translate-x-1 transition-transform">&rarr;</span>
                     </div>
                   </div>
@@ -926,20 +1439,20 @@ export default function App() {
                   {/* Card 3 */}
                   <div 
                     onClick={() => setPage('tea')} 
-                    className="group p-8 bg-white/[0.03] backdrop-blur-md border border-white/10 rounded-2xl hover:border-white/45 hover:bg-white/[0.08] transition-all cursor-pointer text-left space-y-5 relative overflow-hidden"
+                    className="group p-8 bg-white/60 backdrop-blur-md border border-[#1C1A17]/10 rounded-2xl hover:border-[#1C1A17]/35 hover:bg-white/90 hover:shadow-xl transition-all duration-300 cursor-pointer text-left space-y-5 relative overflow-hidden"
                   >
-                    <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                    <div className="w-12 h-12 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center text-white group-hover:scale-110 transition-transform duration-500 shadow-inner">
+                    <div className="absolute inset-0 bg-gradient-to-br from-[#1C1A17]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    <div className="w-12 h-12 rounded-xl bg-[#1C1A17]/5 border border-[#1C1A17]/10 flex items-center justify-center text-[#1C1A17] group-hover:scale-110 transition-transform duration-500 shadow-inner">
                       <BookOpen size={18} />
                     </div>
                     <div className="space-y-2">
-                      <h3 className="font-serif text-lg text-white font-bold tracking-wide flex items-center gap-2">
+                      <h3 className="font-serif text-lg text-[#1C1A17] font-bold tracking-wide flex items-center gap-2">
                         {t.nav.tea}
-                        <span className="text-[9px] font-mono text-[#E5DFD3] border border-[#E5DFD3]/30 px-1.5 py-0.5 rounded uppercase">TEA</span>
+                        <span className="text-[9px] font-mono text-[#1C1A17]/60 border border-[#1C1A17]/20 px-1.5 py-0.5 rounded uppercase">TEA</span>
                       </h3>
-                      <p className="text-xs text-white/70 leading-relaxed font-sans line-clamp-3">{t.tea.storyContent}</p>
+                      <p className="text-xs text-[#1C1A17]/70 leading-relaxed font-sans line-clamp-3">{t.tea.storyContent}</p>
                     </div>
-                    <div className="pt-2 text-[9px] font-mono font-bold tracking-widest text-white/40 group-hover:text-white transition-colors flex items-center gap-1.5">
+                    <div className="pt-2 text-[9px] font-mono font-bold tracking-widest text-[#1C1A17]/40 group-hover:text-black transition-colors flex items-center gap-1.5">
                       SUNCHATEA CEREMONY <span className="transform group-hover:translate-x-1 transition-transform">&rarr;</span>
                     </div>
                   </div>
@@ -957,165 +1470,418 @@ export default function App() {
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -15 }}
-              className="max-w-4xl mx-auto px-6 md:px-12 pb-32 text-left"
+              className="max-w-6xl mx-auto px-4 sm:px-6 md:px-12 pb-32 text-left"
             >
-              <div className="text-center mb-16 space-y-2">
-                <span className="text-[10px] tracking-[0.4em] uppercase opacity-45 font-mono">{t.philosophy.subtitle}</span>
-                <h2 className="text-3xl md:text-5xl font-serif text-[#1C1A17] font-normal">{t.philosophy.title}</h2>
-                <div className="w-12 h-px bg-[#1C1A17]/25 mx-auto mt-6" />
+              {/* Header */}
+              <div className="text-center mb-10 space-y-2">
+                <span className="text-xs tracking-[0.3em] uppercase opacity-60 font-mono font-bold block">{t.philosophy.subtitle}</span>
+                <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif text-[#1C1A17] font-bold tracking-tight">{t.philosophy.title}</h2>
+                <div className="w-16 h-px bg-[#1C1A17]/25 mx-auto mt-4" />
               </div>
 
-              {/* Elegant Atmospheric Philosophy Cover Banner */}
-              <div className="w-full h-48 md:h-64 rounded-xl overflow-hidden mb-16 relative border border-[#1C1A17]/10 shadow-lg group select-none">
-                <img 
-                  src="https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&q=80&w=1200" 
-                  alt="Philosophy Banner" 
-                  className="w-full h-full object-cover brightness-[0.85] contrast-[1.05] transition-transform duration-[4000ms] group-hover:scale-103"
-                  referrerPolicy="no-referrer"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/15 to-transparent" />
-                <div className="absolute bottom-6 left-6 text-white text-left space-y-1">
-                  <span className="text-[9px] tracking-[0.3em] font-mono text-white/70 uppercase block font-bold">Mind-Matter Philosophy</span>
-                  <h3 className="font-serif text-lg md:text-2xl font-normal text-white drop-shadow-md">
-                    {lang === 'KR' ? '심물지철 (心物之哲) ㆍ 우주와의 거룩한 교감' : lang === 'SC' ? '心物之哲 ㆍ 与宇宙的神圣交融' : 'Mind & Matter Philosophy'}
-                  </h3>
-                </div>
+              {/* Sub-categories/Tabs at the top */}
+              <div className="flex flex-wrap gap-2 md:gap-3 justify-center mb-12 bg-[#FAF9F6] p-3 rounded-2xl border border-[#1C1A17]/10 shadow-inner">
+                <button
+                  onClick={() => {
+                    setPhilosophyTab('chapters');
+                    setReadingPhilosophy(null);
+                  }}
+                  className={`text-sm sm:text-base md:text-lg font-serif font-bold py-2 px-5 rounded-xl transition-all duration-300 shadow-sm border ${
+                    philosophyTab === 'chapters'
+                      ? 'bg-[#1C1A17] text-[#FAF9F6] border-[#1C1A17]'
+                      : 'bg-white text-black/70 border-[#1C1A17]/15 hover:border-[#1C1A17]/40 hover:bg-[#FAF9F6]'
+                  }`}
+                >
+                  {lang === 'KR' ? '심물철학 강론 (Chapters)' : lang === 'SC' ? '心物哲学讲义' : 'Philosophy Chapters'}
+                </button>
+                <button
+                  onClick={() => {
+                    setPhilosophyTab('essays');
+                    setReadingPhilosophy(null);
+                  }}
+                  className={`text-sm sm:text-base md:text-lg font-serif font-bold py-2 px-5 rounded-xl transition-all duration-300 shadow-sm border ${
+                    philosophyTab === 'essays'
+                      ? 'bg-[#1C1A17] text-[#FAF9F6] border-[#1C1A17]'
+                      : 'bg-white text-black/70 border-[#1C1A17]/15 hover:border-[#1C1A17]/40 hover:bg-[#FAF9F6]'
+                  }`}
+                >
+                  {lang === 'KR' ? '학술 단상 및 기록 (Essays)' : lang === 'SC' ? '学术随笔与感悟' : 'Writings & Essays'}
+                </button>
               </div>
 
-              {/* Beautiful drop cap layout */}
-              <div className="prose prose-stone max-w-none mb-16 justified-text">
-                <p className="drop-cap text-lg md:text-xl leading-[1.8] text-[#1C1A17] font-serif italic mb-8">
-                  {t.philosophy.text}
-                </p>
-              </div>
-
-              {/* Chapters Accordeon */}
-              <div className="space-y-6 mt-12">
-                {t.philosophy.chapters.map((chap, idx) => (
-                  <div key={idx} className="border-b border-[#1C1A17]/15 pb-6">
-                    <h4 className="font-serif text-lg md:text-xl font-bold text-black mb-3">
-                      {chap.title}
-                    </h4>
-                    <p className="text-xs md:text-sm text-[#1C1A17]/70 leading-relaxed font-sans font-normal antialiased whitespace-pre-line">
-                      {chap.content}
-                    </p>
-                  </div>
-                ))}
-              </div>
-
-              {/* Dynamic Philosophy Writings Section */}
-              <div className="mt-20 pt-16 border-t border-[#1C1A17]/15">
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
-                  <div>
-                    <span className="text-[10px] tracking-[0.3em] font-mono text-black/45 uppercase block mb-2 font-bold">
-                      {lang === 'KR' ? '심물철학 에세이 & 단상' : lang === 'SC' ? '心物哲学随笔与感悟' : 'Mind-Matter Essays & Reflections'}
-                    </span>
-                    <h3 className="font-serif text-2xl md:text-3xl text-black font-normal">
-                      {lang === 'KR' ? '학술 단상 및 집필 기록' : lang === 'SC' ? '学术感悟与执笔记录' : 'Academic Writings & Archive'}
-                    </h3>
-                    <p className="text-xs text-black/50 mt-1 uppercase tracking-wider font-mono">
-                      {lang === 'KR' ? '관리자 대시보드에서 등록된 심물철학 단상 목록입니다' : lang === 'SC' ? '管理员控制台注册的心物哲学随笔列表' : 'Dynamic collection of philosophical thoughts from manager'}
-                    </p>
-                  </div>
-
-                  {/* Sort Controller */}
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-[9px] tracking-widest text-[#1C1A17]/40 font-bold uppercase shrink-0">
-                      {lang === 'KR' ? '정렬 방식' : 'Sort Order'}
-                    </span>
-                    <div className="flex gap-1">
-                      <button
-                        onClick={() => setPhilosophySortOrder('default')}
-                        className={`text-[9px] font-mono tracking-wider px-2.5 py-1 rounded transition-all font-bold ${
-                          philosophySortOrder === 'default'
-                            ? 'bg-[#1C1A17] text-[#FAF9F6]'
-                            : 'bg-white border border-[#1C1A17]/10 text-black/50 hover:bg-neutral-50'
-                        }`}
-                      >
-                        {lang === 'KR' ? '최신순' : 'Latest'}
-                      </button>
-                      <button
-                        onClick={() => setPhilosophySortOrder('titleAsc')}
-                        className={`text-[9px] font-mono tracking-wider px-2.5 py-1 rounded transition-all font-bold flex items-center gap-0.5 ${
-                          philosophySortOrder === 'titleAsc'
-                            ? 'bg-[#1C1A17] text-[#FAF9F6]'
-                            : 'bg-white border border-[#1C1A17]/10 text-black/50 hover:bg-neutral-50'
-                        }`}
-                      >
-                        ▲ A-Z
-                      </button>
-                      <button
-                        onClick={() => setPhilosophySortOrder('titleDesc')}
-                        className={`text-[9px] font-mono tracking-wider px-2.5 py-1 rounded transition-all font-bold flex items-center gap-0.5 ${
-                          philosophySortOrder === 'titleDesc'
-                            ? 'bg-[#1C1A17] text-[#FAF9F6]'
-                            : 'bg-white border border-[#1C1A17]/10 text-black/50 hover:bg-neutral-50'
-                        }`}
-                      >
-                        ▼ Z-A
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {archiveItems.filter(item => item.category === 'philosophy' && (item.language === lang || !item.language)).length === 0 ? (
-                  <div className="text-center py-16 bg-white/40 border border-dashed border-[#1C1A17]/15 rounded-xl text-xs text-black/45 font-mono">
-                    {lang === 'KR' 
-                      ? '등록된 심물철학 단상이 없습니다. 관리자 대시보드에서 새로운 글을 등록하실 수 있습니다.' 
-                      : lang === 'SC'
-                      ? '暂无已登记的心物哲学随笔。您可以在管理员控制台发布新文章。'
-                      : 'No philosophy reflections found in this collection. Feel free to register one in the admin dashboard.'}
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 gap-8">
-                    {sortItems(
-                      archiveItems.filter(item => item.category === 'philosophy' && (item.language === lang || !item.language)),
-                      philosophySortOrder
-                    ).map((post) => (
-                      <div 
-                        key={post.id} 
-                        className="bg-white border border-[#1C1A17]/10 p-6 md:p-8 rounded-xl hover:border-[#1C1A17]/30 hover:shadow-md transition-all duration-300 relative overflow-hidden group text-left"
-                      >
-                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4 border-b border-[#1C1A17]/5 pb-4">
-                          <div>
-                            <span className="font-mono text-[8px] tracking-[0.2em] uppercase text-black/40 block mb-1">
-                              {lang === 'KR' ? '심물철학 단상' : lang === 'SC' ? '心物哲学感悟' : 'Mind-Matter Essay'}
-                            </span>
-                            <h4 className="font-serif text-lg md:text-xl font-bold text-black group-hover:text-[#1C1A17] transition-colors">{post.title}</h4>
+              <AnimatePresence mode="wait">
+                {!readingPhilosophy ? (
+                  <motion.div
+                    key="philosophy-list"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="space-y-12"
+                  >
+                    {philosophyTab === 'chapters' ? (
+                      /* CHAPTERS TAB */
+                      <div className="space-y-12 animate-fadeIn">
+                        {/* Elegant Atmospheric Philosophy Cover Banner */}
+                        <div className="w-full h-48 md:h-64 rounded-xl overflow-hidden mb-12 relative border border-[#1C1A17]/10 shadow-lg group select-none">
+                          <img 
+                            src="https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&q=80&w=1200" 
+                            alt="Philosophy Banner" 
+                            className="w-full h-full object-cover brightness-[0.85] contrast-[1.05] transition-transform duration-[4000ms] group-hover:scale-103"
+                            referrerPolicy="no-referrer"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/15 to-transparent" />
+                          <div className="absolute bottom-6 left-6 text-white text-left space-y-1">
+                            <span className="text-[9px] tracking-[0.3em] font-mono text-white/70 uppercase block font-bold">Mind-Matter Philosophy</span>
+                            <h3 className="font-serif text-lg md:text-2xl font-normal text-white drop-shadow-md">
+                              {lang === 'KR' ? '심물지철 (心物之哲) ㆍ 우주와의 거룩한 교감' : lang === 'SC' ? '心物之哲 ㆍ 与宇宙的神圣交融' : 'Mind & Matter Philosophy'}
+                            </h3>
                           </div>
-                          <span className="font-mono text-[10px] bg-[#FAF9F6] border border-[#1C1A17]/10 px-3 py-1 rounded-full text-[#1C1A17]/60">
-                            {post.created_at ? (lang === 'KR' ? '동기화 완료' : lang === 'SC' ? '已同步' : 'Synced') : 'Archive'}
-                          </span>
                         </div>
-                        
-                        {post.summary && (
-                          <p className="text-xs md:text-sm text-[#1C1A17]/75 font-sans leading-relaxed mb-6 font-normal antialiased border-l-2 border-[#1C1A17]/15 pl-4 italic">
-                            {post.summary}
+
+                        {/* Beautiful drop cap layout */}
+                        <div className="prose prose-stone max-w-none mb-12 justified-text">
+                          <p className="drop-cap text-lg md:text-xl leading-[1.8] text-[#1C1A17] font-serif italic">
+                            {t.philosophy.text}
                           </p>
-                        )}
+                        </div>
 
-                        <div className="prose prose-stone max-w-none text-xs md:text-sm leading-[1.8] text-[#1C1A17]/90 font-sans break-words whitespace-pre-line bg-[#FAF9F6]/50 border border-[#1C1A17]/5 p-6 rounded-lg">
-                          <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
-                            {post.content}
-                          </ReactMarkdown>
+                        {/* Chapters Grid Layout */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                          {t.philosophy.chapters.map((chap, idx) => {
+                            const chapterImages = [
+                              'https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&q=80&w=600', // Wave
+                              'https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?auto=format&fit=crop&q=80&w=600', // Forest
+                              'https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&q=80&w=600'  // Garden
+                            ];
+                            const imgUrl = chapterImages[idx] || 'https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&q=80&w=600';
+                            const bodyExcerpt = chap.content.substring(0, 150) + (chap.content.length > 150 ? '...' : '');
 
-                          {post.image_url && (
-                            <div className="mt-8 flex justify-center w-full">
-                              <img 
-                                src={post.image_url} 
-                                alt={post.title} 
-                                referrerPolicy="no-referrer"
-                                className="max-w-full max-h-[350px] md:max-h-[480px] h-auto object-contain rounded-lg border border-[#1C1A17]/10 p-1.5 bg-white shadow-sm"
-                              />
-                            </div>
-                          )}
+                            const mockChapterPost = {
+                              id: `static-chapter-${idx}`,
+                              title: chap.title,
+                              content: chap.content,
+                              image_url: imgUrl,
+                              created_at: '1997-01-01T00:00:00Z',
+                              category: 'philosophy_static',
+                              summary: lang === 'KR' ? '물파주의 심물철학 핵심 강론' : 'Core Doctrine of Mind-Matter Philosophy',
+                            };
+
+                            return (
+                              <div
+                                key={mockChapterPost.id}
+                                onClick={() => setReadingPhilosophy(mockChapterPost as any)}
+                                className="group bg-white border border-[#1C1A17]/10 p-6 rounded-2xl hover:shadow-2xl hover:border-[#1C1A17]/45 transition-all duration-300 flex flex-col justify-between cursor-pointer hover:scale-[1.01]"
+                              >
+                                <div className="space-y-4">
+                                  <div className="aspect-[16/10] w-full overflow-hidden rounded-xl bg-gray-50 border border-[#1C1A17]/5 shadow-inner relative">
+                                    <img 
+                                      src={imgUrl} 
+                                      alt={chap.title} 
+                                      referrerPolicy="no-referrer"
+                                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                    />
+                                    <div className="absolute top-3 left-3 bg-[#1C1A17] text-white text-[9px] font-serif px-2.5 py-0.5 rounded font-bold uppercase tracking-widest">
+                                      {lang === 'KR' ? `강론 제${idx + 1}장` : `Chapter ${idx + 1}`}
+                                    </div>
+                                  </div>
+
+                                  <div className="space-y-2 text-left">
+                                    <span className="font-mono text-[9px] tracking-widest text-[#1C1A17]/40 block uppercase font-bold">
+                                      {lang === 'KR' ? '물파주의 사상 강론' : 'Mulpa Philosophy Doctrine'}
+                                    </span>
+                                    <h3 className="font-serif text-lg sm:text-xl font-bold text-black group-hover:text-amber-800 transition-colors truncate">
+                                      {chap.title}
+                                    </h3>
+                                    <p className="text-xs sm:text-sm text-[#1C1A17]/70 leading-relaxed font-serif line-clamp-3 h-14 overflow-hidden text-justify">
+                                      {bodyExcerpt}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="mt-6 pt-4 border-t border-[#1C1A17]/5 flex justify-between items-center text-[9px] tracking-widest uppercase font-mono font-bold text-[#1C1A17]/40 group-hover:text-[#1C1A17] transition-colors">
+                                  <span>VIEW CHAPTER</span>
+                                  <span className="flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                                    {lang === 'KR' ? '강론 읽기' : 'Read Chapter'} <ChevronRight size={12} />
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+                    ) : (
+                      /* ESSAYS TAB */
+                      <div className="space-y-8 animate-fadeIn">
+                        {/* Header Controls for Essays */}
+                        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-4 border-b border-[#1C1A17]/15">
+                          <div>
+                            <h3 className="font-serif text-xl md:text-2xl font-bold text-black flex items-center gap-3">
+                              {lang === 'KR' ? '학술 단상 및 집필 기록' : lang === 'SC' ? '学术感悟与执笔记录' : 'Academic Writings & Archive'}
+                              <button
+                                onClick={() => handleWriteClick('philosophy')}
+                                className="px-3.5 py-1.5 bg-[#1C1A17] hover:bg-black text-white text-[10px] tracking-widest font-bold uppercase rounded flex items-center gap-1 transition-colors"
+                              >
+                                <PenTool size={11} />
+                                {lang === 'KR' ? '새 글 작성' : 'Write'}
+                              </button>
+                            </h3>
+                            <p className="text-xs text-black/50 mt-1 uppercase tracking-wider font-mono">
+                              {lang === 'KR' ? '기록보관소의 심물철학 연구 단상 목록입니다' : 'Dynamic philosophical research notes'}
+                            </p>
+                          </div>
 
+                          {/* Sort Controller */}
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-[9px] tracking-widest text-[#1C1A17]/40 font-bold uppercase shrink-0">
+                              {lang === 'KR' ? '정렬 방식' : 'Sort Order'}
+                            </span>
+                            <div className="flex gap-1 bg-white border border-[#1C1A17]/10 p-0.5 rounded-md inline-flex">
+                              <button
+                                onClick={() => setPhilosophySortOrder('default')}
+                                className={`text-[9px] font-mono tracking-wider px-2.5 py-1 rounded transition-all font-bold ${
+                                  philosophySortOrder === 'default'
+                                    ? 'bg-[#1C1A17] text-[#FAF9F6]'
+                                    : 'text-black/50 hover:bg-neutral-50'
+                                }`}
+                              >
+                                {lang === 'KR' ? '최신순' : 'Latest'}
+                              </button>
+                              <button
+                                onClick={() => setPhilosophySortOrder('titleDesc')}
+                                className={`text-[9px] font-mono tracking-wider px-2.5 py-1 rounded transition-all font-bold flex items-center gap-0.5 ${
+                                  philosophySortOrder === 'titleDesc'
+                                    ? 'bg-[#1C1A17] text-[#FAF9F6]'
+                                    : 'text-black/50 hover:bg-neutral-50'
+                                }`}
+                              >
+                                ▼ {lang === 'KR' ? '내림차순' : 'Z-A'}
+                              </button>
+                              <button
+                                onClick={() => setPhilosophySortOrder('titleAsc')}
+                                className={`text-[9px] font-mono tracking-wider px-2.5 py-1 rounded transition-all font-bold flex items-center gap-0.5 ${
+                                  philosophySortOrder === 'titleAsc'
+                                    ? 'bg-[#1C1A17] text-[#FAF9F6]'
+                                    : 'text-black/50 hover:bg-neutral-50'
+                                }`}
+                              >
+                                ▲ {lang === 'KR' ? '오름차순' : 'A-Z'}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {archiveItems.filter(item => item.category === 'philosophy' && (item.language === lang || !item.language)).length === 0 ? (
+                          <div className="text-center py-24 bg-white border-2 border-dashed border-[#1C1A17]/10 rounded-2xl text-neutral-400 font-serif text-base italic">
+                            {lang === 'KR' 
+                              ? '등록된 심물철학 단상이 없습니다. 관리자 대시보드에서 새로운 글을 등록하실 수 있습니다.' 
+                              : lang === 'SC'
+                              ? '暂无已登记的心物哲学随笔。您可以在管理员控制台发布新文章。'
+                              : 'No philosophy reflections found in this collection. Feel free to register one.'}
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                            {sortItems(
+                              [...archiveItems]
+                                .filter(item => item.category === 'philosophy' && (item.language === lang || !item.language))
+                                .sort((a, b) => getTimestampMs(b) - getTimestampMs(a)),
+                              philosophySortOrder
+                            ).map((post) => {
+                              const bodyExcerpt = post.content 
+                                ? (post.content.replace(/[*#_]/g, '').substring(0, 150) + (post.content.length > 150 ? '...' : '')) 
+                                : '';
+                              return (
+                                <div 
+                                  key={post.id} 
+                                  onClick={() => setReadingPhilosophy(post)}
+                                  className="group bg-white border border-[#1C1A17]/10 p-6 rounded-2xl hover:shadow-2xl hover:border-[#1C1A17]/35 transition-all duration-300 flex flex-col justify-between cursor-pointer hover:scale-[1.01] text-left"
+                                >
+                                  <div className="space-y-4">
+                                    <div className="aspect-[16/10] w-full overflow-hidden rounded-xl bg-gray-50 border border-[#1C1A17]/5 shadow-inner relative">
+                                      <img 
+                                        src={post.image_url || 'https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&q=80&w=600'} 
+                                        alt={post.title} 
+                                        referrerPolicy="no-referrer"
+                                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                      />
+                                    </div>
+                                    <div className="space-y-2">
+                                      <span className="font-mono text-[9px] tracking-widest text-[#1C1A17]/40 uppercase font-bold">
+                                        {formatFullDate(post.created_at)}
+                                      </span>
+                                      <h4 className="font-serif text-lg font-bold text-black group-hover:text-amber-800 transition-colors line-clamp-1">{post.title}</h4>
+                                      <p className="text-xs sm:text-sm text-[#1C1A17]/70 leading-relaxed font-serif line-clamp-3 h-14 overflow-hidden text-justify">
+                                        {post.summary || bodyExcerpt}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <div className="pt-4 border-t border-[#1C1A17]/5 mt-6 flex justify-between items-center text-[9px] tracking-widest uppercase font-mono font-bold text-neutral-400 group-hover:text-black transition-all">
+                                    <span>{lang === 'KR' ? '학술 단상' : 'Essay'}</span>
+                                    <span className="flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                                      {lang === 'KR' ? '자세히 보기' : 'Read details'} <ChevronRight size={12} />
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </motion.div>
+                ) : (
+                  /* PHILOSOPHY DETAIL VIEW */
+                  <motion.div 
+                    key="philosophy-detail"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="bg-white border border-[#1C1A17]/10 p-8 md:p-12 rounded-2xl shadow-lg space-y-8 text-left max-w-3xl mx-auto"
+                  >
+                    <div className="border-b border-[#1C1A17]/10 pb-6">
+                      <span className="font-mono text-[8px] tracking-[0.2em] uppercase text-black/40 block mb-1">
+                        {readingPhilosophy.category === 'philosophy_static'
+                          ? (lang === 'KR' ? '심물철학 강론' : 'Mind-Matter Philosophy Chapters')
+                          : (lang === 'KR' ? '심물철학 학술 단상' : 'Mind-Matter Essays & Reflections')}
+                      </span>
+                      <h3 className="font-serif text-2xl sm:text-3xl font-bold text-black">{readingPhilosophy.title}</h3>
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className="font-mono text-[10px] text-[#1C1A17]/60">
+                          {formatFullDate(readingPhilosophy.created_at)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {readingPhilosophy.summary && (
+                      <p className="text-xs md:text-sm font-semibold text-[#1C1A17]/85 font-sans border-l-2 border-[#1C1A17]/30 pl-3 leading-relaxed">
+                        {readingPhilosophy.summary}
+                      </p>
+                    )}
+
+                    <div className="prose prose-stone max-w-none text-xs md:text-sm leading-[1.8] text-[#1C1A17]/90 font-sans break-words whitespace-pre-line bg-[#FAF9F6] border border-[#1C1A17]/5 p-6 rounded">
+                      <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
+                        {readingPhilosophy.content || ''}
+                      </ReactMarkdown>
+
+                      {readingPhilosophy.image_url && (
+                        <div className="mt-8 flex justify-center w-full">
+                          <img 
+                            src={readingPhilosophy.image_url} 
+                            alt={readingPhilosophy.title} 
+                            referrerPolicy="no-referrer"
+                            className="max-w-full max-h-[350px] md:max-h-[480px] h-auto object-contain rounded border border-[#1C1A17]/10 p-1.5 bg-white shadow-sm"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Detail bottom actions footer */}
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-[#1C1A17]/10">
+                      <button
+                        onClick={() => setReadingPhilosophy(null)}
+                        className="px-5 py-2.5 border border-[#1C1A17]/20 text-[#1C1A17] hover:bg-neutral-50 rounded-xl font-serif text-sm font-bold flex items-center gap-1.5 transition-all shadow-sm"
+                      >
+                        <List size={14} />
+                        {lang === 'KR' ? '목록으로' : 'Back to List'}
+                      </button>
+
+                      {/* Next button in the center */}
+                      <div className="flex justify-center text-center">
+                        {(() => {
+                          if (readingPhilosophy.category === 'philosophy_static') {
+                            const currentChapterIdx = parseInt(readingPhilosophy.id.replace('static-chapter-', ''));
+                            const chapterImages = [
+                              'https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&q=80&w=600',
+                              'https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?auto=format&fit=crop&q=80&w=600',
+                              'https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&q=80&w=600'
+                            ];
+                            const nextChapterIdx = currentChapterIdx + 1;
+                            if (nextChapterIdx < t.philosophy.chapters.length) {
+                              const nextChap = t.philosophy.chapters[nextChapterIdx];
+                              const nextMockPost = {
+                                id: `static-chapter-${nextChapterIdx}`,
+                                title: nextChap.title,
+                                content: nextChap.content,
+                                image_url: chapterImages[nextChapterIdx],
+                                created_at: '1997-01-01T00:00:00Z',
+                                category: 'philosophy_static',
+                                summary: lang === 'KR' ? '물파주의 심물철학 핵심 강론' : 'Core Doctrine of Mind-Matter Philosophy',
+                              };
+                              return (
+                                <button
+                                  onClick={() => setReadingPhilosophy(nextMockPost as any)}
+                                  className="group flex items-center gap-1 font-serif text-xs text-amber-800 hover:text-amber-950 font-bold transition-all p-1.5 rounded-lg hover:bg-neutral-50"
+                                >
+                                  <span>{lang === 'KR' ? '다음장' : 'Next Ch.'}</span>
+                                  <ChevronRight size={14} className="group-hover:translate-x-1.5 transition-transform" />
+                                  <span className="underline max-w-[150px] truncate block font-normal text-black/70">
+                                    {nextMockPost.title}
+                                  </span>
+                                </button>
+                              );
+                            } else {
+                              return (
+                                <span className="font-serif text-[11px] italic text-neutral-400">
+                                  {lang === 'KR' ? '마지막 장입니다' : 'End of chapters'}
+                                </span>
+                              );
+                            }
+                          } else {
+                            const sortedPhilosophyPosts = sortItems(
+                              [...archiveItems]
+                                .filter(item => item.category === 'philosophy' && (item.language === lang || !item.language))
+                                .sort((a, b) => getTimestampMs(b) - getTimestampMs(a)),
+                              philosophySortOrder
+                            );
+                            const currentIdx = sortedPhilosophyPosts.findIndex(p => p.id === readingPhilosophy.id);
+                            const nextPost = currentIdx !== -1 && currentIdx + 1 < sortedPhilosophyPosts.length 
+                              ? sortedPhilosophyPosts[currentIdx + 1] 
+                              : null;
+
+                            return nextPost ? (
+                              <button
+                                onClick={() => setReadingPhilosophy(nextPost)}
+                                className="group flex items-center gap-1 font-serif text-xs text-amber-800 hover:text-amber-950 font-bold transition-all p-1.5 rounded-lg hover:bg-neutral-50"
+                              >
+                                <span>{lang === 'KR' ? '다음글' : 'Next'}</span>
+                                <ChevronRight size={14} className="group-hover:translate-x-1.5 transition-transform" />
+                                <span className="underline max-w-[150px] truncate block font-normal text-black/70">
+                                  {nextPost.title}
+                                </span>
+                              </button>
+                            ) : (
+                              <span className="font-serif text-[11px] italic text-neutral-400">
+                                {lang === 'KR' ? '마지막 글입니다' : 'End of collection'}
+                              </span>
+                            );
+                          }
+                        })()}
+                      </div>
+
+                      <div className="flex gap-2 flex-wrap">
+                        {isUserAuthorized && readingPhilosophy.category !== 'philosophy_static' && (
+                          <button
+                            onClick={() => {
+                              handleEditClick(readingPhilosophy);
+                            }}
+                            className="px-5 py-2.5 border border-amber-600 text-amber-700 hover:bg-amber-50 rounded-xl font-serif text-sm font-bold flex items-center gap-1.5 transition-all shadow-sm"
+                          >
+                            <Edit2 size={14} />
+                            {lang === 'KR' ? '수정' : 'Edit'}
+                          </button>
+                        )}
+                        {readingPhilosophy.category !== 'philosophy_static' && (
+                          <button
+                            onClick={() => handleWriteClick('philosophy')}
+                            className="px-5 py-2.5 bg-black hover:bg-neutral-800 text-white rounded-xl font-serif text-sm font-bold flex items-center gap-1.5 transition-all shadow-sm"
+                          >
+                            <PenTool size={14} />
+                            {lang === 'KR' ? '글쓰기' : 'Write'}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
           )}
 
@@ -1253,54 +2019,112 @@ export default function App() {
                         </div>
                       </div>
 
-                      {archiveItems.filter(item => item.category === 'mulpa' && (item.language === lang || !item.language)).length === 0 ? (
-                        <div className="text-center py-12 bg-[#FAF9F6] border border-dashed border-[#1C1A17]/15 rounded text-xs text-black/45 font-mono">
-                          {lang === 'KR' ? '게재된 물파주의 글이 없습니다. 관리자 대시보드에서 등록해 주세요.' : 'No writings found in this collection. Please check manager.'}
-                        </div>
-                      ) : (
-                        <div className="grid grid-cols-1 gap-6">
-                          {sortItems(
-                            archiveItems.filter(item => item.category === 'mulpa' && (item.language === lang || !item.language)),
-                            mulpaSortOrder
-                          ).map((article) => (
+                      {!readingMulpa ? (
+                        archiveItems.filter(item => item.category === 'mulpa' && (item.language === lang || !item.language)).length === 0 ? (
+                          <div className="text-center py-12 bg-[#FAF9F6] border border-dashed border-[#1C1A17]/15 rounded text-xs text-black/45 font-mono">
+                            {lang === 'KR' ? '게재된 물파주의 글이 없습니다. 관리자 대시보드에서 등록해 주세요.' : 'No writings found in this collection. Please check manager.'}
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {sortItems(
+                              archiveItems.filter(item => item.category === 'mulpa' && (item.language === lang || !item.language)),
+                              mulpaSortOrder
+                            ).map((article) => (
                               <div 
                                 key={article.id} 
-                                className="bg-white border border-[#1C1A17]/10 p-6 md:p-8 rounded hover:border-[#1C1A17]/40 transition-all duration-300 shadow-sm"
+                                onClick={() => setReadingMulpa(article)}
+                                className="group bg-white border border-[#1C1A17]/10 p-6 md:p-8 rounded hover:border-[#1C1A17]/40 transition-all duration-300 shadow-sm cursor-pointer hover:shadow-md flex flex-col justify-between"
                               >
-                                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4 border-b border-[#1C1A17]/5 pb-4">
-                                  <div>
-                                    <span className="font-mono text-[8px] tracking-[0.2em] uppercase text-black/40 block mb-1">ARTICLE & CONSCIOUSNESS</span>
-                                    <h4 className="font-serif text-lg md:text-xl font-bold text-black">{article.title}</h4>
+                                <div className="space-y-4">
+                                  <div className="flex justify-between items-start md:items-center gap-4 mb-2 border-b border-[#1C1A17]/5 pb-3">
+                                    <span className="font-mono text-[8px] tracking-[0.2em] uppercase text-black/40 block">ARTICLE & CONSCIOUSNESS</span>
+                                    <span className="font-mono text-[9px] text-[#1C1A17]/60">
+                                      {formatFullDate(article.created_at)}
+                                    </span>
                                   </div>
-                                  <span className="font-mono text-[10px] bg-[#FAF9F6] border border-[#1C1A17]/10 px-3 py-1 rounded text-[#1C1A17]/60">
-                                    {article.created_at ? 'Synced' : 'Original Archive'}
-                                  </span>
+                                  <h4 className="font-serif text-lg md:text-xl font-bold text-black group-hover:text-amber-800 transition-colors">{article.title}</h4>
+                                  <p className="text-xs md:text-sm text-[#1C1A17]/75 font-sans leading-relaxed line-clamp-3 font-normal antialiased">
+                                    {article.summary}
+                                  </p>
                                 </div>
-                                
-                                <p className="text-xs md:text-sm text-[#1C1A17]/75 font-sans leading-relaxed mb-6 font-normal antialiased">
-                                  {article.summary}
-                                </p>
-
-                                <div className="prose prose-stone max-w-none text-xs leading-[1.8] text-[#1C1A17]/90 font-sans break-words whitespace-pre-line bg-[#FAF9F6] border border-[#1C1A17]/5 p-6 rounded">
-                                  <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
-                                    {article.content}
-                                  </ReactMarkdown>
-
-                                  {/* Center-aligned flexible sized image display if present */}
-                                  {article.image_url && (
-                                    <div className="mt-8 flex justify-center w-full">
-                                      <img 
-                                        src={article.image_url} 
-                                        alt={article.title} 
-                                        referrerPolicy="no-referrer"
-                                        className="max-w-full max-h-[350px] md:max-h-[480px] h-auto object-contain rounded border border-[#1C1A17]/10 p-1.5 bg-white shadow-sm"
-                                      />
-                                    </div>
-                                  )}
+                                <div className="mt-6 border-t border-[#1C1A17]/5 pt-4 flex justify-end items-center text-[10px] tracking-widest uppercase font-mono font-bold text-neutral-400 group-hover:text-black transition-colors">
+                                  <span className="flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                                    {lang === 'KR' ? '읽기' : 'Read'} &rarr;
+                                  </span>
                                 </div>
                               </div>
                             ))}
-                        </div>
+                          </div>
+                        )
+                      ) : (
+                        // Mulpa Detail View (본문)
+                        <motion.div 
+                          key="mulpa-detail"
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="bg-white border border-[#1C1A17]/10 p-8 md:p-12 rounded-2xl shadow-lg space-y-8 text-left"
+                        >
+                          <div className="border-b border-[#1C1A17]/10 pb-6">
+                            <span className="font-mono text-[8px] tracking-[0.2em] uppercase text-black/40 block mb-1">ARTICLE & CONSCIOUSNESS</span>
+                            <h3 className="font-serif text-2xl sm:text-3xl font-bold text-black">{readingMulpa.title}</h3>
+                            <span className="font-mono text-[10px] text-[#1C1A17]/60 block mt-2">
+                              {formatFullDate(readingMulpa.created_at)}
+                            </span>
+                          </div>
+
+                          {readingMulpa.summary && (
+                            <p className="text-xs md:text-sm font-semibold text-[#1C1A17]/80 font-sans border-l-2 border-[#1C1A17]/30 pl-3 leading-relaxed">
+                              {readingMulpa.summary}
+                            </p>
+                          )}
+
+                          <div className="prose prose-stone max-w-none text-xs md:text-sm leading-[1.8] text-[#1C1A17]/90 font-sans break-words whitespace-pre-line bg-[#FAF9F6] border border-[#1C1A17]/5 p-6 rounded">
+                            <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
+                              {readingMulpa.content}
+                            </ReactMarkdown>
+
+                            {readingMulpa.image_url && (
+                              <div className="mt-8 flex justify-center w-full">
+                                <img 
+                                  src={readingMulpa.image_url} 
+                                  alt={readingMulpa.title} 
+                                  referrerPolicy="no-referrer"
+                                  className="max-w-full max-h-[350px] md:max-h-[480px] h-auto object-contain rounded border border-[#1C1A17]/10 p-1.5 bg-white shadow-sm"
+                                />
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Detail bottom actions footer */}
+                          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-[#1C1A17]/10">
+                            <button
+                              onClick={() => setReadingMulpa(null)}
+                              className="px-5 py-2.5 border border-[#1C1A17]/20 text-[#1C1A17] hover:bg-neutral-50 rounded-xl font-serif text-sm font-bold flex items-center gap-1.5 transition-all shadow-sm"
+                            >
+                              <List size={14} />
+                              {lang === 'KR' ? '목록으로' : 'Back to List'}
+                            </button>
+
+                            <div className="flex gap-2 flex-wrap">
+                              {isUserAuthorized && (
+                                <button
+                                  onClick={() => handleEditClick(readingMulpa)}
+                                  className="px-5 py-2.5 border border-amber-600 text-amber-700 hover:bg-amber-50 rounded-xl font-serif text-sm font-bold flex items-center gap-1.5 transition-all shadow-sm"
+                                >
+                                  <Edit2 size={14} />
+                                  {lang === 'KR' ? '수정' : 'Edit'}
+                                </button>
+                              )}
+                              <button
+                                onClick={() => handleWriteClick('mulpa')}
+                                className="px-5 py-2.5 bg-black hover:bg-neutral-800 text-white rounded-xl font-serif text-sm font-bold flex items-center gap-1.5 transition-all shadow-sm"
+                              >
+                                <PenTool size={14} />
+                                {lang === 'KR' ? '글쓰기' : 'Write'}
+                              </button>
+                            </div>
+                          </div>
+                        </motion.div>
                       )}
                     </div>
 
@@ -1515,252 +2339,302 @@ export default function App() {
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -15 }}
-              className="max-w-6xl mx-auto px-6 md:px-12 pb-32"
+              className="max-w-6xl mx-auto px-4 sm:px-6 md:px-12 pb-32"
             >
-              <div className="text-center mb-16 space-y-2">
-                <span className="text-[10px] tracking-[0.4em] uppercase opacity-45 font-mono">{t.poetryCollection.subtitle}</span>
-                <h2 className="text-3xl md:text-5xl font-serif text-[#1C1A17] font-normal">{t.poetryCollection.title}</h2>
-                <div className="w-12 h-px bg-[#1C1A17]/25 mx-auto mt-6" />
+              {/* Header */}
+              <div className="text-center mb-10 space-y-2">
+                <span className="text-xs tracking-[0.3em] uppercase opacity-60 font-mono font-bold block">{t.poetryCollection.subtitle}</span>
+                <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif text-[#1C1A17] font-bold tracking-tight">{t.poetryCollection.title}</h2>
+                <div className="w-16 h-px bg-[#1C1A17]/25 mx-auto mt-4" />
               </div>
 
-              {/* Elegant Atmospheric Poetry Cover Banner */}
-              <div className="w-full h-48 md:h-64 rounded-xl overflow-hidden mb-12 relative border border-[#1C1A17]/10 shadow-lg group select-none">
-                <img 
-                  src="https://images.unsplash.com/photo-1528459801416-a9e53bbf4e17?auto=format&fit=crop&q=80&w=1200" 
-                  alt="Poetry Banner" 
-                  className="w-full h-full object-cover brightness-[0.85] contrast-[1.05] transition-transform duration-[4000ms] group-hover:scale-103"
-                  referrerPolicy="no-referrer"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/15 to-transparent" />
-                <div className="absolute bottom-6 left-6 text-white text-left space-y-1">
-                  <span className="text-[9px] tracking-[0.3em] font-mono text-white/70 uppercase block font-bold">Poetic Musings of Stone & Mist</span>
-                  <h3 className="font-serif text-lg md:text-2xl font-normal text-white drop-shadow-md">
-                    {lang === 'KR' ? '석하서시 (石下逝詩) ㆍ 영혼을 새기는 먹빛의 고백' : lang === 'SC' ? '石下逝诗 ㆍ 雕刻灵魂的墨色告白' : 'Seokha Stone Poetry Collection'}
-                  </h3>
-                </div>
+              {/* Sub-categories/Book Tabs at the top */}
+              <div className="flex flex-wrap gap-2 md:gap-3 justify-center mb-12 bg-[#FAF9F6] p-3 rounded-2xl border border-[#1C1A17]/10 shadow-inner">
+                {t.poetryCollection.allCollections.map((name, i) => {
+                  const isSelected = selectedBook === name;
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => {
+                        setSelectedBook(name);
+                        setReadingPoem(null); // return to lists when tab changed
+                      }}
+                      className={`text-sm sm:text-base md:text-lg font-serif font-bold py-2 px-4 md:px-5 rounded-xl transition-all duration-300 shadow-sm border ${
+                        isSelected 
+                          ? 'bg-[#1C1A17] text-[#FAF9F6] border-[#1C1A17]' 
+                          : 'bg-white text-black/70 border-[#1C1A17]/15 hover:border-[#1C1A17]/40 hover:bg-[#FAF9F6]'
+                      }`}
+                    >
+                      {name}
+                    </button>
+                  );
+                })}
               </div>
 
+              {/* Reading room detail or lists */}
               <AnimatePresence mode="wait">
-                {!selectedBook ? (
-                  
-                  // Library lists selection
-                  <motion.div 
-                    key="books"
+                {!readingPoem ? (
+                  // Category List View (Newest first)
+                  <motion.div
+                    key="list-view"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="grid grid-cols-1 gap-4 py-4 text-left"
+                    className="space-y-8 text-left"
                   >
-                    {t.poetryCollection.allCollections.map((name, i) => {
-                      const bookPoems = archiveItems.filter(p => p.category === 'poetry' && p.poetry_collection_name === name && p.language === lang);
-                      return (
-                        <div 
-                          key={i}
-                          onClick={() => {
-                            setSelectedBook(name);
-                            if (bookPoems.length > 0) setReadingPoem(bookPoems[0]);
-                          }}
-                          className="group bg-white p-6 md:p-8 border border-[#1C1A17]/10 rounded hover:border-[#1C1A17]/40 shadow-sm hover:shadow-xl hover:bg-[#FAF9F6]/50 transition-all duration-300 cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-                        >
-                          <div className="flex items-center gap-5">
-                            <div className="w-12 h-12 rounded-full border border-[#1C1A17]/10 bg-[#FAF9F6] flex items-center justify-center font-serif text-base text-[#1C1A17]/50 group-hover:bg-[#1C1A17] group-hover:text-white transition-colors duration-300 shrink-0">
-                              {i + 1}
-                            </div>
-                            <div className="space-y-1">
-                              <h3 className="font-serif text-xl md:text-22px font-bold leading-normal text-black group-hover:text-[#1C1A17] transition-colors">
-                                {name}
-                              </h3>
-                              <p className="text-[11px] text-black/40 font-serif tracking-wider">석하(石下) 서시 및 철학 컬렉션</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-4 self-end sm:self-auto">
-                            <span className="font-mono text-xs tracking-widest text-[#1C1A17]/75 bg-[#E5DFD3]/40 group-hover:bg-[#E5DFD3] px-3.5 py-1.5 rounded-sm font-bold uppercase transition-colors">
-                              {bookPoems.length} Items Archived
-                            </span>
-                            <BookOpen className="opacity-40 group-hover:opacity-100 group-hover:translate-x-1 transition-all text-[#1C1A17]" size={20} />
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </motion.div>
-
-                ) : (
-
-                  // Book detail reading room
-                  <motion.div 
-                    key="reading-room"
-                    initial={{ opacity: 0, scale: 0.98 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.98 }}
-                    className="space-y-12 text-left"
-                  >
-                    <div className="flex items-center justify-between border-b border-[#1C1A17]/10 pb-4">
-                      <button 
-                        onClick={() => {
-                          setSelectedBook(null);
-                          setReadingPoem(null);
-                        }}
-                        className="flex items-center gap-2 text-[10px] tracking-[0.25em] uppercase font-bold text-black/60 hover:text-black transition-colors"
-                      >
-                        <ArrowLeft size={14} /> Back to Library
-                      </button>
-                      <span className="font-serif text-sm italic text-black/60">{selectedBook}</span>
+                    {/* Header bar with total and New Post button */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#1C1A17]/15">
+                      <div className="flex items-center gap-3">
+                        <span className="font-serif text-lg md:text-xl font-bold text-black">
+                          {selectedBook} {lang === 'KR' ? '수록 목록' : 'Index'}
+                        </span>
+                        <span className="font-mono text-xs font-bold px-2.5 py-1 bg-[#1C1A17]/5 rounded-md border border-[#1C1A17]/10">
+                          {archiveItems.filter(p => p.category === 'poetry' && p.poetry_collection_name === selectedBook && p.language === lang).length} Items
+                        </span>
+                      </div>
                     </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-                      
-                      {/* Left: Poem indexes */}
-                      <div className="lg:col-span-4 space-y-3">
-                        {/* Sort Controller */}
-                        <div className="flex items-center justify-between border-b border-[#1C1A17]/5 pb-2.5 mb-2">
-                          <span className="font-mono text-[9px] tracking-widest text-[#1C1A17]/40 font-bold uppercase">
-                            {lang === 'KR' ? '정렬 방식' : 'Sort Order'}
-                          </span>
-                          <div className="flex gap-1.5">
-                            <button
-                              onClick={() => setPoetrySortOrder('default')}
-                              className={`text-[9px] font-mono tracking-wider px-2 py-0.5 rounded transition-all font-bold ${
-                                poetrySortOrder === 'default'
-                                  ? 'bg-[#1C1A17] text-[#FAF9F6]'
-                                  : 'bg-neutral-100 hover:bg-neutral-200 text-black/50'
-                              }`}
-                            >
-                              {lang === 'KR' ? '기본순' : 'Default'}
-                            </button>
-                            <button
-                              onClick={() => setPoetrySortOrder('titleAsc')}
-                              className={`text-[9px] font-mono tracking-wider px-2 py-0.5 rounded transition-all font-bold flex items-center gap-0.5 ${
-                                poetrySortOrder === 'titleAsc'
-                                  ? 'bg-[#1C1A17] text-[#FAF9F6]'
-                                  : 'bg-neutral-100 hover:bg-neutral-200 text-black/50'
-                              }`}
-                            >
-                              ▲ A-Z
-                            </button>
-                            <button
-                              onClick={() => setPoetrySortOrder('titleDesc')}
-                              className={`text-[9px] font-mono tracking-wider px-2 py-0.5 rounded transition-all font-bold flex items-center gap-0.5 ${
-                                poetrySortOrder === 'titleDesc'
-                                  ? 'bg-[#1C1A17] text-[#FAF9F6]'
-                                  : 'bg-neutral-100 hover:bg-neutral-200 text-black/50'
-                              }`}
-                            >
-                              ▼ Z-A
-                            </button>
-                          </div>
+                    {/* Sorting Controller */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-2 border-b border-[#1C1A17]/5">
+                      <div className="text-xs font-serif italic text-neutral-400">
+                        {lang === 'KR' ? '* 정렬 기준을 선택할 수 있습니다.' : '* You can choose the sort order.'}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-[9px] tracking-widest text-[#1C1A17]/40 font-bold uppercase shrink-0">
+                          {lang === 'KR' ? '정렬 방식' : 'Sort Order'}
+                        </span>
+                        <div className="flex gap-1 bg-white border border-[#1C1A17]/10 p-0.5 rounded-md inline-flex">
+                          <button
+                            onClick={() => setPoetrySortOrder('default')}
+                            className={`text-[9px] font-mono tracking-wider px-2.5 py-1 rounded transition-all font-bold ${
+                              poetrySortOrder === 'default'
+                                ? 'bg-[#1C1A17] text-[#FAF9F6]'
+                                : 'text-black/50 hover:bg-neutral-50'
+                            }`}
+                          >
+                            {lang === 'KR' ? '최신순' : 'Latest'}
+                          </button>
+                          <button
+                            onClick={() => setPoetrySortOrder('titleDesc')}
+                            className={`text-[9px] font-mono tracking-wider px-2.5 py-1 rounded transition-all font-bold flex items-center gap-0.5 ${
+                              poetrySortOrder === 'titleDesc'
+                                ? 'bg-[#1C1A17] text-[#FAF9F6]'
+                                : 'text-black/50 hover:bg-neutral-50'
+                            }`}
+                          >
+                            ▼ {lang === 'KR' ? '내림차순' : 'Z-A'}
+                          </button>
+                          <button
+                            onClick={() => setPoetrySortOrder('titleAsc')}
+                            className={`text-[9px] font-mono tracking-wider px-2.5 py-1 rounded transition-all font-bold flex items-center gap-0.5 ${
+                              poetrySortOrder === 'titleAsc'
+                                ? 'bg-[#1C1A17] text-[#FAF9F6]'
+                                : 'text-black/50 hover:bg-neutral-50'
+                            }`}
+                          >
+                            ▲ {lang === 'KR' ? '오름차순' : 'A-Z'}
+                          </button>
                         </div>
+                      </div>
+                    </div>
 
-                        <div className="space-y-3 max-h-[500px] overflow-y-auto pr-4">
-                          {sortItems(
-                            archiveItems.filter(p => p.category === 'poetry' && p.poetry_collection_name === selectedBook && p.language === lang),
-                            poetrySortOrder
-                          ).map((item, idx) => (
-                            <button
+                    {/* The Grid of verses */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                      {sortItems(
+                        [...archiveItems]
+                          .filter(p => p.category === 'poetry' && p.poetry_collection_name === selectedBook && p.language === lang)
+                          .sort((a, b) => getTimestampMs(b) - getTimestampMs(a)),
+                        poetrySortOrder
+                      ).map((item) => {
+                          const bodyExcerpt = item.content 
+                            ? (item.content.replace(/[#*`_~[\]()]/g, '').substring(0, 150) + (item.content.length > 150 ? '...' : '')) 
+                            : '';
+                          return (
+                            <div
                               key={item.id}
                               onClick={() => setReadingPoem(item)}
-                              className={`w-full text-left p-4 border rounded transition-colors flex items-center justify-between group ${
-                                readingPoem?.id === item.id 
-                                  ? 'bg-[#1C1A17] border-[#1C1A17] text-white' 
-                                  : 'bg-white border-[#1C1A17]/10 text-black hover:bg-gray-50'
-                              }`}
+                              className="group bg-white border border-[#1C1A17]/10 p-6 rounded-2xl hover:shadow-2xl hover:border-[#1C1A17]/45 transition-all duration-300 flex flex-col justify-between cursor-pointer hover:scale-[1.01]"
                             >
-                              <div className="truncate">
-                                <span className={`font-mono text-[8px] tracking-widest block mb-1 uppercase ${readingPoem?.id === item.id ? 'text-white/50' : 'text-black/40'}`}>
-                                  ENTRY {(idx + 1).toString().padStart(2, '0')}
-                                </span>
-                                <h4 className="font-serif text-sm font-semibold truncate">{item.title}</h4>
-                              </div>
-                              <ChevronRight size={14} className="opacity-30 group-hover:translate-x-1 transition-transform" />
-                            </button>
-                          ))}
-
-                          {archiveItems.filter(p => p.category === 'poetry' && p.poetry_collection_name === selectedBook && p.language === lang).length === 0 && (
-                            <div className="text-center py-12 p-6 bg-white border border-dashed border-[#1C1A17]/15 rounded text-black/40 text-xs italic font-serif">
-                              {t.poetryCollection.emptyNotice}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Right: Immersive Reading Slate */}
-                      <div className="lg:col-span-8">
-                        {readingPoem ? (
-                          <div className="bg-white border border-[#1C1A17]/10 p-8 md:p-12 rounded shadow-xl relative overflow-hidden flex flex-col justify-between min-h-[460px]">
-                            <div className="space-y-8 z-10">
-                              <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#1C1A17]/5 pb-6">
-                                <div>
-                                  <span className="font-mono text-[8px] tracking-[0.3em] opacity-45 uppercase block mb-1">SELECTED VERSE</span>
-                                  <h3 className="font-serif text-2xl md:text-3xl font-bold tracking-wide text-black">{readingPoem.title}</h3>
-                                </div>
-
-                                {/* Floating Breathing Assistant */}
-                                <button
-                                  onClick={() => setBreathingMode(!breathingMode)}
-                                  className={`px-4 py-2 rounded-full border text-[9px] tracking-widest uppercase font-mono font-bold transition-all flex items-center gap-2 ${
-                                    breathingMode 
-                                      ? 'bg-black border-black text-white' 
-                                      : 'bg-transparent border-[#1C1A17]/10 text-black hover:border-[#1C1A17]'
-                                  }`}
-                                >
-                                  <Activity size={10} className={breathingMode ? 'animate-pulse' : ''} />
-                                  {breathingMode ? `Breathing: ${breathingText}` : 'Meditative Breath Help'}
-                                </button>
-                              </div>
-
-                              {/* Progress bar if breathing aid active */}
-                              {breathingMode && (
-                                <div className="w-full h-1 bg-gray-100 rounded overflow-hidden">
-                                  <motion.div 
-                                    className="h-full bg-black"
-                                    animate={{ width: `${breathingProgress}%` }}
-                                    transition={{ duration: 2.2 }}
+                              <div className="space-y-4">
+                                {/* Top auto-scaled image (fixed size) */}
+                                <div className="aspect-[16/10] w-full overflow-hidden rounded-xl bg-gray-50 border border-[#1C1A17]/5 shadow-inner relative">
+                                  <img 
+                                    src={item.image_url || 'https://images.unsplash.com/photo-1518640467707-6811f4a6ab73?auto=format&fit=crop&q=80&w=1200'} 
+                                    alt={item.title} 
+                                    referrerPolicy="no-referrer"
+                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                                   />
                                 </div>
-                              )}
 
-                              {/* Core Poem Content formatted like genuine parchment paper */}
-                              <div className="markdown-body font-serif text-sm md:text-base leading-normal text-black/90 justified-text whitespace-pre-wrap py-4 max-w-xl">
-                                <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
-                                  {readingPoem.content}
-                                </ReactMarkdown>
-
-                                {/* Responsive centered image display */}
-                                {readingPoem.image_url && (
-                                  <div className="mt-8 flex justify-center w-full">
-                                    <img 
-                                      src={readingPoem.image_url} 
-                                      alt={readingPoem.title} 
-                                      referrerPolicy="no-referrer"
-                                      className="max-w-full max-h-[350px] md:max-h-[480px] h-auto object-contain rounded border border-[#1C1A17]/10 p-1.5 bg-white shadow-sm"
-                                    />
+                                <div className="space-y-2">
+                                  <span className="font-mono text-[9px] tracking-widest text-[#1C1A17]/40 block uppercase font-bold">
+                                    {formatFullDate(item.created_at)}
+                                  </span>
+                                  <div className="flex items-center justify-between gap-2">
+                                    <h3 className="font-serif text-lg sm:text-xl font-bold text-black group-hover:text-amber-800 transition-colors truncate">
+                                      {item.title}
+                                    </h3>
                                   </div>
-                                )}
+                                  <p className="text-xs sm:text-sm text-[#1C1A17]/70 leading-relaxed font-serif line-clamp-3 h-14 overflow-hidden text-justify">
+                                    {bodyExcerpt}
+                                  </p>
+                                </div>
                               </div>
                             </div>
-
-                            <div className="border-t border-[#1C1A17]/5 pt-6 mt-8 flex justify-between items-center z-10">
-                              <span className="font-mono text-[8px] tracking-widest opacity-45 uppercase font-bold">LASOK SHI-ZEON</span>
-                              <span className="font-serif text-[11px] italic opacity-40">M-M Harmony</span>
-                            </div>
-
-                            {/* Faded water mark decoration */}
-                            <div className="absolute inset-x-0 bottom-0 top-0 overflow-hidden opacity-[0.02] pointer-events-none select-none z-0">
-                              <p className="font-serif text-[120px] leading-none select-all select-none">物</p>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="h-full min-h-[400px] border border-dashed border-[#1C1A17]/15 rounded flex flex-col items-center justify-center p-12 text-center bg-[#FAF9F6]">
-                            <BookOpen className="opacity-15 mb-4 text-[#1C1A17]" size={40} />
-                            <p className="font-serif text-sm italic text-[#1C1A17]/50 max-w-xs">{t.poetryCollection.emptyNotice}</p>
-                          </div>
-                        )}
-                      </div>
-
+                          );
+                        })}
                     </div>
+
+                    {archiveItems.filter(p => p.category === 'poetry' && p.poetry_collection_name === selectedBook && p.language === lang).length === 0 && (
+                      <div className="text-center py-24 bg-white border-2 border-dashed border-[#1C1A17]/10 rounded-2xl text-neutral-400 font-serif text-base italic">
+                        {t.poetryCollection.emptyNotice}
+                      </div>
+                    )}
                   </motion.div>
+                ) : (
+                  // Detail Reading View
+                  (() => {
+                    const sortedBookPoems = archiveItems
+                      .filter(p => p.category === 'poetry' && p.poetry_collection_name === selectedBook && p.language === lang)
+                      .sort((a, b) => getTimestampMs(b) - getTimestampMs(a));
+                    
+                    const currentIdx = sortedBookPoems.findIndex(p => p.id === readingPoem.id);
+                    const nextPoem = currentIdx !== -1 && currentIdx + 1 < sortedBookPoems.length 
+                      ? sortedBookPoems[currentIdx + 1] 
+                      : null;
+
+                    return (
+                      <motion.div
+                        key="detail-view"
+                        initial={{ opacity: 0, scale: 0.99 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.99 }}
+                        className="space-y-10 text-left"
+                      >
+                        {/* Detail Card */}
+                        <div className="bg-white border border-[#1C1A17]/10 p-8 md:p-14 rounded-3xl shadow-xl relative overflow-hidden">
+                          {/* Image placed prominently at the top */}
+                          {readingPoem.image_url && (
+                            <div className="w-full max-h-[450px] overflow-hidden rounded-2xl border border-[#1C1A17]/10 shadow-md mb-8">
+                              <img 
+                                src={readingPoem.image_url} 
+                                alt={readingPoem.title} 
+                                referrerPolicy="no-referrer"
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          )}
+
+                          <div className="space-y-6">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#1C1A17]/10 pb-6">
+                              <div>
+                                <span className="font-mono text-xs tracking-widest text-neutral-400 font-bold uppercase block mb-1">
+                                  {selectedBook} ㆍ {formatFullDate(readingPoem.created_at)}
+                                </span>
+                                <div className="flex items-center gap-3 flex-wrap">
+                                  <h3 className="font-serif text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-neutral-900 truncate">
+                                    {readingPoem.title}
+                                  </h3>
+                                </div>
+                              </div>
+
+                              {/* Meditative Breath Aid */}
+                              <button
+                                onClick={() => setBreathingMode(!breathingMode)}
+                                className={`px-5 py-2.5 rounded-full border text-xs tracking-widest uppercase font-mono font-bold transition-all flex items-center gap-2 ${
+                                  breathingMode 
+                                    ? 'bg-black border-black text-white shadow-md' 
+                                    : 'bg-transparent border-[#1C1A17]/10 text-black hover:border-[#1C1A17]'
+                                }`}
+                              >
+                                <Activity size={12} className={breathingMode ? 'animate-pulse' : ''} />
+                                {breathingMode ? `Breathing: ${breathingText}` : 'Meditative Breath Help'}
+                              </button>
+                            </div>
+
+                            {/* Meditative progress line */}
+                            {breathingMode && (
+                              <div className="w-full h-1 bg-gray-100 rounded-full overflow-hidden">
+                                <motion.div 
+                                  className="h-full bg-black"
+                                  animate={{ width: `${breathingProgress}%` }}
+                                  transition={{ duration: 2.2 }}
+                                />
+                              </div>
+                            )}
+
+                            {/* Core poem content rendered beautifully */}
+                            <div className="py-6 max-w-3xl mx-auto">
+                              {renderContentWithImages(readingPoem.content, readingPoem.image_mid_url, readingPoem.image_bot_url)}
+                            </div>
+                          </div>
+
+                          <div className="border-t border-[#1C1A17]/5 pt-6 mt-10 flex justify-between items-center text-xs font-mono font-bold text-neutral-300">
+                            <span>LASOK COLLECTION ARCHIVE</span>
+                            <span>M-M HARMONY</span>
+                          </div>
+                        </div>
+
+                        {/* Navigation & Actions Footer Bar */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 items-center gap-6 pt-4">
+                          
+                          {/* Bottom-Left: 목록 (Back to List) */}
+                          <div className="flex justify-start">
+                            <button
+                              onClick={() => setReadingPoem(null)}
+                              className="px-6 py-3 border-2 border-black/10 text-neutral-800 hover:bg-white hover:border-black/30 transition-all rounded-xl font-serif text-base font-bold flex items-center gap-2 shadow-sm"
+                            >
+                              <List size={18} />
+                              {lang === 'KR' ? '목록으로' : 'Back to List'}
+                            </button>
+                          </div>
+
+                          {/* Center: Next Post display with arrow and title */}
+                          <div className="flex justify-center text-center">
+                            {nextPoem ? (
+                              <button
+                                onClick={() => setReadingPoem(nextPoem)}
+                                className="group flex items-center gap-2 font-serif text-base md:text-lg text-amber-800 hover:text-amber-950 font-bold transition-all p-2 rounded-lg hover:bg-neutral-50"
+                              >
+                                <span>{lang === 'KR' ? '다음글' : 'Next'}</span>
+                                <ChevronRight size={18} className="group-hover:translate-x-1.5 transition-transform" />
+                                <span className="underline max-w-[150px] sm:max-w-[200px] truncate block font-normal text-black/70">
+                                  {nextPoem.title}
+                                </span>
+                              </button>
+                            ) : (
+                              <span className="font-serif text-sm italic text-neutral-400">
+                                {lang === 'KR' ? '마지막 글입니다' : 'End of collection'}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Bottom-Right: 수정 및 글쓰기 */}
+                          <div className="flex justify-end gap-2.5 flex-wrap">
+                            {isUserAuthorized && (
+                              <button
+                                onClick={() => handleEditClick(readingPoem)}
+                                className="px-6 py-3 border-2 border-amber-600 text-amber-700 hover:bg-amber-50 hover:border-amber-700 transition-all rounded-xl font-serif text-base font-bold flex items-center gap-2 shadow-sm"
+                              >
+                                <Edit2 size={18} />
+                                {lang === 'KR' ? '수정' : 'Edit'}
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleWriteClick('poetry', selectedBook || undefined)}
+                              className="px-6 py-3 border-2 border-[#1C1A17] text-neutral-950 hover:bg-white transition-all rounded-xl font-serif text-base font-bold flex items-center gap-2 shadow-sm"
+                            >
+                              <PenTool size={18} />
+                              {lang === 'KR' ? '글쓰기' : 'Write'}
+                            </button>
+                          </div>
+
+                        </div>
+                      </motion.div>
+                    );
+                  })()
                 )}
               </AnimatePresence>
-
             </motion.div>
           )}
 
@@ -1782,398 +2656,331 @@ export default function App() {
               {/* Elegant Atmospheric Tea Cover Banner */}
               <div className="w-full h-48 md:h-64 rounded-xl overflow-hidden mb-16 relative border border-[#1C1A17]/10 shadow-lg group select-none">
                 <img 
-                  src="https://images.unsplash.com/photo-1597481499750-3e6b22637e12?auto=format&fit=crop&q=80&w=1200" 
+                  src="/assets/chafrontback.jpg" 
                   alt="Tea Banner" 
                   className="w-full h-full object-cover brightness-[0.85] contrast-[1.05] transition-transform duration-[4000ms] group-hover:scale-103"
                   referrerPolicy="no-referrer"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/15 to-transparent" />
                 <div className="absolute bottom-6 left-6 text-white text-left space-y-1">
-                  <span className="text-[9px] tracking-[0.3em] font-mono text-white/70 uppercase block font-bold">The Quiet Way of Seon Tea</span>
+                  <span className="text-[9px] tracking-[0.3em] font-mono text-white/70 uppercase block font-bold">The Way of Calligraphy, Art, and SunCha</span>
                   <h3 className="font-serif text-lg md:text-2xl font-normal text-white drop-shadow-md">
-                    {lang === 'KR' ? '선다원 (禪茶苑) ㆍ 은은한 찻잔에 고이는 참선' : lang === 'SC' ? '禅茶苑 ㆍ 静谧茶盏中凝聚的坐禅' : 'Zen Tea Meditation Ceremony'}
+                    {lang === 'KR' ? '서화차향 (書畵茶香) ㆍ 글씨와 그림, 그리고 한 잔의 차에 담긴 풍류' : lang === 'SC' ? '書畵茶香 ㆍ 笔墨丹青与一盏香茗中的风雅' : 'SunCha ㆍ Calligraphy, Painting, and a Cup of Tea'}
                   </h3>
                 </div>
               </div>
 
-              {/* 불한선차 이미지 삽입: 섹션 가로폭의 2/3 크기 */}
-              <div className="w-full flex justify-center mb-16">
-                <div className="w-full md:w-2/3 aspect-[16/9] md:aspect-[21/10] overflow-hidden rounded border border-[#1C1A17]/10 bg-[#FAF9F6] shadow-sm select-none group">
-                  <img 
-                    src="/assets/tea_image.jpg" 
-                    alt="불한선차 (Bulhan Seoncha)"
-                    className="w-full h-full object-cover opacity-95 transition-transform duration-700 group-hover:scale-103"
-                    referrerPolicy="no-referrer"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      if (target.src.includes('tea_image.jpg')) {
-                        target.src = '/assets/9791173790355.jpg';
-                      } else if (target.src.includes('9791173790355.jpg')) {
-                        target.src = siteSettings?.tea_detail_url || '/assets/bulhansuncha_v2.jpg';
-                      }
-                    }}
-                  />
+              {/* Category Buttons Grid */}
+              <div className="mb-12 mt-12">
+                <div className="text-center mb-8 space-y-3">
+                  <h3 className="text-2xl md:text-3xl font-serif text-[#1C1A17] font-semibold tracking-wider">BULHAN SUNCHA</h3>
+                  <p className="text-xs md:text-sm font-serif tracking-[0.2em] uppercase opacity-60">서(書) | 화(畵) | 차(茶) | 향(香)</p>
+                  <div className="w-12 h-px bg-[#1C1A17]/20 mx-auto mt-4" />
+                </div>
+
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                  {/* Category 서 */}
+                  <div 
+                    onClick={() => setSunchaFilter(sunchaFilter === 'suncha_seo' ? 'all' : 'suncha_seo')}
+                    className={`group cursor-pointer flex flex-col items-center space-y-2 transition-all duration-300 ${sunchaFilter === 'suncha_seo' ? 'scale-[1.03]' : 'hover:scale-[1.01]'}`}
+                  >
+                    <span className={`font-serif text-lg font-bold transition-colors ${sunchaFilter === 'suncha_seo' ? 'text-amber-800 font-extrabold' : 'text-black group-hover:text-amber-800'}`}>
+                      서(書) <span className="text-[10px] font-mono font-normal opacity-55">Calligraphy</span>
+                    </span>
+                    <div className={`aspect-square w-full rounded-xl overflow-hidden border transition-all duration-300 relative ${
+                      sunchaFilter === 'suncha_seo' ? 'border-amber-800 ring-2 ring-amber-800/20 shadow-md' : 'border-[#1C1A17]/10 group-hover:border-[#1C1A17]/30 shadow-sm'
+                    }`}>
+                      <img 
+                        src="/assets/suntea01.jpg" 
+                        alt="Calligraphy" 
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className={`absolute inset-0 bg-black/45 transition-opacity duration-300 flex items-center justify-center ${sunchaFilter === 'suncha_seo' ? 'opacity-0' : 'opacity-20 group-hover:opacity-10'}`}>
+                        <span className="text-white text-[10px] font-serif tracking-widest font-semibold uppercase">VIEW</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Category 화 */}
+                  <div 
+                    onClick={() => setSunchaFilter(sunchaFilter === 'suncha_hwa' ? 'all' : 'suncha_hwa')}
+                    className={`group cursor-pointer flex flex-col items-center space-y-2 transition-all duration-300 ${sunchaFilter === 'suncha_hwa' ? 'scale-[1.03]' : 'hover:scale-[1.01]'}`}
+                  >
+                    <span className={`font-serif text-lg font-bold transition-colors ${sunchaFilter === 'suncha_hwa' ? 'text-amber-800 font-extrabold' : 'text-black group-hover:text-amber-800'}`}>
+                      화(畵) <span className="text-[10px] font-mono font-normal opacity-55">Painting</span>
+                    </span>
+                    <div className={`aspect-square w-full rounded-xl overflow-hidden border transition-all duration-300 relative ${
+                      sunchaFilter === 'suncha_hwa' ? 'border-amber-800 ring-2 ring-amber-800/20 shadow-md' : 'border-[#1C1A17]/10 group-hover:border-[#1C1A17]/30 shadow-sm'
+                    }`}>
+                      <img 
+                        src="/assets/suntea02.jpg" 
+                        alt="Painting" 
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className={`absolute inset-0 bg-black/45 transition-opacity duration-300 flex items-center justify-center ${sunchaFilter === 'suncha_hwa' ? 'opacity-0' : 'opacity-20 group-hover:opacity-10'}`}>
+                        <span className="text-white text-[10px] font-serif tracking-widest font-semibold uppercase">VIEW</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Category 차 */}
+                  <div 
+                    onClick={() => setSunchaFilter(sunchaFilter === 'suncha_cha' ? 'all' : 'suncha_cha')}
+                    className={`group cursor-pointer flex flex-col items-center space-y-2 transition-all duration-300 ${sunchaFilter === 'suncha_cha' ? 'scale-[1.03]' : 'hover:scale-[1.01]'}`}
+                  >
+                    <span className={`font-serif text-lg font-bold transition-colors ${sunchaFilter === 'suncha_cha' ? 'text-amber-800 font-extrabold' : 'text-black group-hover:text-amber-800'}`}>
+                      차(茶) <span className="text-[10px] font-mono font-normal opacity-55">Tea</span>
+                    </span>
+                    <div className={`aspect-square w-full rounded-xl overflow-hidden border transition-all duration-300 relative ${
+                      sunchaFilter === 'suncha_cha' ? 'border-amber-800 ring-2 ring-amber-800/20 shadow-md' : 'border-[#1C1A17]/10 group-hover:border-[#1C1A17]/30 shadow-sm'
+                    }`}>
+                      <img 
+                        src="/assets/suntea03.jpg" 
+                        alt="Tea" 
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className={`absolute inset-0 bg-black/45 transition-opacity duration-300 flex items-center justify-center ${sunchaFilter === 'suncha_cha' ? 'opacity-0' : 'opacity-20 group-hover:opacity-10'}`}>
+                        <span className="text-white text-[10px] font-serif tracking-widest font-semibold uppercase">VIEW</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Category 향 */}
+                  <div 
+                    onClick={() => setSunchaFilter(sunchaFilter === 'suncha_hyang' ? 'all' : 'suncha_hyang')}
+                    className={`group cursor-pointer flex flex-col items-center space-y-2 transition-all duration-300 ${sunchaFilter === 'suncha_hyang' ? 'scale-[1.03]' : 'hover:scale-[1.01]'}`}
+                  >
+                    <span className={`font-serif text-lg font-bold transition-colors ${sunchaFilter === 'suncha_hyang' ? 'text-amber-800 font-extrabold' : 'text-black group-hover:text-amber-800'}`}>
+                      향(香) <span className="text-[10px] font-mono font-normal opacity-55">Incense</span>
+                    </span>
+                    <div className={`aspect-square w-full rounded-xl overflow-hidden border transition-all duration-300 relative ${
+                      sunchaFilter === 'suncha_hyang' ? 'border-amber-800 ring-2 ring-amber-800/20 shadow-md' : 'border-[#1C1A17]/10 group-hover:border-[#1C1A17]/30 shadow-sm'
+                    }`}>
+                      <img 
+                        src="/assets/suntea04.jpg" 
+                        alt="Incense" 
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className={`absolute inset-0 bg-black/45 transition-opacity duration-300 flex items-center justify-center ${sunchaFilter === 'suncha_hyang' ? 'opacity-0' : 'opacity-20 group-hover:opacity-10'}`}>
+                        <span className="text-white text-[10px] font-serif tracking-widest font-semibold uppercase">VIEW</span>
+                      </div>
+                    </div>
+                  </div>
+
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-                
-                {/* Steeping Ritual Card */}
-                <div className="lg:col-span-5 bg-white border border-[#1C1A17]/10 rounded shadow-xl p-8 space-y-8">
-                  <div className="text-center pb-6 border-b border-[#1C1A17]/5">
-                    <span className="font-mono text-[9px] tracking-[0.25em] opacity-45 uppercase font-bold">TEA RITUAL CORNER</span>
-                    <h3 className="font-serif text-lg font-bold text-black mt-1">Meditative Steeping Helper</h3>
-                  </div>
+              {!readingSuncha ? (
+                /* Suncha List view */
+                <div className="space-y-6 pt-6 border-t border-[#1C1A17]/10">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <span className="font-serif text-lg font-bold text-[#1C1A17]">
+                        {sunchaFilter === 'all' && (lang === 'KR' ? '서화차향 전체 목록' : 'Seoncha Archive (All)')}
+                        {sunchaFilter === 'suncha_seo' && (lang === 'KR' ? '서(書) 글씨 작품 목록' : 'Calligraphy Archive')}
+                        {sunchaFilter === 'suncha_hwa' && (lang === 'KR' ? '화(畵) 그림 작품 목록' : 'Painting Archive')}
+                        {sunchaFilter === 'suncha_cha' && (lang === 'KR' ? '차(茶) 명차 아카이브' : 'Tea Archive')}
+                        {sunchaFilter === 'suncha_hyang' && (lang === 'KR' ? '향(香) 명향 아카이브' : 'Incense Archive')}
+                      </span>
+                      <span className="font-mono text-xs font-bold text-black/40 bg-neutral-100 px-2.5 py-0.5 rounded-full">
+                        {sortedSunchaItems.length}
+                      </span>
+                    </div>
 
-                  {/* Circular clock layout */}
-                  <div className="flex flex-col items-center justify-center">
-                    <div className="relative w-36 h-36 flex items-center justify-center">
-                      <svg className="w-full h-full transform -rotate-90">
-                        <circle cx="72" cy="72" r="64" stroke="#F0EDE6" strokeWidth="4" fill="transparent" />
-                        <motion.circle 
-                          cx="72" 
-                          cy="72" 
-                          r="64" 
-                          stroke="#1C1A17" 
-                          strokeWidth="4" 
-                          fill="transparent"
-                          strokeDasharray="402"
-                          strokeDashoffset={402 - (402 * steepingProgress) / 100}
-                          transition={{ ease: 'linear' }}
-                        />
-                      </svg>
-                      <div className="absolute flex flex-col items-center justify-center">
-                        <span className="font-mono text-3xl font-semibold text-black">{steepingTimeLeft}</span>
-                        <span className="font-mono text-[8px] tracking-[0.1em] text-black/50 uppercase mt-0.5">SECONDS</span>
+                    {/* Sort controller & write button */}
+                    <div className="flex flex-wrap items-center gap-3">
+                      <div className="flex items-center gap-1 bg-white border border-[#1C1A17]/10 p-0.5 rounded-sm inline-flex">
+                        <button
+                          onClick={() => setTeaSortOrder('default')}
+                          className={`text-[9px] font-mono tracking-wider px-2.5 py-1 rounded transition-all font-bold ${
+                            teaSortOrder === 'default'
+                              ? 'bg-[#1C1A17] text-[#FAF9F6]'
+                              : 'text-black/50 hover:bg-neutral-50'
+                          }`}
+                        >
+                          {lang === 'KR' ? '최신순' : 'Latest'}
+                        </button>
+                        <button
+                          onClick={() => setTeaSortOrder('titleDesc')}
+                          className={`text-[9px] font-mono tracking-wider px-2.5 py-1 rounded transition-all font-bold flex items-center gap-0.5 ${
+                            teaSortOrder === 'titleDesc'
+                              ? 'bg-[#1C1A17] text-[#FAF9F6]'
+                              : 'text-black/50 hover:bg-neutral-50'
+                          }`}
+                        >
+                          ▼ {lang === 'KR' ? '내림차순' : 'Z-A'}
+                        </button>
+                        <button
+                          onClick={() => setTeaSortOrder('titleAsc')}
+                          className={`text-[9px] font-mono tracking-wider px-2.5 py-1 rounded transition-all font-bold flex items-center gap-0.5 ${
+                            teaSortOrder === 'titleAsc'
+                              ? 'bg-[#1C1A17] text-[#FAF9F6]'
+                              : 'text-black/50 hover:bg-neutral-50'
+                          }`}
+                        >
+                          ▲ {lang === 'KR' ? '오름차순' : 'A-Z'}
+                        </button>
                       </div>
-                    </div>
-                  </div>
 
-                  <div className="text-center">
-                    <button
-                      onClick={() => {
-                        if (steepingActive) {
-                          setSteepingActive(false);
-                        } else {
-                          setSteepingTimeLeft(45);
-                          setSteepingActive(true);
-                        }
-                      }}
-                      className="w-full py-3 bg-[#1C1A17] text-white hover:bg-black text-[10px] tracking-[0.3em] uppercase transition-all rounded font-bold"
-                    >
-                      {steepingActive ? "Pause Ritual Brew" : "Begin tea steeping ritual (45s)"}
-                    </button>
-                    
-                    <button 
-                      onClick={() => {
-                        setSteepingActive(false);
-                        setSteepingTimeLeft(45);
-                        setSteepingProgress(100);
-                      }}
-                      className="text-center text-[9px] tracking-widest uppercase text-black/40 hover:text-black mt-3 transition-colors underline bg-transparent"
-                    >
-                      Restore to Default
-                    </button>
-                  </div>
-                </div>
-
-                {/* Scent notes & story details */}
-                <div className="lg:col-span-7 space-y-8">
-                  <div className="space-y-3">
-                    <h3 className="font-serif text-2xl md:text-3xl font-semibold text-black leading-snug">{t.tea.storyTitle}</h3>
-                    <p className="text-xs leading-[1.8] text-[#1C1A17]/80 font-sans font-normal whitespace-pre-line antialiased">
-                      {t.tea.storyContent}
-                    </p>
-                  </div>
-
-                  {/* Scent profile visual box */}
-                  <div className="p-6 bg-[#FAF9F6] border border-[#1C1A17]/10 rounded flex justify-between gap-6 items-center">
-                    <div>
-                      <span className="font-mono text-[8px] opacity-45 tracking-widest uppercase block mb-1">SCENT CATEGORY</span>
-                      <h4 className="font-serif text-base font-semibold text-[#1C1A17]">{t.tea.scentNotes}</h4>
-                      <p className="text-[11px] text-[#1C1A17]/65 mt-1 font-sans">{t.tea.scentDescription}</p>
-                    </div>
-                    <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center border border-[#1C1A17]/10">
-                      <Compass className="opacity-40" size={18} />
-                    </div>
-                  </div>
-
-                  {/* Brewing step lists */}
-                  <div className="space-y-4">
-                    <h4 className="font-serif text-sm font-semibold text-black uppercase tracking-widest">{t.tea.brewingTitle}</h4>
-                    <div className="space-y-3">
-                      {t.tea.brewingSteps.map((stp, idx) => (
-                        <div key={idx} className="flex gap-4 items-start text-xs text-[#1C1A17]/80">
-                          <span className="font-mono font-bold opacity-30 mt-0.5">{(idx+1).toString().padStart(2, '0')}.</span>
-                          <p className="leading-relaxed font-sans">{stp}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-              </div>
-
-              {/* ----------------- Suncha Promotion & Review Sections ----------------- */}
-              <div className="mt-20 pt-16 border-t border-[#1C1A17]/10 space-y-16">
-                
-                {/* Title */}
-                <div className="text-center space-y-4">
-                  <div className="space-y-2">
-                    <span className="text-[10px] tracking-[0.4em] uppercase opacity-45 font-mono">
-                      {lang === 'KR' ? '불한선차 기획특별전' : lang === 'SC' ? '佛汉禅茶策划特别展' : 'Seoncha Curated Promotion'}
-                    </span>
-                    <h3 className="font-serif text-2xl md:text-3xl text-[#1C1A17] font-normal leading-snug">
-                      {lang === 'KR' ? '불한선차 소개 및 생생한 리뷰' : lang === 'SC' ? '佛汉禅茶介绍与茶友评价' : 'Suncha Introduction & Guest Reviews'}
-                    </h3>
-                    <div className="w-12 h-px bg-[#1C1A17]/20 mx-auto mt-6" />
-                  </div>
-
-                  {/* Sort Controller */}
-                  <div className="flex items-center justify-center gap-3 pt-2">
-                    <span className="font-mono text-[9px] tracking-widest text-[#1C1A17]/40 font-bold uppercase">
-                      {lang === 'KR' ? '정렬 방식' : 'Sort Order'}
-                    </span>
-                    <div className="flex gap-1 bg-white border border-[#1C1A17]/10 p-0.5 rounded-sm inline-flex">
                       <button
-                        onClick={() => setTeaSortOrder('default')}
-                        className={`text-[9px] font-mono tracking-wider px-2.5 py-1 rounded transition-all font-bold ${
-                          teaSortOrder === 'default'
-                            ? 'bg-[#1C1A17] text-[#FAF9F6]'
-                            : 'text-black/50 hover:bg-neutral-50'
-                        }`}
+                        onClick={() => handleWriteClick(sunchaFilter === 'all' ? 'suncha_cha' : sunchaFilter)}
+                        className="px-3.5 py-1.5 bg-[#1C1A17] hover:bg-black text-white text-[10px] tracking-widest font-bold uppercase rounded flex items-center gap-1 transition-colors"
                       >
-                        {lang === 'KR' ? '기본순' : 'Default'}
-                      </button>
-                      <button
-                        onClick={() => setTeaSortOrder('titleAsc')}
-                        className={`text-[9px] font-mono tracking-wider px-2.5 py-1 rounded transition-all font-bold flex items-center gap-0.5 ${
-                          teaSortOrder === 'titleAsc'
-                            ? 'bg-[#1C1A17] text-[#FAF9F6]'
-                            : 'text-black/50 hover:bg-neutral-50'
-                        }`}
-                      >
-                        ▲ A-Z
-                      </button>
-                      <button
-                        onClick={() => setTeaSortOrder('titleDesc')}
-                        className={`text-[9px] font-mono tracking-wider px-2.5 py-1 rounded transition-all font-bold flex items-center gap-0.5 ${
-                          teaSortOrder === 'titleDesc'
-                            ? 'bg-[#1C1A17] text-[#FAF9F6]'
-                            : 'text-black/50 hover:bg-neutral-50'
-                        }`}
-                      >
-                        ▼ Z-A
+                        <Plus size={12} />
+                        {lang === 'KR' ? '글쓰기' : 'Write'}
                       </button>
                     </div>
                   </div>
-                </div>
 
-                {/* Suncha Promo Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-12 items-start">
-                  
-                  {/* Left Column: 불한선차소개 */}
-                  <div className="space-y-8">
-                    <h4 className="font-serif text-xs tracking-widest uppercase text-black/55 bg-neutral-100 p-2.5 rounded border border-black/5 block font-bold text-center">
-                      🍃 {lang === 'KR' ? '불한선차소개 아카이브' : lang === 'SC' ? '佛汉禅茶介绍' : 'Seoncha Introduction'}
-                    </h4>
+                  {sortedSunchaItems.length === 0 ? (
+                    <div className="bg-[#FAF9F6] border border-[#1C1A17]/5 rounded-2xl py-24 text-center">
+                      <p className="text-sm font-serif text-[#1C1A17]/50">
+                        {lang === 'KR' ? '등록된 작품이 없습니다.' : 'No items registered in this category.'}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                      {sortedSunchaItems.map((item) => {
+                        const bodyExcerpt = item.content 
+                          ? (item.content.replace(/[*#_]/g, '').substring(0, 150) + (item.content.length > 150 ? '...' : '')) 
+                          : '';
+                        const categoryLabel = 
+                          item.category === 'suncha_seo' ? '서(書)' :
+                          item.category === 'suncha_hwa' ? '화(畵)' :
+                          item.category === 'suncha_cha' || item.category === 'suncha_intro' || item.category === 'suncha_review' ? '차(茶)' :
+                          item.category === 'suncha_hyang' ? '향(香)' : '';
 
-                    {teaIntros.length === 0 ? (
-                      /* Default Fallback Card */
-                      <div className="bg-white border border-[#1C1A17]/10 p-6 md:p-8 rounded hover:shadow-xl transition-all duration-300 relative flex flex-col justify-between">
-                        <div className="space-y-6">
-                          <div className="flex justify-between items-center border-b border-[#1C1A17]/5 pb-3">
-                            <span className="font-serif text-base md:text-lg font-bold text-black tracking-wide">
-                              {lang === 'KR' ? '불한선차소개' : lang === 'SC' ? '佛汉禅茶介绍' : 'Seoncha Introduction'}
-                            </span>
-                          </div>
-
-                          {/* Info Promo Image */}
-                          <div className="aspect-[16/10] w-full overflow-hidden rounded bg-gray-50 border border-[#1C1A17]/5 shadow-sm relative group">
-                            <img 
-                              src={siteSettings?.suncha_intro_image || '/assets/bulhansuncha_v2.jpg'} 
-                              alt="Seoncha Intro" 
-                              referrerPolicy="no-referrer"
-                              className="w-full h-full object-cover opacity-95 transition-transform duration-500 group-hover:scale-105"
-                            />
-                          </div>
-
-                          {/* Content Text block and fallbacks */}
-                          <p className="text-xs md:text-sm text-[#1C1A17]/80 leading-relaxed font-sans font-normal text-justify whitespace-pre-wrap">
-                            {lang === 'KR' 
-                              ? (siteSettings?.suncha_intro_text_kr || '불한선차(佛漢禪茶)는 깊은 산사의 무구한 기운과 선차 명인의 정밀한 정성을 거쳐 고온 가마에서 아홉 번 덖고 발효 시켜 흙내음และ 부드러운 우디향의 정수를 완성한 특별한 전통 수제 명차입니다.')
-                              : lang === 'SC' 
-                              ? (siteSettings?.suncha_intro_text_sc || siteSettings?.suncha_intro_text_kr || '佛汉禅茶(佛漢禪茶)是历经深山古刹的无垢灵气与禅茶名师的九蒸九晒发酵，在高温釜中多次揉捻烘焙而成的高端传统手工名茶。其茶汤通透，入口温润开胃。')
-                              : (siteSettings?.suncha_intro_text_en || siteSettings?.suncha_intro_text_kr || 'Bulhan Suncha is a premium, handcrafted traditional meditation tea cultivated deep within pristine mountain hermitages. Roasted multiple times in high-temperature kilns, it delivers a smooth body and rich earthy wood notes.')
-                            }
-                          </p>
-                        </div>
-
-                        <div className="mt-8 border-t border-[#1C1A17]/5 pt-4 flex justify-between items-center">
-                          <span className="font-mono text-[8px] tracking-widest opacity-45 uppercase font-bold">HERITAGE SEONCHA BRAND</span>
-                          <span className="font-serif text-[10px] italic opacity-40">Zen Steeping Experience</span>
-                        </div>
-                      </div>
-                    ) : (
-                      /* Dynamic List Cards */
-                      <div className="space-y-6">
-                        {teaIntros.map((item) => (
-                          <div 
+                        return (
+                          <div
                             key={item.id}
-                            onClick={() => setSelectedJourneyItem(item)}
-                            className="group bg-white border border-[#1C1A17]/10 p-6 md:p-8 rounded hover:shadow-2xl hover:border-[#1C1A17]/30 transition-all duration-300 relative flex flex-col justify-between cursor-pointer hover:scale-[1.01]"
+                            onClick={() => setReadingSuncha(item)}
+                            className="group bg-white border border-[#1C1A17]/10 p-6 rounded-2xl hover:shadow-2xl hover:border-[#1C1A17]/45 transition-all duration-300 flex flex-col justify-between cursor-pointer hover:scale-[1.01]"
                           >
-                            <div className="space-y-5">
-                              <div className="flex justify-between items-center border-b border-[#1C1A17]/5 pb-3">
-                                <span className="font-serif text-base md:text-lg font-bold text-black tracking-wide group-hover:text-black/80 transition-colors">
-                                  {item.title}
-                                </span>
-                                {item.category_tag && (
-                                  <span className="font-mono text-[8px] tracking-widest text-[#1C1A17]/50 bg-neutral-100 border border-black/5 px-2 py-0.5 rounded uppercase">
-                                    {item.category_tag}
-                                  </span>
-                                )}
+                            <div className="space-y-4">
+                              {/* Top image */}
+                              <div className="aspect-[16/10] w-full overflow-hidden rounded-xl bg-gray-50 border border-[#1C1A17]/5 shadow-inner relative">
+                                <img 
+                                  src={item.image_url || 'https://images.unsplash.com/photo-1518640467707-6811f4a6ab73?auto=format&fit=crop&q=80&w=1200'} 
+                                  alt={item.title} 
+                                  referrerPolicy="no-referrer"
+                                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                />
+                                <div className="absolute top-3 left-3 bg-[#1C1A17] text-white text-[9px] font-serif px-2.5 py-0.5 rounded font-bold uppercase tracking-widest">
+                                  {categoryLabel}
+                                </div>
                               </div>
 
-                              {item.image_url && (
-                                <div className="aspect-[16/10] w-full overflow-hidden rounded bg-gray-50 border border-[#1C1A17]/5 shadow-sm relative">
-                                  <img 
-                                    src={item.image_url} 
-                                    alt={item.title} 
-                                    referrerPolicy="no-referrer"
-                                    className="w-full h-full object-cover opacity-95 transition-transform duration-500 group-hover:scale-105"
-                                  />
-                                  <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                    <span className="text-[10px] tracking-[0.2em] font-mono text-white bg-black/75 px-3 py-1.5 rounded uppercase font-bold shadow-md">
-                                      {lang === 'KR' ? '자세히 보기' : 'Read details'} &rarr;
-                                    </span>
-                                  </div>
-                                </div>
-                              )}
-
-                              <p className="text-xs md:text-sm text-[#1C1A17]/85 leading-relaxed font-sans font-normal text-justify line-clamp-3">
-                                {item.summary || item.content}
-                              </p>
-                            </div>
-
-                            <div className="mt-8 border-t border-[#1C1A17]/5 pt-4 flex justify-between items-center text-[9px] tracking-widest uppercase font-mono font-bold text-neutral-400 group-hover:text-black transition-colors">
-                              <span>HERITAGE ARCHIVE</span>
-                              <span className="flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                                {lang === 'KR' ? '자세히 보기' : 'View details'} &rarr;
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Right Column: 음용후기 */}
-                  <div className="space-y-8">
-                    <h4 className="font-serif text-xs tracking-widest uppercase text-black/55 bg-neutral-100 p-2.5 rounded border border-black/5 block font-bold text-center">
-                      💬 {lang === 'KR' ? '다우들의 음용후기 리뷰' : lang === 'SC' ? '茶友品茗感受' : 'Guest Reviews'}
-                    </h4>
-
-                    {teaReviews.length === 0 ? (
-                      /* Default Fallback Card */
-                      <div className="bg-white border border-[#1C1A17]/10 p-6 md:p-8 rounded hover:shadow-xl transition-all duration-300 relative flex flex-col justify-between">
-                        <div className="space-y-6">
-                          <div className="flex justify-between items-center border-b border-[#1C1A17]/5 pb-3">
-                            <span className="font-serif text-base md:text-lg font-bold text-black tracking-wide">
-                              {lang === 'KR' ? '음용후기 (茶友 리뷰)' : lang === 'SC' ? '茶友品茗感受' : 'Guest Reviews & Experiences'}
-                            </span>
-                          </div>
-
-                          {/* Review Image */}
-                          <div className="aspect-[16/10] w-full overflow-hidden rounded bg-gray-50 border border-[#1C1A17]/5 shadow-sm relative group">
-                            <img 
-                              src={siteSettings?.suncha_review_image || 'https://images.unsplash.com/photo-1594631252845-29fc4cc8cde9?auto=format&fit=crop&q=80&w=1200'} 
-                              alt="Seoncha Review" 
-                              referrerPolicy="no-referrer"
-                              className="w-full h-full object-cover opacity-95 transition-transform duration-500 group-hover:scale-105"
-                            />
-                          </div>
-
-                          {/* Content Review with fallback quotation */}
-                          <div className="relative">
-                            <span className="font-serif text-3xl text-black/10 absolute -left-2 -top-4 select-none pr-3 block">“</span>
-                            <p className="text-xs md:text-sm text-[#1C1A17]/85 font-sans leading-relaxed italic text-justify pl-4 whitespace-pre-wrap">
-                              {lang === 'KR'
-                                ? (siteSettings?.suncha_review_text_kr || '따스한 찻사발을 쥐며 흘러나오는 은은한 차 기운을 들이마시니 머리까지 청명해지고 복잡했던 상념들이 맑게 가라앉는 신비로운 영적 몰입감을 느꼈습니다. 매일 참선 다도의 훌륭한 길잡이가 되고 있습니다.')
-                                : lang === 'SC'
-                                ? (siteSettings?.suncha_review_text_sc || siteSettings?.suncha_review_text_kr || '凝神端起温暖的茶盏，清新幽雅的茶香沁人心脾，瞬间感觉灵台一片清明，往日的嘈杂压力在大脑中消解无踪。非常适合日常冥想时饮用。')
-                                : (siteSettings?.suncha_review_text_en || siteSettings?.suncha_review_text_kr || 'Holding the warm tea bowl, the serene aroma centers my mind instantly. Deep thoughts settle into tranquil clarity, making it an indispensable partner for my daily early-morning meditation practice.')
-                              }
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="mt-8 border-t border-[#1C1A17]/5 pt-4 flex justify-between items-center">
-                          <span className="font-mono text-[8px] tracking-widest opacity-45 uppercase font-bold">GUEST RETROSPECTIVES</span>
-                          <span className="font-serif text-[10px] italic opacity-40">M-M Harmony Co.</span>
-                        </div>
-                      </div>
-                    ) : (
-                      /* Dynamic List Cards */
-                      <div className="space-y-6">
-                        {teaReviews.map((item) => (
-                          <div 
-                            key={item.id}
-                            onClick={() => setSelectedJourneyItem(item)}
-                            className="group bg-white border border-[#1C1A17]/10 p-6 md:p-8 rounded hover:shadow-2xl hover:border-[#1C1A17]/30 transition-all duration-300 relative flex flex-col justify-between cursor-pointer hover:scale-[1.01]"
-                          >
-                            <div className="space-y-5">
-                              <div className="flex justify-between items-center border-b border-[#1C1A17]/5 pb-3">
-                                <span className="font-serif text-base md:text-lg font-bold text-black tracking-wide group-hover:text-black/80 transition-colors">
-                                  {item.title}
+                              <div className="space-y-2">
+                                <span className="font-mono text-[9px] tracking-widest text-[#1C1A17]/40 block uppercase font-bold">
+                                  {formatFullDate(item.created_at)}
                                 </span>
-                                {item.category_tag && (
-                                  <span className="font-mono text-[8px] tracking-widest text-[#1C1A17]/50 bg-neutral-100 border border-black/5 px-2 py-0.5 rounded uppercase">
-                                    {item.category_tag}
-                                  </span>
-                                )}
-                              </div>
-
-                              {item.image_url && (
-                                <div className="aspect-[16/10] w-full overflow-hidden rounded bg-gray-50 border border-[#1C1A17]/5 shadow-sm relative">
-                                  <img 
-                                    src={item.image_url} 
-                                    alt={item.title} 
-                                    referrerPolicy="no-referrer"
-                                    className="w-full h-full object-cover opacity-95 transition-transform duration-500 group-hover:scale-105"
-                                  />
-                                  <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                    <span className="text-[10px] tracking-[0.2em] font-mono text-white bg-black/75 px-3 py-1.5 rounded uppercase font-bold shadow-md">
-                                      {lang === 'KR' ? '자세히 보기' : 'Read details'} &rarr;
-                                    </span>
-                                  </div>
-                                </div>
-                              )}
-
-                              <div className="relative">
-                                <span className="font-serif text-3xl text-black/10 absolute -left-2 -top-4 select-none pr-3 block">“</span>
-                                <p className="text-xs md:text-sm text-[#1C1A17]/85 font-sans leading-relaxed italic text-justify pl-4 line-clamp-3">
-                                  {item.summary || item.content}
+                                <h3 className="font-serif text-lg font-bold text-black group-hover:text-amber-800 transition-colors line-clamp-1">
+                                  {item.title}
+                                </h3>
+                                <p className="text-xs text-[#1C1A17]/70 leading-relaxed font-serif line-clamp-3 h-14 overflow-hidden text-justify">
+                                  {bodyExcerpt}
                                 </p>
                               </div>
                             </div>
 
-                            <div className="mt-8 border-t border-[#1C1A17]/5 pt-4 flex justify-between items-center text-[9px] tracking-widest uppercase font-mono font-bold text-neutral-400 group-hover:text-black transition-colors">
-                              <span>GUEST REVIEW</span>
+                            <div className="mt-6 pt-4 border-t border-[#1C1A17]/5 flex justify-between items-center text-[9px] tracking-widest uppercase font-mono font-bold text-[#1C1A17]/40 group-hover:text-[#1C1A17] transition-colors">
+                              <span>VIEW WORKS</span>
                               <span className="flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                                {lang === 'KR' ? '자세히 보기' : 'View details'} &rarr;
+                                {lang === 'KR' ? '자세히 보기' : 'Read details'} <ChevronRight size={12} />
                               </span>
                             </div>
                           </div>
-                        ))}
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* Suncha Detail View */
+                <motion.div 
+                  key="suncha-detail"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-white border border-[#1C1A17]/10 p-8 md:p-12 rounded-2xl shadow-lg space-y-8 text-left max-w-3xl mx-auto mt-6"
+                >
+                  <div className="border-b border-[#1C1A17]/10 pb-6">
+                    <span className="font-mono text-[8px] tracking-[0.2em] uppercase text-black/40 block mb-1">
+                      {readingSuncha.category === 'suncha_seo' ? '서(書) Calligraphy' :
+                       readingSuncha.category === 'suncha_hwa' ? '화(畵) Painting' :
+                       readingSuncha.category === 'suncha_cha' || readingSuncha.category === 'suncha_intro' || readingSuncha.category === 'suncha_review' ? '차(茶) Tea' :
+                       readingSuncha.category === 'suncha_hyang' ? '향(香) Incense' : ''}
+                    </span>
+                    <h3 className="font-serif text-2xl sm:text-3xl font-bold text-black">{readingSuncha.title}</h3>
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="font-mono text-[10px] text-[#1C1A17]/60">
+                        {formatFullDate(readingSuncha.created_at)}
+                      </span>
+                      {readingSuncha.category_tag && (
+                        <span className="font-mono text-[9px] tracking-widest text-[#1C1A17]/50 bg-neutral-100 border border-black/5 px-2 py-0.5 rounded uppercase">
+                          {readingSuncha.category_tag}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {readingSuncha.summary && (
+                    <p className="text-xs md:text-sm font-semibold text-[#1C1A17]/80 font-sans border-l-2 border-[#1C1A17]/30 pl-3 leading-relaxed">
+                      {readingSuncha.summary}
+                    </p>
+                  )}
+
+                  <div className="prose prose-stone max-w-none text-xs md:text-sm leading-[1.8] text-[#1C1A17]/90 font-sans break-words whitespace-pre-line bg-[#FAF9F6] border border-[#1C1A17]/5 p-6 rounded">
+                    <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
+                      {readingSuncha.content}
+                    </ReactMarkdown>
+
+                    {readingSuncha.image_url && (
+                      <div className="mt-8 flex justify-center w-full">
+                        <img 
+                          src={readingSuncha.image_url} 
+                          alt={readingSuncha.title} 
+                          referrerPolicy="no-referrer"
+                          className="max-w-full max-h-[350px] md:max-h-[480px] h-auto object-contain rounded border border-[#1C1A17]/10 p-1.5 bg-white shadow-sm"
+                        />
                       </div>
                     )}
                   </div>
 
-                </div>
+                  {/* Detail bottom actions footer */}
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-[#1C1A17]/10">
+                    <button
+                      onClick={() => setReadingSuncha(null)}
+                      className="px-5 py-2.5 border border-[#1C1A17]/20 text-[#1C1A17] hover:bg-neutral-50 rounded-xl font-serif text-sm font-bold flex items-center gap-1.5 transition-all shadow-sm"
+                    >
+                      <List size={14} />
+                      {lang === 'KR' ? '목록으로' : 'Back to List'}
+                    </button>
 
-              </div>
-
+                    <div className="flex gap-2 flex-wrap">
+                      {isUserAuthorized && (
+                        <button
+                          onClick={() => handleEditClick(readingSuncha)}
+                          className="px-5 py-2.5 border border-amber-600 text-amber-700 hover:bg-amber-50 rounded-xl font-serif text-sm font-bold flex items-center gap-1.5 transition-all shadow-sm"
+                        >
+                          <Edit2 size={14} />
+                          {lang === 'KR' ? '수정' : 'Edit'}
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleWriteClick(readingSuncha.category)}
+                        className="px-5 py-2.5 bg-black hover:bg-neutral-800 text-white rounded-xl font-serif text-sm font-bold flex items-center gap-1.5 transition-all shadow-sm"
+                      >
+                        <PenTool size={14} />
+                        {lang === 'KR' ? '글쓰기' : 'Write'}
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
             </motion.div>
           )}
 
@@ -2192,183 +2999,266 @@ export default function App() {
                 <div className="w-12 h-px bg-[#1C1A17]/25 mx-auto mt-6" />
               </div>
 
-              {/* Elegant Atmospheric Journey Cover Banner */}
-              <div className="w-full h-48 md:h-64 rounded-xl overflow-hidden mb-12 relative border border-[#1C1A17]/10 shadow-lg group select-none">
-                <img 
-                  src="https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?auto=format&fit=crop&q=80&w=1200" 
-                  alt="Journey Banner" 
-                  className="w-full h-full object-cover brightness-[0.85] contrast-[1.05] transition-transform duration-[4000ms] group-hover:scale-103"
-                  referrerPolicy="no-referrer"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/15 to-transparent" />
-                <div className="absolute bottom-6 left-6 text-white text-left space-y-1">
-                  <span className="text-[9px] tracking-[0.3em] font-mono text-white/70 uppercase block font-bold">The Path of True Aesthetics</span>
-                  <h3 className="font-serif text-lg md:text-2xl font-normal text-white drop-shadow-md">
-                    {lang === 'KR' ? '활동여정 (活動旅程) ㆍ 어제와 오늘을 잇는 발자취' : lang === 'SC' ? '活动旅程 ㆍ 连结过去与现在的足迹' : 'The Path of True Aesthetics'}
-                  </h3>
-                </div>
-              </div>
+              {!selectedJourneyItem ? (
+                // Journey List View
+                <div className="space-y-12 animate-fadeIn">
+                  {/* Elegant Atmospheric Journey Cover Banner */}
+                  <div className="w-full h-48 md:h-64 rounded-xl overflow-hidden mb-12 relative border border-[#1C1A17]/10 shadow-lg group select-none">
+                    <img 
+                      src="https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?auto=format&fit=crop&q=80&w=1200" 
+                      alt="Journey Banner" 
+                      className="w-full h-full object-cover brightness-[0.85] contrast-[1.05] transition-transform duration-[4000ms] group-hover:scale-103"
+                      referrerPolicy="no-referrer"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/15 to-transparent" />
+                    <div className="absolute bottom-6 left-6 text-white text-left space-y-1">
+                      <span className="text-[9px] tracking-[0.3em] font-mono text-white/70 uppercase block font-bold">The Path of True Aesthetics</span>
+                      <h3 className="font-serif text-lg md:text-2xl font-normal text-white drop-shadow-md">
+                        {lang === 'KR' ? '활동여정 (活動旅程) ㆍ 어제와 오늘을 잇는 발자취' : lang === 'SC' ? '活动旅程 ㆍ 连结过去与现在的足迹' : 'The Path of True Aesthetics'}
+                      </h3>
+                    </div>
+                  </div>
 
-              {/* Filter tabs */}
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-16 pb-6 border-b border-[#1C1A17]/10">
-                <div className="flex flex-wrap gap-4 text-[10px] tracking-widest uppercase font-mono font-bold">
-                  <button 
-                    onClick={() => setJourneyFilter('all')}
-                    className={`px-6 py-2 rounded-full border transition-all ${
-                      journeyFilter === 'all' 
-                        ? 'bg-black text-white border-black' 
-                        : 'bg-transparent border-[#1C1A17]/10 text-black hover:border-black/30'
-                    }`}
-                  >
-                    All Archive
-                  </button>
-                  <button 
-                    onClick={() => setJourneyFilter('photo')}
-                    className={`px-6 py-2 rounded-full border transition-all ${
-                      journeyFilter === 'photo' 
-                        ? 'bg-black text-white border-black' 
-                        : 'bg-transparent border-[#1C1A17]/10 text-black hover:border-black/30'
-                    }`}
-                  >
-                    Performances / Photos
-                  </button>
-                  <button 
-                    onClick={() => setJourneyFilter('press')}
-                    className={`px-6 py-2 rounded-full border transition-all ${
-                      journeyFilter === 'press' 
-                        ? 'bg-black text-white border-black' 
-                        : 'bg-transparent border-[#1C1A17]/10 text-black hover:border-black/30'
-                    }`}
-                  >
-                    Press Coverage / Publications
-                  </button>
-                </div>
+                  {/* Filter tabs */}
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-16 pb-6 border-b border-[#1C1A17]/10">
+                    <div className="flex flex-wrap gap-4 text-[10px] tracking-widest uppercase font-mono font-bold">
+                      <button 
+                        onClick={() => setJourneyFilter('all')}
+                        className={`px-6 py-2 rounded-full border transition-all ${
+                          journeyFilter === 'all' 
+                            ? 'bg-black text-white border-black' 
+                            : 'bg-transparent border-[#1C1A17]/10 text-black hover:border-black/30'
+                        }`}
+                      >
+                        All Archive
+                      </button>
+                      <button 
+                        onClick={() => setJourneyFilter('photo')}
+                        className={`px-6 py-2 rounded-full border transition-all ${
+                          journeyFilter === 'photo' 
+                            ? 'bg-black text-white border-black' 
+                            : 'bg-transparent border-[#1C1A17]/10 text-black hover:border-black/30'
+                        }`}
+                      >
+                        Performances / Photos
+                      </button>
+                      <button 
+                        onClick={() => setJourneyFilter('press')}
+                        className={`px-6 py-2 rounded-full border transition-all ${
+                          journeyFilter === 'press' 
+                            ? 'bg-black text-white border-black' 
+                            : 'bg-transparent border-[#1C1A17]/10 text-black hover:border-black/30'
+                        }`}
+                      >
+                        Press Coverage / Publications
+                      </button>
+                    </div>
 
-                {/* Sort Controller */}
-                <div className="flex items-center gap-2 self-start md:self-auto shrink-0">
-                  <span className="font-mono text-[9px] tracking-widest text-[#1C1A17]/40 font-bold uppercase">
-                    {lang === 'KR' ? '정렬 방식' : 'Sort Order'}
-                  </span>
-                  <div className="flex gap-1 bg-white border border-[#1C1A17]/10 p-0.5 rounded-sm inline-flex">
-                    <button
-                      onClick={() => setJourneySortOrder('default')}
-                      className={`text-[9px] font-mono tracking-wider px-2.5 py-1 rounded transition-all font-bold ${
-                        journeySortOrder === 'default'
-                          ? 'bg-[#1C1A17] text-[#FAF9F6]'
-                          : 'text-black/50 hover:bg-neutral-50'
-                      }`}
-                    >
-                      {lang === 'KR' ? '기본순' : 'Default'}
-                    </button>
-                    <button
-                      onClick={() => setJourneySortOrder('titleAsc')}
-                      className={`text-[9px] font-mono tracking-wider px-2.5 py-1 rounded transition-all font-bold flex items-center gap-0.5 ${
-                        journeySortOrder === 'titleAsc'
-                          ? 'bg-[#1C1A17] text-[#FAF9F6]'
-                          : 'text-black/50 hover:bg-neutral-50'
-                      }`}
-                    >
-                      ▲ A-Z
-                    </button>
-                    <button
-                      onClick={() => setJourneySortOrder('titleDesc')}
-                      className={`text-[9px] font-mono tracking-wider px-2.5 py-1 rounded transition-all font-bold flex items-center gap-0.5 ${
-                        journeySortOrder === 'titleDesc'
-                          ? 'bg-[#1C1A17] text-[#FAF9F6]'
-                          : 'text-black/50 hover:bg-neutral-50'
-                      }`}
-                    >
-                      ▼ Z-A
-                    </button>
+                    {/* Sort Controller */}
+                    <div className="flex items-center gap-2 self-start md:self-auto shrink-0">
+                      <span className="font-mono text-[9px] tracking-widest text-[#1C1A17]/40 font-bold uppercase">
+                        {lang === 'KR' ? '정렬 방식' : 'Sort Order'}
+                      </span>
+                      <div className="flex gap-1 bg-white border border-[#1C1A17]/10 p-0.5 rounded-sm inline-flex">
+                        <button
+                          onClick={() => setJourneySortOrder('default')}
+                          className={`text-[9px] font-mono tracking-wider px-2.5 py-1 rounded transition-all font-bold ${
+                            journeySortOrder === 'default'
+                              ? 'bg-[#1C1A17] text-[#FAF9F6]'
+                              : 'text-black/50 hover:bg-neutral-50'
+                          }`}
+                        >
+                          {lang === 'KR' ? '기본순' : 'Default'}
+                        </button>
+                        <button
+                          onClick={() => setJourneySortOrder('titleAsc')}
+                          className={`text-[9px] font-mono tracking-wider px-2.5 py-1 rounded transition-all font-bold flex items-center gap-0.5 ${
+                            journeySortOrder === 'titleAsc'
+                              ? 'bg-[#1C1A17] text-[#FAF9F6]'
+                              : 'text-black/50 hover:bg-neutral-50'
+                          }`}
+                        >
+                          ▲ A-Z
+                        </button>
+                        <button
+                          onClick={() => setJourneySortOrder('titleDesc')}
+                          className={`text-[9px] font-mono tracking-wider px-2.5 py-1 rounded transition-all font-bold flex items-center gap-0.5 ${
+                            journeySortOrder === 'titleDesc'
+                              ? 'bg-[#1C1A17] text-[#FAF9F6]'
+                              : 'text-black/50 hover:bg-neutral-50'
+                          }`}
+                        >
+                          ▼ Z-A
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Grid layout */}
+                  <div className="space-y-12">
+                    {JSON.stringify(journeyFilter) !== '"all"' && (
+                      <p className="font-mono text-[9px] tracking-widest uppercase opacity-45 mb-4 font-bold">
+                        Filtered view: {journeyFilter.toUpperCase()} logs
+                      </p>
+                    )}
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      {sortItems(
+                        archiveItems.filter(item => {
+                          if (item.language !== lang) return false;
+                          if (journeyFilter === 'photo') return item.category === 'journey';
+                          if (journeyFilter === 'press') return item.category === 'press';
+                          return (item.category === 'journey' || item.category === 'press');
+                        }),
+                        journeySortOrder
+                      ).map((item) => (
+                        <div 
+                          key={item.id}
+                          onClick={() => setSelectedJourneyItem(item)}
+                          className="group bg-white border border-[#1C1A17]/10 p-6 rounded hover:shadow-2xl hover:border-[#1C1A17]/35 transition-all duration-300 flex flex-col justify-between cursor-pointer hover:scale-[1.01]"
+                        >
+                          <div className="space-y-4 text-left">
+                            <div className="aspect-[16/10] overflow-hidden rounded bg-gray-50 border border-[#1C1A17]/5 relative">
+                              <img 
+                                src={item.image_url} 
+                                alt={item.title} 
+                                className="w-full h-full object-cover opacity-90 transition-transform duration-500 group-hover:scale-105"
+                                referrerPolicy="no-referrer"
+                              />
+                              {/* Hover Overlay indicator */}
+                              <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <span className="text-[10px] tracking-widest font-mono text-white bg-black/75 px-3 py-1.5 rounded uppercase font-bold shadow-md">
+                                  {lang === 'KR' ? '자세히 보기' : 'Read details'} &rarr;
+                                </span>
+                              </div>
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <div className="flex gap-2 items-center">
+                                <span className="font-mono text-[9px] tracking-widest text-[#1C1A17]/40 font-bold uppercase">
+                                  {item.category === 'journey' ? 'Activity Performance' : 'Press Editorial'}
+                                </span>
+                                {item.category_tag && (
+                                  <span className="font-mono text-[8px] tracking-widest text-black/55 bg-neutral-100 px-1.5 py-0.5 rounded border border-black/5 uppercase">
+                                    {item.category_tag}
+                                  </span>
+                                )}
+                              </div>
+                              <h4 className="font-serif text-base md:text-lg font-bold text-black group-hover:text-black/80 transition-colors leading-snug">{item.title}</h4>
+                              <p className="text-xs text-black/60 leading-relaxed font-sans font-normal antialiased line-clamp-3">
+                                {item.summary}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Expandable details button at bottom */}
+                          <div className="pt-4 border-t border-[#1C1A17]/5 mt-6 flex justify-between items-center text-[9px] tracking-widest uppercase font-mono font-bold text-neutral-400 group-hover:text-black transition-all">
+                            <span>{item.category === 'journey' ? 'Perform Log' : 'Editorial'}</span>
+                            <span className="flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                              {lang === 'KR' ? '자세히 보기' : 'View details'} &rarr;
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+
+                      {archiveItems.filter(item => {
+                        if (item.language !== lang) return false;
+                        if (journeyFilter === 'photo') return item.category === 'journey';
+                        if (journeyFilter === 'press') return item.category === 'press';
+                        return (item.category === 'journey' || item.category === 'press');
+                      }).length === 0 && (
+                        <div className="md:col-span-2 text-center py-24 border border-dashed border-[#1C1A17]/10 p-12 bg-white rounded flex flex-col items-center justify-center">
+                          <ImageIcon className="opacity-20 mb-4" size={40} />
+                          <p className="font-serif text-sm italic text-[#1C1A17]/55">
+                            {journeyFilter === 'photo' ? t.journey.emptyPhotos : t.journey.emptyPress}
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-
-              {/* Timeline layouts */}
-              <div className="space-y-12">
-                
-                {/* Journey visual logs */}
-                {JSON.stringify(journeyFilter) !== '"all"' && (
-                  <p className="font-mono text-[9px] tracking-widest uppercase opacity-45 mb-4 font-bold">
-                    Filtered view: {journeyFilter.toUpperCase()} logs
-                  </p>
-                )}
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  {sortItems(
-                    archiveItems.filter(item => {
-                      if (item.language !== lang) return false;
-                      if (journeyFilter === 'photo') return item.category === 'journey';
-                      if (journeyFilter === 'press') return item.category === 'press';
-                      return (item.category === 'journey' || item.category === 'press');
-                    }),
-                    journeySortOrder
-                  ).map((item) => (
-                      <div 
-                        key={item.id}
-                        onClick={() => setSelectedJourneyItem(item)}
-                        className="group bg-white border border-[#1C1A17]/10 p-6 rounded hover:shadow-2xl hover:border-[#1C1A17]/35 transition-all duration-300 flex flex-col justify-between cursor-pointer hover:scale-[1.01]"
-                      >
-                        <div className="space-y-4 text-left">
-                          <div className="aspect-[16/10] overflow-hidden rounded bg-gray-50 border border-[#1C1A17]/5 relative">
-                            <img 
-                              src={item.image_url} 
-                              alt={item.title} 
-                              className="w-full h-full object-cover opacity-90 transition-transform duration-500 group-hover:scale-105"
-                              referrerPolicy="no-referrer"
-                            />
-                            {/* Hover Overlay indicator */}
-                            <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                              <span className="text-[10px] tracking-widest font-mono text-white bg-black/75 px-3 py-1.5 rounded uppercase font-bold shadow-md">
-                                {lang === 'KR' ? '자세히 보기' : 'Read details'} &rarr;
-                              </span>
-                            </div>
-                          </div>
-                          
-                          <div className="space-y-2">
-                            <div className="flex gap-2 items-center">
-                              <span className="font-mono text-[9px] tracking-widest text-[#1C1A17]/40 font-bold uppercase">
-                                {item.category === 'journey' ? 'Activity Performance' : 'Press Editorial'}
-                              </span>
-                              {item.category_tag && (
-                                <span className="font-mono text-[8px] tracking-widest text-black/55 bg-neutral-100 px-1.5 py-0.5 rounded border border-black/5 uppercase">
-                                  {item.category_tag}
-                                </span>
-                              )}
-                            </div>
-                            <h4 className="font-serif text-base md:text-lg font-bold text-black group-hover:text-black/80 transition-colors leading-snug">{item.title}</h4>
-                            <p className="text-xs text-black/60 leading-relaxed font-sans font-normal antialiased line-clamp-3">
-                              {item.summary}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Expandable details button at bottom */}
-                        <div className="pt-4 border-t border-[#1C1A17]/5 mt-6 flex justify-between items-center text-[9px] tracking-widest uppercase font-mono font-bold text-neutral-400 group-hover:text-black transition-all">
-                          <span>{item.category === 'journey' ? 'Perform Log' : 'Editorial'}</span>
-                          <span className="flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                            {lang === 'KR' ? '자세히 보기' : 'View details'} &rarr;
-                          </span>
-                        </div>
-                      </div>
-                  ))}
-
-                  {archiveItems.filter(item => {
-                    if (item.language !== lang) return false;
-                    if (journeyFilter === 'photo') return item.category === 'journey';
-                    if (journeyFilter === 'press') return item.category === 'press';
-                    return (item.category === 'journey' || item.category === 'press');
-                  }).length === 0 && (
-                    <div className="md:col-span-2 text-center py-24 border border-dashed border-[#1C1A17]/10 p-12 bg-white rounded flex flex-col items-center justify-center">
-                      <ImageIcon className="opacity-20 mb-4" size={40} />
-                      <p className="font-serif text-sm italic text-[#1C1A17]/55">
-                        {journeyFilter === 'photo' ? t.journey.emptyPhotos : t.journey.emptyPress}
-                      </p>
+              ) : (
+                // Journey Detail View (본문)
+                <motion.div 
+                  key="journey-detail"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-white border border-[#1C1A17]/10 p-8 md:p-12 rounded-2xl shadow-lg space-y-8 text-left max-w-3xl mx-auto"
+                >
+                  <div className="border-b border-[#1C1A17]/10 pb-6">
+                    <span className="font-mono text-[8px] tracking-[0.2em] uppercase text-black/40 block mb-1">
+                      {selectedJourneyItem.category === 'journey' 
+                        ? (lang === 'KR' ? '활동여정 기록 아카이브' : 'Activity Performance') 
+                        : (lang === 'KR' ? '언론보도 및 보도기사' : 'Press Coverage')
+                      }
+                    </span>
+                    <h3 className="font-serif text-2xl sm:text-3xl font-bold text-black">{selectedJourneyItem.title}</h3>
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="font-mono text-[10px] text-[#1C1A17]/60">
+                        {formatFullDate(selectedJourneyItem.created_at)}
+                      </span>
+                      {selectedJourneyItem.category_tag && (
+                        <span className="font-mono text-[9px] tracking-widest text-[#1C1A17]/50 bg-neutral-100 border border-black/5 px-2 py-0.5 rounded uppercase">
+                          {selectedJourneyItem.category_tag}
+                        </span>
+                      )}
                     </div>
-                  )}
-                </div>
+                  </div>
 
-              </div>
+                  {selectedJourneyItem.summary && (
+                    <p className="text-xs md:text-sm font-semibold text-[#1C1A17]/85 font-sans border-l-2 border-[#1C1A17]/30 pl-3 leading-relaxed">
+                      {selectedJourneyItem.summary}
+                    </p>
+                  )}
+
+                  <div className="prose prose-stone max-w-none text-xs md:text-sm leading-[1.8] text-[#1C1A17]/90 font-sans break-words whitespace-pre-line bg-[#FAF9F6] border border-[#1C1A17]/5 p-6 rounded">
+                    <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
+                      {selectedJourneyItem.content || ''}
+                    </ReactMarkdown>
+
+                    {selectedJourneyItem.image_url && (
+                      <div className="mt-8 flex justify-center w-full">
+                        <img 
+                          src={selectedJourneyItem.image_url} 
+                          alt={selectedJourneyItem.title} 
+                          referrerPolicy="no-referrer"
+                          className="max-w-full max-h-[350px] md:max-h-[480px] h-auto object-contain rounded border border-[#1C1A17]/10 p-1.5 bg-white shadow-sm"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Detail bottom actions footer */}
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-[#1C1A17]/10">
+                    <button
+                      onClick={() => setSelectedJourneyItem(null)}
+                      className="px-5 py-2.5 border border-[#1C1A17]/20 text-[#1C1A17] hover:bg-neutral-50 rounded-xl font-serif text-sm font-bold flex items-center gap-1.5 transition-all shadow-sm"
+                    >
+                      <List size={14} />
+                      {lang === 'KR' ? '목록으로' : 'Back to List'}
+                    </button>
+
+                    <div className="flex gap-2 flex-wrap">
+                      {isUserAuthorized && (
+                        <button
+                          onClick={() => handleEditClick(selectedJourneyItem)}
+                          className="px-5 py-2.5 border border-amber-600 text-amber-700 hover:bg-amber-50 rounded-xl font-serif text-sm font-bold flex items-center gap-1.5 transition-all shadow-sm"
+                        >
+                          <Edit2 size={14} />
+                          {lang === 'KR' ? '수정' : 'Edit'}
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleWriteClick(selectedJourneyItem.category || 'journey')}
+                        className="px-5 py-2.5 bg-black hover:bg-neutral-800 text-white rounded-xl font-serif text-sm font-bold flex items-center gap-1.5 transition-all shadow-sm"
+                      >
+                        <PenTool size={14} />
+                        {lang === 'KR' ? '글쓰기' : 'Write'}
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
 
             </motion.div>
           )}
@@ -2548,8 +3438,10 @@ export default function App() {
                               <option value="journey">Journey (활동 여정기록)</option>
                               <option value="press">Press (언론 보도기사)</option>
                               <option value="mulpa">Mulpaism (물파주의 기고글)</option>
-                              <option value="suncha_intro">Seoncha Intro (불한선차소개)</option>
-                              <option value="suncha_review">Seoncha Review (음용후기)</option>
+                              <option value="suncha_seo">서화차향 - 서(書) (Calligraphy)</option>
+                              <option value="suncha_hwa">서화차향 - 화(畵) (Painting)</option>
+                              <option value="suncha_cha">서화차향 - 차(茶) (Tea)</option>
+                              <option value="suncha_hyang">서화차향 - 향(香) (Incense)</option>
                             </select>
                           </div>
 
@@ -2610,8 +3502,12 @@ export default function App() {
                                    item.category === 'journey' ? 'Journey' :
                                    item.category === 'press' ? 'Press' :
                                    item.category === 'mulpa' ? 'Mulpaism' :
-                                   item.category === 'suncha_intro' ? 'Seoncha Intro' :
-                                   item.category === 'suncha_review' ? 'Seoncha Review' :
+                                   item.category === 'suncha_seo' ? '서화차향 - 서(書)' :
+                                   item.category === 'suncha_hwa' ? '서화차향 - 화(畵)' :
+                                   item.category === 'suncha_cha' ? '서화차향 - 차(茶)' :
+                                   item.category === 'suncha_hyang' ? '서화차향 - 향(香)' :
+                                   item.category === 'suncha_intro' ? '서화차향 - 차(茶) (Old)' :
+                                   item.category === 'suncha_review' ? '서화차향 - 차(茶) (Old)' :
                                    item.category}
                                 </td>
                                 <td className="p-3 font-medium text-black max-w-xs truncate font-serif">
@@ -2778,7 +3674,7 @@ export default function App() {
                         <p className="text-xs text-[#1C1A17]/60 font-sans mt-0.5">서버의 주요 디자인 자산(로고, 배경, 대표 다도 이미지)을 PC 내부 파일에서 직접 선택하여 교체 저장합니다.</p>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                         
                         {/* 1. Global Logo */}
                         <div className="space-y-2">
@@ -2844,7 +3740,7 @@ export default function App() {
                             <div className="relative w-full text-center">
                               <input 
                                 type="file" 
-                                accept="image/*"
+                                accept="image/*,image/heic,image/heif,.heic,.heif"
                                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                                 onChange={async (e) => {
                                   const file = e.target.files?.[0];
@@ -2890,7 +3786,7 @@ export default function App() {
                             <div className="relative w-full text-center">
                               <input 
                                 type="file" 
-                                accept="image/*"
+                                accept="image/*,image/heic,image/heif,.heic,.heif"
                                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                                 onChange={async (e) => {
                                   const file = e.target.files?.[0];
@@ -2914,6 +3810,52 @@ export default function App() {
                             </div>
                             <span className="text-[9px] text-[#1C1A17]/50 font-mono break-all text-center">
                               {siteSettings?.tea_detail_url ? siteSettings.tea_detail_url.substring(siteSettings.tea_detail_url.lastIndexOf('/') + 1) : '지정된 이미지 없음'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* 4. Hero Hanging Scroll Calligraphy */}
+                        <div className="space-y-2">
+                          <label className="font-mono text-[9px] tracking-widest font-bold uppercase block text-[#1C1A17]/70">
+                            HERO CALLIGRAPHY SCROLL (히어로 액자 세로형 붓글씨)
+                          </label>
+                          <div className="border border-[#1C1A17]/15 rounded p-4 bg-[#FAF9F6] flex flex-col items-center justify-center space-y-3 relative overflow-hidden group">
+                            {finalHeroScroll ? (
+                              <div className="w-full h-16 border border-black/10 rounded overflow-hidden bg-white shadow-sm flex items-center justify-center">
+                                <img src={finalHeroScroll} alt="Calligraphy Scroll Preview" referrerPolicy="no-referrer" className="max-w-full max-h-full object-contain" />
+                              </div>
+                            ) : (
+                              <div className="w-full h-16 border border-dashed border-black/20 rounded flex items-center justify-center text-black/30 text-[10px] font-serif text-center font-bold">
+                                기본 액자 그림 (mainsub.jpg)
+                              </div>
+                            )}
+                            <div className="relative w-full text-center">
+                              <input 
+                                type="file" 
+                                accept="image/*,image/heic,image/heif,.heic,.heif"
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                onChange={async (e) => {
+                                  const file = e.target.files?.[0];
+                                  if (!file) return;
+                                  try {
+                                    const container = e.target.closest('.rounded') as HTMLDivElement;
+                                    if (container) container.style.opacity = '0.5';
+                                    const url = await uploadImageFile(file);
+                                    const updated = { ...siteSettings, hero_scroll_url: url } as SiteSettings;
+                                    setSiteSettings(updated);
+                                    await setDoc(doc(db, 'site_settings', 'global'), updated);
+                                    if (container) container.style.opacity = '1';
+                                  } catch (err: any) {
+                                    alert('붓글씨 이미지 업로드에 실패했습니다: ' + (err?.message || err));
+                                  }
+                                }}
+                              />
+                              <button type="button" className="w-full py-1.5 border border-[#1C1A17]/15 hover:bg-neutral-100 text-black text-[10px] uppercase tracking-wider font-bold rounded bg-white transition-all shadow-sm">
+                                📁 파일 선택 및 저장
+                              </button>
+                            </div>
+                            <span className="text-[9px] text-[#1C1A17]/50 font-mono break-all text-center">
+                              {siteSettings?.hero_scroll_url ? siteSettings.hero_scroll_url.substring(siteSettings.hero_scroll_url.lastIndexOf('/') + 1) : '기본 액자 그림 (mainsub.jpg)'}
                             </span>
                           </div>
                         </div>
@@ -3027,8 +3969,10 @@ export default function App() {
                       <option value="journey">Journey (활동 여정기록)</option>
                       <option value="press">Press (언론 보도기사)</option>
                       <option value="mulpa">Mulpaism (물파주의 기고글)</option>
-                      <option value="suncha_intro">Seoncha Intro (불한선차소개)</option>
-                      <option value="suncha_review">Seoncha Review (음용후기)</option>
+                      <option value="suncha_seo">서화차향 - 서(書) (Calligraphy)</option>
+                      <option value="suncha_hwa">서화차향 - 화(畵) (Painting)</option>
+                      <option value="suncha_cha">서화차향 - 차(茶) (Tea)</option>
+                      <option value="suncha_hyang">서화차향 - 향(香) (Incense)</option>
                     </select>
                   </div>
 
@@ -3076,7 +4020,7 @@ export default function App() {
                       <div className="md:col-span-2 border border-dashed border-[#1C1A17]/25 hover:border-[#1C1A17]/50 rounded p-4 text-center bg-white cursor-pointer relative transition-colors">
                         <input 
                           type="file" 
-                          accept="image/*"
+                          accept="image/*,image/heic,image/heif,.heic,.heif"
                           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                           onChange={async (e) => {
                             const file = e.target.files?.[0];
@@ -3129,6 +4073,7 @@ export default function App() {
                       rows={6}
                       value={editingItem.content || ''}
                       onChange={e => setEditingItem({ ...editingItem, content: e.target.value })}
+                      onPaste={(e) => handleTextAreaPaste(e, (val) => setEditingItem({ ...editingItem, content: val }), editingItem.content || '')}
                       className="w-full bg-white border border-[#1C1A17]/15 rounded p-3 text-xs font-mono text-[#1C1A17] focus:outline-none"
                       placeholder="Markdown 및 띄어쓰기 한 줄 개행 등이 완벽 지원됩니다."
                     />
@@ -3210,7 +4155,7 @@ export default function App() {
                       <div className="md:col-span-2 border border-dashed border-[#1C1A17]/25 hover:border-[#1C1A17]/50 rounded p-4 text-center bg-white cursor-pointer relative transition-colors">
                         <input 
                           type="file" 
-                          accept="image/*"
+                          accept="image/*,image/heic,image/heif,.heic,.heif"
                           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                           onChange={async (e) => {
                             const file = e.target.files?.[0];
@@ -3289,6 +4234,7 @@ export default function App() {
                       rows={4}
                       value={editingArtist.bio || ''}
                       onChange={e => setEditingArtist({ ...editingArtist, bio: e.target.value })}
+                      onPaste={(e) => handleTextAreaPaste(e, (val) => setEditingArtist({ ...editingArtist, bio: val }), editingArtist.bio || '')}
                       className="w-full bg-white border border-[#1C1A17]/15 rounded p-2 text-xs text-[#1C1A17] focus:outline-none"
                       placeholder="세밀하고 깊이있는 일대기를 문맥에 맞춰 기술합니다."
                     />
@@ -3336,7 +4282,7 @@ export default function App() {
                         <div className="relative border border-dashed border-[#1C1A17]/30 hover:border-[#1C1A17]/60 rounded py-1.5 px-2 text-center bg-white cursor-pointer transition-colors text-[11px] font-sans">
                           <input 
                             type="file" 
-                            accept="image/*"
+                            accept="image/*,image/heic,image/heif,.heic,.heif"
                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                             onChange={async (e) => {
                               const file = e.target.files?.[0];
@@ -3769,77 +4715,6 @@ export default function App() {
           </div>
         )}
 
-        {/* 1. Activity Journey details popup modal */}
-        {selectedJourneyItem && (
-          <div className="fixed inset-0 bg-[#1C1A17]/60 backdrop-blur-sm z-[250] flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white border border-[#1C1A17]/15 rounded shadow-2xl w-full max-w-3xl max-h-[92vh] flex flex-col overflow-hidden text-left relative z-[260]"
-            >
-              <div className="p-5 bg-[#FAF9F6] border-b border-[#1C1A17]/10 flex justify-between items-start">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-[9px] tracking-widest text-[#1C1A17]/40 font-bold uppercase py-0.5 px-2 bg-[#E5DFD3]/40 rounded">
-                      {selectedJourneyItem.category === 'journey' ? 'Activity Performance' : 'Press Editorial'}
-                    </span>
-                    {selectedJourneyItem.category_tag && (
-                      <span className="font-mono text-[9px] tracking-widest text-[#1C1A17]/60 font-bold uppercase py-0.5 px-2 bg-neutral-100 rounded border border-black/5">
-                        {selectedJourneyItem.category_tag}
-                      </span>
-                    )}
-                  </div>
-                  <h3 className="font-serif text-lg md:text-xl font-bold text-black mt-2 leading-snug">
-                    {selectedJourneyItem.title}
-                  </h3>
-                </div>
-                <button 
-                  onClick={() => setSelectedJourneyItem(null)}
-                  className="text-black/40 hover:text-black hover:bg-neutral-100 p-1.5 rounded transition-colors mt-1"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-
-              <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-6">
-                {selectedJourneyItem.image_url && (
-                  <div className="w-full flex justify-center bg-gray-50 rounded border border-[#1C1A17]/5 p-2 overflow-hidden max-h-[60vh]">
-                    <img 
-                      src={selectedJourneyItem.image_url} 
-                      alt={selectedJourneyItem.title} 
-                      referrerPolicy="no-referrer"
-                      className="max-h-[50vh] w-auto h-auto object-contain rounded shadow-sm"
-                    />
-                  </div>
-                )}
-
-                <div className="space-y-4">
-                  {selectedJourneyItem.summary && (
-                    <p className="text-xs md:text-sm font-semibold text-[#1C1A17]/85 font-sans border-l-2 border-[#1C1A17]/30 pl-3 leading-relaxed">
-                      {selectedJourneyItem.summary}
-                    </p>
-                  )}
-                  <div className="prose prose-stone max-w-none text-xs md:text-sm text-[#1C1A17]/85 font-sans leading-relaxed whitespace-pre-wrap markdown-body pt-2">
-                    <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
-                      {selectedJourneyItem.content || ''}
-                    </ReactMarkdown>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-4 bg-[#FAF9F6] border-t border-[#1C1A17]/5 flex justify-end font-mono">
-                <button 
-                  onClick={() => setSelectedJourneyItem(null)}
-                  className="px-6 py-2 bg-[#1C1A17] text-white hover:bg-black text-[10px] tracking-widest uppercase transition-colors rounded font-bold"
-                >
-                  Close Window
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-
         {/* 2. Suncha promo & reviews edit modal */}
         {isTeaPromoModalOpen && tempTeaPromo && (
           <div className="fixed inset-0 bg-[#1C1A17]/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
@@ -3883,7 +4758,7 @@ export default function App() {
                       <div className="md:col-span-2 border border-dashed border-[#1C1A17]/25 hover:border-[#1C1A17]/50 rounded p-4 text-center bg-white cursor-pointer relative transition-colors">
                         <input 
                           type="file" 
-                          accept="image/*"
+                          accept="image/*,image/heic,image/heif,.heic,.heif"
                           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                           onChange={async (e) => {
                             const file = e.target.files?.[0];
@@ -3972,7 +4847,7 @@ export default function App() {
                       <div className="md:col-span-2 border border-dashed border-[#1C1A17]/25 hover:border-[#1C1A17]/50 rounded p-4 text-center bg-white cursor-pointer relative transition-colors">
                         <input 
                           type="file" 
-                          accept="image/*"
+                          accept="image/*,image/heic,image/heif,.heic,.heif"
                           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                           onChange={async (e) => {
                             const file = e.target.files?.[0];
@@ -3996,6 +4871,474 @@ export default function App() {
                       <div className="border border-[#1C1A17]/10 aspect-[16/10] bg-[#FAF9F6] rounded flex items-center justify-center p-2 relative overflow-hidden">
                         {tempTeaPromo.suncha_review_image ? (
                           <img src={tempTeaPromo.suncha_review_image} alt="Review Preview" className="w-full h-full object-cover rounded" referrerPolicy="no-referrer" />
+                        ) : (
+                          <span className="text-[10px] text-black/35 font-mono">No Image</span>
+                        )}
+                      </div>
+                    </div>
+                    {/* Manual input URL */}
+                    <input 
+                      type="text" 
+                      placeholder="직접 이미지 URL 입력"
+                      value={tempTeaPromo.suncha_review_image || ''}
+                      onChange={e => setTempTeaPromo(p => p ? { ...p, suncha_review_image: e.target.value } : null)}
+                      className="w-full bg-white border border-[#1C1A17]/15 rounded p-2 text-xs font-mono text-[#1C1A17] focus:outline-none"
+                    />
+                  </div>
+
+                  {/* Suncha Review Text Localized */}
+                  <div className="grid grid-cols-1 gap-4">
+                    <div>
+                      <label className="font-mono text-[9px] tracking-widest font-bold uppercase block mb-1">REVIEW TEXT - KOREAN (한국어 음용후기 글)</label>
+                      <textarea 
+                        rows={3}
+                        value={tempTeaPromo.suncha_review_text_kr || ''}
+                        onChange={e => setTempTeaPromo(p => p ? { ...p, suncha_review_text_kr: e.target.value } : null)}
+                        className="w-full bg-white border border-[#1C1A17]/15 rounded p-3 text-xs text-[#1C1A17] focus:outline-none"
+                        placeholder="한국어 음용후기를 채워주세요."
+                      />
+                    </div>
+                    <div>
+                      <label className="font-mono text-[9px] tracking-widest font-bold uppercase block mb-1">REVIEW TEXT - CHINESE (중국어 음용후기 글)</label>
+                      <textarea 
+                        rows={3}
+                        value={tempTeaPromo.suncha_review_text_sc || ''}
+                        onChange={e => setTempTeaPromo(p => p ? { ...p, suncha_review_text_sc: e.target.value } : null)}
+                        className="w-full bg-white border border-[#1C1A17]/15 rounded p-3 text-xs text-[#1C1A17] focus:outline-none"
+                        placeholder="중국어 음용후기를 채워주세요. (미입력 시 한국어가 대체 노출됩니다.)"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-mono text-[9px] tracking-widest font-bold uppercase block mb-1">REVIEW TEXT - ENGLISH (영어 음용후기 글)</label>
+                      <textarea 
+                        rows={3}
+                        value={tempTeaPromo.suncha_review_text_en || ''}
+                        onChange={e => setTempTeaPromo(p => p ? { ...p, suncha_review_text_en: e.target.value } : null)}
+                        className="w-full bg-white border border-[#1C1A17]/15 rounded p-3 text-xs text-[#1C1A17] focus:outline-none"
+                        placeholder="영어 음용후기를 채워주세요. (미입력 시 한국어가 대체 노출됩니다.)"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 bg-white border-t border-[#1C1A17]/10 flex justify-end gap-3 font-mono">
+                <button 
+                  onClick={() => {
+                    setIsTeaPromoModalOpen(false);
+                    setTempTeaPromo(null);
+                  }}
+                  className="px-6 py-2 border border-[#1C1A17]/10 hover:bg-neutral-100 text-[10px] tracking-widest uppercase transition-colors rounded"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={async () => {
+                    if (!tempTeaPromo) return;
+                    try {
+                      await setDoc(doc(db, 'site_settings', 'global'), tempTeaPromo);
+                      setSiteSettings(tempTeaPromo as SiteSettings);
+                      setIsTeaPromoModalOpen(false);
+                      setTempTeaPromo(null);
+                    } catch (err: any) {
+                      alert('저장에 실패하였습니다: ' + err.message);
+                    }
+                  }}
+                  className="px-6 py-2 bg-black text-white hover:bg-[#1C1A17] text-[10px] tracking-widest uppercase transition-colors rounded font-bold"
+                >
+                  Save to Firebase
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* Direct Writing Passcode Authorization Modal (8888) */}
+        {isAuthModalOpen && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[250] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white border-2 border-black p-8 rounded-2xl shadow-2xl max-w-md w-full text-center space-y-6"
+            >
+              <div className="space-y-2 text-center">
+                <Key className="mx-auto text-amber-700 animate-bounce" size={40} />
+                <h3 className="font-serif text-2xl font-bold text-black">
+                  {lang === 'KR' ? '작성자 인증' : lang === 'SC' ? '作者认证' : 'Author Verification'}
+                </h3>
+                <p className="text-xs text-neutral-500 font-sans">
+                  {lang === 'KR' 
+                    ? '시연 및 원활한 업로드를 위해 지정된 비밀번호를 입력해 주세요.' 
+                    : lang === 'SC' 
+                    ? '请输入指定的密码以进行文章上传。' 
+                    : 'Please enter the writer password to upload.'}
+                </p>
+              </div>
+
+              <div className="space-y-4 text-left">
+                <input
+                  type="password"
+                  placeholder="암호 입력 (8888)"
+                  value={userPasscode}
+                  onChange={(e) => setUserPasscode(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleVerifyPasscode();
+                  }}
+                  className="w-full text-center tracking-widest text-lg font-bold border-2 border-neutral-300 focus:border-black rounded-lg p-3 bg-neutral-50 focus:outline-none"
+                  autoFocus
+                />
+                
+                <p className="text-[11px] text-amber-800 font-mono bg-amber-50 p-2.5 rounded border border-amber-200">
+                  💡 {lang === 'KR' 
+                    ? '최초 1회 인증 완료 시 이 기기에서 계속 글쓰기가 가능합니다.' 
+                    : lang === 'SC' 
+                    ? '首次认证成功后，此设备将自动保持授权状态。' 
+                    : 'Once verified, this device will remain authorized.'}
+                </p>
+              </div>
+
+              <div className="flex gap-3 font-serif">
+                <button
+                  onClick={() => {
+                    setIsAuthModalOpen(false);
+                    setUserPasscode('');
+                  }}
+                  className="flex-1 py-3 border border-neutral-300 text-neutral-700 hover:bg-neutral-50 text-base font-bold rounded-lg transition-colors"
+                >
+                  {lang === 'KR' ? '취소' : 'Cancel'}
+                </button>
+                <button
+                  onClick={handleVerifyPasscode}
+                  className="flex-1 py-3 bg-black hover:bg-neutral-800 text-white text-base font-bold rounded-lg transition-all"
+                >
+                  {lang === 'KR' ? '확인' : 'Verify'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* Direct Writing Form Modal */}
+        {isWriteModalOpen && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[240] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ y: 50, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 50, opacity: 0 }}
+              className="bg-[#FAF9F6] border-2 border-[#1C1A17] rounded-2xl shadow-2xl overflow-hidden w-full max-w-3xl max-h-[90vh] flex flex-col"
+            >
+              <div className="p-6 bg-white border-b-2 border-[#1C1A17] flex justify-between items-center text-left">
+                <div>
+                  <h3 className="font-serif text-2xl font-bold text-black flex items-center gap-2">
+                    <PenTool className="text-black" size={24} />
+                    {lang === 'KR' ? '새 글 작성하기' : lang === 'SC' ? '发布新文章' : 'Create New Post'}
+                  </h3>
+                  <p className="text-xs text-neutral-500 font-sans mt-0.5">
+                    {lang === 'KR' ? '카테고리별 아카이브에 글을 즉시 게시합니다.' : 'Post content directly to active archives.'}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setIsWriteModalOpen(false)}
+                  className="text-black/50 hover:text-black hover:bg-neutral-100 p-2 rounded-full transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveUserPost} className="flex-1 overflow-y-auto p-6 space-y-6 text-left">
+                {/* Language Select */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="font-serif text-sm font-bold text-black block mb-1.5">글 언어 (Language)</label>
+                    <select
+                      value={writeFormLang}
+                      onChange={(e) => setWriteFormLang(e.target.value as any)}
+                      className="w-full bg-white border border-neutral-300 focus:border-black rounded-lg p-2.5 text-base font-medium focus:outline-none"
+                    >
+                      <option value="KR">한국어 (KR)</option>
+                      <option value="SC">中文(简体) (SC)</option>
+                      <option value="EN">English (EN)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="font-serif text-sm font-bold text-black block mb-1.5">카테고리 지정 (Category)</label>
+                    <select
+                      value={writeFormCategory}
+                      onChange={(e) => setWriteFormCategory(e.target.value)}
+                      className="w-full bg-white border border-neutral-300 focus:border-black rounded-lg p-2.5 text-base font-medium focus:outline-none"
+                    >
+                      <option value="poetry">라석시집 (Poetry Book)</option>
+                      <option value="philosophy">심물철학 에세이 (Philosophy Essay)</option>
+                      <option value="suncha_seo">서화차향 - 서(書) (Calligraphy)</option>
+                      <option value="suncha_hwa">서화차향 - 화(畵) (Painting)</option>
+                      <option value="suncha_cha">서화차향 - 차(茶) (Tea)</option>
+                      <option value="suncha_hyang">서화차향 - 향(香) (Incense)</option>
+                      <option value="journey">활동여정 사진 (Media Photos)</option>
+                      <option value="press">활동여정 언론보도 (Media Press)</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Poetry Collection Select (Only shown if poetry is selected) */}
+                {writeFormCategory === 'poetry' && (
+                  <div>
+                    <label className="font-serif text-sm font-bold text-black block mb-1.5">시집 선택 (Poetry Collection Book)</label>
+                    <select
+                      value={writeFormCollection}
+                      onChange={(e) => setWriteFormCollection(e.target.value)}
+                      className="w-full bg-white border border-neutral-300 focus:border-black rounded-lg p-2.5 text-base font-medium focus:outline-none"
+                    >
+                      {translations[writeFormLang].poetryCollection.allCollections.map((bookName, idx) => (
+                        <option key={idx} value={bookName}>{bookName}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Title */}
+                <div>
+                  <label className="font-serif text-sm font-bold text-black block mb-1.5">제목 (Title)</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="글 제목을 입력하세요."
+                    value={writeFormTitle}
+                    onChange={(e) => setWriteFormTitle(e.target.value)}
+                    className="w-full bg-white border border-neutral-300 focus:border-black rounded-lg p-2.5 text-base focus:outline-none"
+                  />
+                </div>
+
+                {/* Summary / Subtext */}
+                <div>
+                  <label className="font-serif text-sm font-bold text-black block mb-1.5">요약문 / 서브 텍스트 (Summary)</label>
+                  <input
+                    type="text"
+                    placeholder="목록에서 미리 보여줄 간단한 요약 한 줄"
+                    value={writeFormSummary}
+                    onChange={(e) => setWriteFormSummary(e.target.value)}
+                    className="w-full bg-white border border-neutral-300 focus:border-black rounded-lg p-2.5 text-base focus:outline-none"
+                  />
+                </div>
+
+                {/* Core content */}
+                <div>
+                  <label className="font-serif text-sm font-bold text-black block mb-1.5">본문 내용 (Content) - Markdown 지원</label>
+                  <textarea
+                    rows={10}
+                    required
+                    placeholder="본문 글을 입력하세요. 개행 시 본문이 상, 중, 하 이미지 배치를 위해 자동 배분될 수 있습니다."
+                    value={writeFormContent}
+                    onChange={(e) => setWriteFormContent(e.target.value)}
+                    onPaste={(e) => handleTextAreaPaste(e, setWriteFormContent, writeFormContent)}
+                    className="w-full bg-white border border-neutral-300 focus:border-black rounded-lg p-3 text-base focus:outline-none font-sans whitespace-pre-wrap leading-relaxed"
+                  />
+                </div>
+
+                {/* Multi-Image Insertion (Top, Middle, Bottom) */}
+                <div className="space-y-4 border-t border-neutral-200 pt-4">
+                  <h4 className="font-serif text-base font-bold text-black flex items-center gap-1.5">
+                    <ImageIcon size={18} />
+                    반응형 이미지 삽입 (최대 3개 배치: 상단, 중단, 하단)
+                  </h4>
+
+                  <div className="grid grid-cols-1 gap-4 text-left">
+                    {/* Top image */}
+                    <div className="bg-white p-4 rounded-xl border border-neutral-200 space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="font-serif text-sm font-bold text-neutral-800">1. 상단 대표 이미지 (목록에도 표시됨)</span>
+                        {writeFormUploading.top && <span className="text-xs text-amber-600 font-bold animate-pulse">업로드 중...</span>}
+                      </div>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          placeholder="이미지 URL 주소"
+                          value={writeFormTopImg}
+                          onChange={(e) => setWriteFormTopImg(e.target.value)}
+                          className="flex-1 bg-neutral-50 border border-neutral-300 rounded-lg p-2 text-xs font-mono focus:outline-none"
+                        />
+                        <div className="relative">
+                          <input
+                            type="file"
+                            accept="image/*,image/heic,image/heif,.heic,.heif"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              setWriteFormUploading(p => ({ ...p, top: true }));
+                              try {
+                                const url = await uploadImageFile(file);
+                                setWriteFormTopImg(url);
+                              } catch (err) {
+                                alert('이미지 업로드 실패: ' + err);
+                              } finally {
+                                setWriteFormUploading(p => ({ ...p, top: false }));
+                              }
+                            }}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                          />
+                          <button type="button" className="px-4 py-2 bg-neutral-800 hover:bg-black text-white text-xs font-bold rounded-lg whitespace-nowrap">
+                            파일 찾기
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Middle image */}
+                    <div className="bg-white p-4 rounded-xl border border-neutral-200 space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="font-serif text-sm font-bold text-neutral-800">2. 중간 이미지 (본문 1/2 지점 배치)</span>
+                        {writeFormUploading.mid && <span className="text-xs text-amber-600 font-bold animate-pulse">업로드 중...</span>}
+                      </div>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          placeholder="이미지 URL 주소"
+                          value={writeFormMidImg}
+                          onChange={(e) => setWriteFormMidImg(e.target.value)}
+                          className="flex-1 bg-neutral-50 border border-neutral-300 rounded-lg p-2 text-xs font-mono focus:outline-none"
+                        />
+                        <div className="relative">
+                          <input
+                            type="file"
+                            accept="image/*,image/heic,image/heif,.heic,.heif"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              setWriteFormUploading(p => ({ ...p, mid: true }));
+                              try {
+                                const url = await uploadImageFile(file);
+                                setWriteFormMidImg(url);
+                              } catch (err) {
+                                alert('이미지 업로드 실패: ' + err);
+                              } finally {
+                                setWriteFormUploading(p => ({ ...p, mid: false }));
+                              }
+                            }}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                          />
+                          <button type="button" className="px-4 py-2 bg-neutral-800 hover:bg-black text-white text-xs font-bold rounded-lg whitespace-nowrap">
+                            파일 찾기
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bottom image */}
+                    <div className="bg-white p-4 rounded-xl border border-neutral-200 space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="font-serif text-sm font-bold text-neutral-800">3. 하단 이미지 (본문 맨 아래 배치)</span>
+                        {writeFormUploading.bot && <span className="text-xs text-amber-600 font-bold animate-pulse">업로드 중...</span>}
+                      </div>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          placeholder="이미지 URL 주소"
+                          value={writeFormBotImg}
+                          onChange={(e) => setWriteFormBotImg(e.target.value)}
+                          className="flex-1 bg-neutral-50 border border-neutral-300 rounded-lg p-2 text-xs font-mono focus:outline-none"
+                        />
+                        <div className="relative">
+                          <input
+                            type="file"
+                            accept="image/*,image/heic,image/heif,.heic,.heif"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              setWriteFormUploading(p => ({ ...p, bot: true }));
+                              try {
+                                const url = await uploadImageFile(file);
+                                setWriteFormBotImg(url);
+                              } catch (err) {
+                                alert('이미지 업로드 실패: ' + err);
+                              } finally {
+                                setWriteFormUploading(p => ({ ...p, bot: false }));
+                              }
+                            }}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                          />
+                          <button type="button" className="px-4 py-2 bg-neutral-800 hover:bg-black text-white text-xs font-bold rounded-lg whitespace-nowrap">
+                            파일 찾기
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </form>
+
+              <div className="p-6 bg-white border-t-2 border-[#1C1A17] flex justify-end gap-3 font-serif">
+                <button
+                  type="button"
+                  onClick={() => setIsWriteModalOpen(false)}
+                  className="px-6 py-2.5 border-2 border-neutral-300 text-neutral-700 hover:bg-neutral-100 text-base font-bold rounded-lg transition-colors"
+                >
+                  {lang === 'KR' ? '취소' : 'Cancel'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveUserPost}
+                  className="px-6 py-2.5 bg-black hover:bg-neutral-800 text-white text-base font-bold rounded-lg transition-all shadow-md"
+                >
+                  {lang === 'KR' ? '저장 및 발행하기' : 'Save & Publish'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+        {/* End of Direct Writing Modals */}
+        
+        {/* End of original promo settings modal */}
+        
+        {isTeaPromoModalOpen && tempTeaPromo && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white border border-[#1C1A17]/20 rounded shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col"
+            >
+              {/* Existing Header */}
+              <div className="p-6 border-b border-[#1C1A17]/10 flex justify-between items-center bg-neutral-50">
+                <h3 className="font-serif text-lg font-bold text-black flex items-center gap-2">
+                  <Settings size={18} /> Manage Suncha Meditative Steeping Setup
+                </h3>
+              </div>
+              
+              <div className="p-6 overflow-y-auto space-y-6 text-left">
+                {/* Promo item controls */}
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="font-mono text-[9px] tracking-widest font-bold uppercase block mb-1">PROMOTION TEXT (메인 프로모션 문구)</label>
+                      <input 
+                        type="text" 
+                        value={tempTeaPromo.suncha_promo_title || ''}
+                        onChange={e => setTempTeaPromo(p => p ? { ...p, suncha_promo_title: e.target.value } : null)}
+                        className="w-full bg-white border border-[#1C1A17]/15 rounded p-2 text-xs text-[#1C1A17] focus:outline-none"
+                        placeholder="불한선차 특별 찻자리 한정판매 등"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-mono text-[9px] tracking-widest font-bold uppercase block mb-1">PROMOTION PRICE (판매 가격 표시)</label>
+                      <input 
+                        type="text" 
+                        value={tempTeaPromo.suncha_promo_price || ''}
+                        onChange={e => setTempTeaPromo(p => p ? { ...p, suncha_promo_price: e.target.value } : null)}
+                        className="w-full bg-white border border-[#1C1A17]/15 rounded p-2 text-xs text-[#1C1A17] focus:outline-none"
+                        placeholder="₩120,000"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Suncha Review Image */}
+                  <div className="space-y-2">
+                    <label className="font-mono text-[9px] tracking-widest font-bold uppercase block">PROMO TEA REVIEW IMAGE (시음 후기 대표 이미지)</label>
+                    <div className="flex items-center gap-4">
+                      {/* Image Preview */}
+                      <div className="w-16 h-16 rounded border border-[#1C1A17]/10 overflow-hidden shrink-0 flex items-center justify-center bg-[#FAF9F6]">
+                        {tempTeaPromo.suncha_review_image ? (
+                          <img src={tempTeaPromo.suncha_review_image} alt="Preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                         ) : (
                           <span className="text-[10px] text-black/35 font-mono">No Image</span>
                         )}

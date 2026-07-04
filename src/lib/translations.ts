@@ -152,22 +152,22 @@ export const translations: Record<Language, Content> = {
       mulpaismDeclaration: "20세기는 물질문명의 찬란한 번영에 가려 인류 본연의 도덕성과 정신적 깊이가 쇠퇴한 혼돈과 방황의 시대였습니다. 가치관이 전도되고 기성 종교가 빛을 잃어버리는 소용돌이 속에서, 우리는 동양 고유의 직관적 물아일체 사상인 심물합일론(心物合一論)을 바탕으로 한 새로운 조형예술의 길을 열고자 합니다.\n\n물파(物波)란 참된 심물의 파동(心物之波)입니다. 그것은 기계론적 서구 분석학의 유물적 파동이나, 단편적인 유심론의 신비에 치우치지 않는 예술적 실천입니다. 마음은 즉 기운이며, 붓끝과 형상에 실려 나오는 가야금의 선율이나 먹의 결은 우주적 새 기운(新氣運)과 감상자의 마음거울이 만나 일으키는 거룩한 신기파( deificar wave)의 만남입니다.\n\n이에 우리는 우주 본질의 진동을 깨우며 21세기 인류의 영적 변용과 존재 회복을 향한 예술적 비전으로서 물파주의를 선언합니다.\n\n— 물파공간 창립선언에서 발췌, 1997."
     },
     poetryCollection: {
-      title: "석하서시",
-      subtitle: "石下序詩 — 라석 시원(詩苑)",
+      title: "라석시집",
+      subtitle: "羅石詩集 — 라석 시원(詩苑)",
       listTitle: "시집 및 시원 목록",
-      allCollections: ["1. 천자문시집", "2. 합작시집", "3. 심물철학시집", "4. 시전집", "5. 심물시집", "6. 불한선차시집"],
+      allCollections: ["1. 천자문시집", "2. 합작시집", "3. 심물철학시집", "4. 시전집", "5. 심물시집", "6. 기타 시집"],
       emptyNotice: "선택한 시집에 아카이브된 시 데이터가 없습니다. 관리자 대시보드에서 원본 데이터를 주입해 주세요.",
       viewPoem: "시 읽기",
       backToList: "목록으로 돌아가기"
     },
     tea: {
-      title: "선다원",
-      subtitle: "禪茶苑 — 불한선차(佛漢禪茶)와 명상",
-      storyTitle: "불한선차 스토리",
-      storyContent: "불한선차는 높은 은밀한 산사에서 자연의 정기와 이슬을 머금고 구운 수제 禪차로, 마음의 깃을 가라앉히는 깊고 은은한 매력이 있습니다. 가야금 가락이 공명을 깨우듯, 뜨거운 서천의 맑은 물에 우러나는 한 모금의 선차는 현대인의 굳어버린 심신에 보이지 않는 파동을 전달하고 뇌의 잡념을 비워 진정한 무(無)의 상태로 이끕니다.",
+      title: "서화차향",
+      subtitle: "書畵茶香 — SunCha",
+      storyTitle: "글씨와 그림, 그리고 한 잔의 차에 담긴 풍류",
+      storyContent: "시대를 사유하는 서화의 필치와 가슴을 따뜻하게 적시는 차 연재물이 머무는, 이 시대 철학가의 문방(文房)입니다.",
       scentNotes: "비움의 향 (Scent of Emptiness)",
       scentDescription: "흙에서 얻은 고요한 깊은 우디 노트, 찻잔에 서린 따뜻하고 아련한 야생 가을 안개의 은은함.",
-      brewingTitle: "선차를 우리는 다법(茶法)",
+      brewingTitle: "불한선차를 우리는 다법(茶法)",
       brewingSteps: [
         "90℃ 내외의 맑고 가벼운 첫 물로 다기를 조용히 데워 찻잔의 마음을 엽니다.",
         "보이차까오 한알을 넣고 따뜻한 물을 부어 약 40초간 첫 찻잔의 기운을 서서히 깨웁니다.",
@@ -214,8 +214,8 @@ export const translations: Record<Language, Content> = {
       home: "홈",
       philosophy: "심물철학",
       art: "물파공간",
-      poetryCollection: "석하서시",
-      tea: "선다원",
+      poetryCollection: "라석시집",
+      tea: "서화차향",
       journey: "활동여정",
       contact: "연락처",
       admin: "관리자"
@@ -278,22 +278,22 @@ export const translations: Record<Language, Content> = {
       mulpaismDeclaration: "20世纪虽然物质繁盛，人类本真的道德与精神文明却陷入衰微。在世界急剧变化与旧秩序重组的浪潮中，我们秉承东方直觉的“心物合一”智慧，开辟全新的造型艺术道路。\n\n物波即是心物交融所生的伟大波澜。它既不是西方机械剖析主义下的唯物波，也不偏执于狭隘精神论的神秘化，它是一场切实的艺术实践。心灵即是元气，笔墨勾勒、琴瑟和谐，皆是这宇宙原初之能与人类心镜碰撞出的神圣涟漪。\n\n我们据此宣告物波主义的创生，为21世纪引渡精神的蜕变与自我价值的返璞归真。\n\n— 摘自“物波空间”创立宣言，1997。"
     },
     poetryCollection: {
-      title: "石下序诗",
-      subtitle: "石下序诗 — 罗石诗苑",
+      title: "罗石诗集",
+      subtitle: "罗石诗集 — 罗石诗苑",
       listTitle: "诗集与诗歌列表",
-      allCollections: ["1. 千字文诗集", "2. 合作诗集", "3. 心物哲学诗集", "4. 诗全集", "5. 心物诗集", "6. 佛汉禅茶诗集"],
+      allCollections: ["1. 千字文诗集", "2. 合作诗集", "3. 心物哲学诗集", "4. 诗全集", "5. 心物诗集", "6. 其他诗集"],
       emptyNotice: "所选诗集中尚无归档诗歌。请在管理员控制台注入初始数据。",
       viewPoem: "阅览诗文",
       backToList: "回到列表"
     },
     tea: {
-      title: "禅茶苑",
-      subtitle: "禅茶苑 — 佛汉禅茶与冥想",
-      storyTitle: "佛汉禅茶的故事",
-      storyContent: "佛汉禅茶产于极高海拔的深山古寺，汲取天地灵气与草露烘焙而成。如同伽倻琴音点水荡漾，当滚烫的清泉浸透茶叶，这一抹温热穿透凡世喧哗，安抚疲惫焦躁，使人的脑电波静谧下来，真正归于空性的境界。",
+      title: "書畵茶香",
+      subtitle: "書畵茶香 — SunCha",
+      storyTitle: "书画以及一盏茶中蕴含的风雅",
+      storyContent: "这里是静思时代的书画笔触与温润心田的茶香连载交相辉映的、属于当代哲学家的书房（文房）。",
       scentNotes: "无形之香 (Scent of Emptiness)",
       scentDescription: "源自泥土深处的静谧木香，与茶盏泛出宛如秋烟霭霭般缠绕野性微甘。",
-      brewingTitle: "禅茶冲泡六度法",
+      brewingTitle: "布寒仙茶（Bulhan Suncha）冲泡法",
       brewingSteps: [
         "以九十度山泉沸水，暖淋茶具，打开器皿的纳香之境。",
         "投入普洱茶膏一粒，温水冲泡，静候四十秒，渐次呼唤杯中的温煦气韵。",
@@ -340,8 +340,8 @@ export const translations: Record<Language, Content> = {
       home: "主页",
       philosophy: "心物哲学",
       art: "物波空间",
-      poetryCollection: "石下序诗",
-      tea: "禅茶苑",
+      poetryCollection: "罗石诗集",
+      tea: "書畵茶香",
       journey: "行旅足迹",
       contact: "联络",
       admin: "管理"
@@ -404,22 +404,22 @@ export const translations: Record<Language, Content> = {
       mulpaismDeclaration: "While the 20th century witnessed great material success, human morality and spirituality experienced a silent decay. Amidst value distortions, we seek to discover an elevated aesthetic avenue based on the unification of Subject and Object (心物合一).\n\nMulpa represents the real wave of Mind and Matter (心物之波). It is an artistic action that rejects both mechanistic Western compartmentalization and narrow spiritual mysticism. Mind is energy; the strokes on paper, the sound of the string, and the curves of the bowl are divine ripples emerging when original light hits human consciousness.\n\nWe hereby proclaim Mulpaism as an artistic vision toward spiritual transformation and existence recovery for the 21st century.\n\n— Excerpt from Mulpa Space Inaugural Statement, 1997."
     },
     poetryCollection: {
-      title: "Poetry Collection",
-      subtitle: "Poetry Collections of Lasok",
+      title: "Lasok Poetry Collection",
+      subtitle: "Lasok Poetry Collections",
       listTitle: "Select a Poetry Collection",
-      allCollections: ["1. Cheonjamun Verse Collection", "2. Collaborative Poetry", "3. Mind-Matter Philosophy", "4. Complete Poems of Lasok", "5. Mind-Matter Poetry", "6. Bulhan Zen Tea Poetry Collection"],
+      allCollections: ["1. Cheonjamun Verse Collection", "2. Collaborative Poetry", "3. Mind-Matter Philosophy", "4. Complete Poems of Lasok", "5. Mind-Matter Poetry", "6. Other Poetry Collection"],
       emptyNotice: "No archived data is present under this collection. Please run the seed/restoration action at the Admin page.",
       viewPoem: "Read Poem",
       backToList: "Back to List"
     },
     tea: {
-      title: "Zen Tea",
-      subtitle: "Zen Tea — Bulhan Meditation Tea",
-      storyTitle: "Our Zen Tea Story",
-      storyContent: "Our handpicked Zen Tea grows in secluded high-altitude temples, absorbing pure rain and wild mist. As the Gayageum melody stirs the quiet room, a cup of warm tea steeped with water from pristine wells transfers invisible waves, clearing the mind to embrace formlessness.",
+      title: "SunCha",
+      subtitle: "書畵茶香 — SunCha",
+      storyTitle: "The taste of calligraphic art, paintings, and a cup of elegant tea",
+      storyContent: "A serene workspace of a contemporary philosopher, where the powerful brushstrokes of calligraphy reflecting the times and the warming series of Bulhan Suncha reside in perfect harmony.",
       scentNotes: "Scent of Emptiness (無形之香)",
       scentDescription: "Deep earthy woody tone coupled with the warm elegant hint of wild autumn fog hanging in the cup.",
-      brewingTitle: "Art of Mindful Steeping",
+      brewingTitle: "Art of Brewing Bulhan Suncha",
       brewingSteps: [
         "Warm the premium vessels with boiling spring water around 90°C, preparing the ceramic's heart.",
         "Add one piece of Pu'er tea paste (Chagao). Pour hot water and steep for 40 seconds to slowly awaken the cup's energy.",
@@ -466,9 +466,9 @@ export const translations: Record<Language, Content> = {
       home: "Home",
       philosophy: "Philosophy",
       art: "Mulpa Space",
-      poetryCollection: "Poemas",
-      tea: "Zen Tea",
-      journey: "Journey",
+      poetryCollection: "Lasok Poetry Collection",
+      tea: "SunCha",
+      journey: "Media",
       contact: "Contact",
       admin: "Admin"
     }

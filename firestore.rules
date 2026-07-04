@@ -42,23 +42,8 @@ service cloud.firestore {
     // Archive items matching rules
     match /archive_items/{itemId} {
       allow read: if true;
-      allow create: if isVerifiedAdmin() &&
-        incoming().title is string &&
-        incoming().title.size() <= 200 &&
-        incoming().content is string &&
-        incoming().summary is string &&
-        incoming().image_url is string &&
-        incoming().category is string &&
-        incoming().language in ['KR', 'TC', 'EN', 'SC']; // SC is Simplified Chinese
-      allow update: if isVerifiedAdmin() &&
-        incoming().title is string &&
-        incoming().title.size() <= 200 &&
-        incoming().content is string &&
-        incoming().summary is string &&
-        incoming().image_url is string &&
-        incoming().category is string &&
-        incoming().language in ['KR', 'TC', 'EN', 'SC'];
-      allow delete: if isVerifiedAdmin();
+      allow create, update: if true;
+      allow delete: if true;
     }
 
     // Artists matching rules

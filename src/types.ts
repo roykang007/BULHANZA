@@ -16,6 +16,8 @@ export interface ArchiveItem {
   content: string;
   summary: string;
   image_url: string;
+  image_mid_url?: string;
+  image_bot_url?: string;
   category: 'poetry' | 'philosophy' | 'art' | 'tea' | 'journey' | string;
   created_at?: any; // Timestamp or date string
   poetry_collection_name?: string | null;
@@ -27,6 +29,7 @@ export interface SiteSettings {
   logo_url: string;
   hero_bg_url: string;
   tea_detail_url: string;
+  hero_scroll_url?: string;
   tea_slider_images?: string[];
   tea_slider_speed?: number;
   artists?: Artist[];
