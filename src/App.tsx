@@ -1351,31 +1351,25 @@ export default function App() {
                         {/* Admin upload button overlay */}
                         {isAuthAdmin && (
                           <div className="absolute inset-0 bg-black/60 backdrop-blur-xs opacity-0 hover:opacity-100 flex flex-col items-center justify-center transition-opacity gap-2 p-4 z-20">
-                            <label className="cursor-pointer bg-white text-black px-4 py-2 rounded-full text-[10px] font-bold hover:scale-105 transition-transform flex items-center gap-1 shadow-md">
-                              <Upload size={12} />
-                              {lang === 'KR' ? '액자 그림 변경' : 'Change Scroll Image'}
-                              <input 
-                                type="file" 
-                                accept="image/*,image/heic,image/heif,.heic,.heif" 
-                                className="hidden" 
-                                onChange={async (e) => {
-                                  if (e.target.files && e.target.files[0]) {
-                                    try {
-                                      const url = await uploadImageFile(e.target.files[0]);
-                                      // Update site settings
-                                      const settingsRef = doc(db, 'site_settings', 'global');
-                                      const updated = { ...siteSettings, hero_scroll_url: url } as SiteSettings;
-                                      await setDoc(settingsRef, updated);
-                                      setSiteSettings(updated);
-                                      alert('액자 그림이 성공적으로 업데이트되었습니다!');
-                                    } catch (err: any) {
-                                      alert(`업로드 실패: ${err.message || err}`);
-                                    }
-                                  }
-                                }}
-                              />
-                            </label>
-                            {siteSettings?.hero_scroll_url && (
+                            <button
+                              onClick={async () => {
+                                try {
+                                  // Set to /assets/mainsub.jpg directly
+                                  const settingsRef = doc(db, 'site_settings', 'global');
+                                  const updated = { ...siteSettings, hero_scroll_url: '/assets/mainsub.jpg' } as SiteSettings;
+                                  await setDoc(settingsRef, updated);
+                                  setSiteSettings(updated);
+                                  alert('액자 그림이 assets/mainsub.jpg로 지정 및 저장되었습니다!');
+                                } catch (err: any) {
+                                  alert(`설정 실패: ${err.message || err}`);
+                                }
+                              }}
+                              className="bg-white text-black px-4 py-2 rounded-full text-[10px] font-bold hover:scale-105 transition-transform flex items-center gap-1 shadow-md"
+                            >
+                              <Check size={12} />
+                              {lang === 'KR' ? '액자 그림을 mainsub.jpg로 세팅' : 'Set to mainsub.jpg'}
+                            </button>
+                            {siteSettings?.hero_scroll_url && siteSettings.hero_scroll_url !== '/assets/mainsub.jpg' && (
                               <button
                                 onClick={async () => {
                                   if (confirm('기본 액자 그림으로 복원하시겠습니까?')) {
@@ -3844,28 +3838,22 @@ export default function App() {
                               </div>
                             )}
                             <div className="relative w-full text-center">
-                              <input 
-                                type="file" 
-                                accept="image/*,image/heic,image/heif,.heic,.heif"
-                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                                onChange={async (e) => {
-                                  const file = e.target.files?.[0];
-                                  if (!file) return;
+                              <button 
+                                type="button" 
+                                onClick={async () => {
                                   try {
-                                    const container = e.target.closest('.rounded') as HTMLDivElement;
-                                    if (container) container.style.opacity = '0.5';
-                                    const url = await uploadImageFile(file);
-                                    const updated = { ...siteSettings, hero_scroll_url: url } as SiteSettings;
+                                    const updated = { ...siteSettings, hero_scroll_url: '/assets/mainsub.jpg' } as SiteSettings;
                                     setSiteSettings(updated);
                                     await setDoc(doc(db, 'site_settings', 'global'), updated);
-                                    if (container) container.style.opacity = '1';
+                                    alert('액자 그림이 assets/mainsub.jpg 파일로 지정 및 저장되었습니다.');
                                   } catch (err: any) {
-                                    alert('붓글씨 이미지 업로드에 실패했습니다: ' + (err?.message || err));
+                                    alert('설정 실패: ' + (err?.message || err));
                                   }
                                 }}
-                              />
-                              <button type="button" className="w-full py-1.5 border border-[#1C1A17]/15 hover:bg-neutral-100 text-black text-[10px] uppercase tracking-wider font-bold rounded bg-white transition-all shadow-sm">
-                                📁 파일 선택 및 저장
+                                className="w-full py-1.5 border border-[#1C1A17]/15 hover:bg-neutral-100 text-black text-[10px] uppercase tracking-wider font-bold rounded bg-white transition-all shadow-sm flex items-center justify-center gap-1"
+                              >
+                                <Check size={12} />
+                                {lang === 'KR' ? 'mainsub.jpg 이미지로 지정' : 'Set to mainsub.jpg image'}
                               </button>
                             </div>
                             <span className="text-[9px] text-[#1C1A17]/50 font-mono break-all text-center">
