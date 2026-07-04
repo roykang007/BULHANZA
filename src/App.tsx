@@ -36,20 +36,34 @@ const convertImageToJpg = async (file: File): Promise<File> => {
   if (isHeic) {
     try {
       console.log('Converting HEIC/HEIF to JPEG...');
-      const heic2anyModule = await import('heic2any');
-      // heic2any default or direct module call
-      const heicConverter = (heic2anyModule.default || heic2anyModule) as any;
       
-      const converted = await heicConverter({
-        blob: file,
-        toType: 'image/jpeg',
-        quality: 0.85
-      });
-      
-      const blob = Array.isArray(converted) ? converted[0] : converted;
-      const newName = file.name.replace(/\.(heic|heif)$/i, '') + '.jpg';
-      currentFile = new File([blob], newName, { type: 'image/jpeg' });
-      console.log('HEIC conversion successful:', currentFile.name, currentFile.size);
+      // Load heic2any dynamically from CDN to avoid bundler/Rollup issues in various environments
+      let heicConverter = (window as any).heic2any;
+      if (!heicConverter) {
+        await new Promise<void>((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js';
+          script.onload = () => resolve();
+          script.onerror = () => reject(new Error('Failed to load heic2any CDN'));
+          document.head.appendChild(script);
+        });
+        heicConverter = (window as any).heic2any;
+      }
+
+      if (heicConverter) {
+        const converted = await heicConverter({
+          blob: file,
+          toType: 'image/jpeg',
+          quality: 0.85
+        });
+        
+        const blob = Array.isArray(converted) ? converted[0] : converted;
+        const newName = file.name.replace(/\.(heic|heif)$/i, '') + '.jpg';
+        currentFile = new File([blob], newName, { type: 'image/jpeg' });
+        console.log('HEIC conversion successful:', currentFile.name, currentFile.size);
+      } else {
+        console.error('heic2any library is not loaded properly.');
+      }
     } catch (err) {
       console.error('HEIC client-side conversion failed, attempting raw canvas or fallback:', err);
     }
