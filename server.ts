@@ -14,13 +14,24 @@ async function startServer() {
 
   // Ensure upload folder exists
   const uploadDirName = "images";
-  const uploadDir = path.join(process.cwd(), "public", uploadDirName);
-  if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
+  const isProd = process.env.NODE_ENV === "production";
+  
+  const publicUploadDir = path.join(process.cwd(), "public", uploadDirName);
+  const distUploadDir = path.join(process.cwd(), "dist", uploadDirName);
+  
+  // Save to dist/images in production, public/images in development
+  const uploadDir = isProd ? distUploadDir : publicUploadDir;
+
+  if (!fs.existsSync(publicUploadDir)) {
+    fs.mkdirSync(publicUploadDir, { recursive: true });
+  }
+  if (!fs.existsSync(distUploadDir)) {
+    fs.mkdirSync(distUploadDir, { recursive: true });
   }
 
-  // Handle static images from upload directory
-  app.use(`/${uploadDirName}`, express.static(uploadDir));
+  // Handle static images from both public and dist images directories to be bulletproof
+  app.use(`/${uploadDirName}`, express.static(publicUploadDir));
+  app.use(`/${uploadDirName}`, express.static(distUploadDir));
 
   // Configure Multer storage
   const storage = multer.diskStorage({

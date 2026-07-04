@@ -36,34 +36,20 @@ const convertImageToJpg = async (file: File): Promise<File> => {
   if (isHeic) {
     try {
       console.log('Converting HEIC/HEIF to JPEG...');
+      const heic2anyModule = await import('heic2any');
+      // heic2any default or direct module call
+      const heicConverter = (heic2anyModule.default || heic2anyModule) as any;
       
-      // Load heic2any dynamically from CDN to avoid bundler/Rollup issues in various environments
-      let heicConverter = (window as any).heic2any;
-      if (!heicConverter) {
-        await new Promise<void>((resolve, reject) => {
-          const script = document.createElement('script');
-          script.src = 'https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js';
-          script.onload = () => resolve();
-          script.onerror = () => reject(new Error('Failed to load heic2any CDN'));
-          document.head.appendChild(script);
-        });
-        heicConverter = (window as any).heic2any;
-      }
-
-      if (heicConverter) {
-        const converted = await heicConverter({
-          blob: file,
-          toType: 'image/jpeg',
-          quality: 0.85
-        });
-        
-        const blob = Array.isArray(converted) ? converted[0] : converted;
-        const newName = file.name.replace(/\.(heic|heif)$/i, '') + '.jpg';
-        currentFile = new File([blob], newName, { type: 'image/jpeg' });
-        console.log('HEIC conversion successful:', currentFile.name, currentFile.size);
-      } else {
-        console.error('heic2any library is not loaded properly.');
-      }
+      const converted = await heicConverter({
+        blob: file,
+        toType: 'image/jpeg',
+        quality: 0.85
+      });
+      
+      const blob = Array.isArray(converted) ? converted[0] : converted;
+      const newName = file.name.replace(/\.(heic|heif)$/i, '') + '.jpg';
+      currentFile = new File([blob], newName, { type: 'image/jpeg' });
+      console.log('HEIC conversion successful:', currentFile.name, currentFile.size);
     } catch (err) {
       console.error('HEIC client-side conversion failed, attempting raw canvas or fallback:', err);
     }
@@ -949,7 +935,6 @@ export default function App() {
     ? '/assets/logo.png'
     : siteSettings.logo_url;
   const finalHeroBg = siteSettings?.hero_bg_url || 'https://images.unsplash.com/photo-1490127252417-7c393f993ee4?auto=format&fit=crop&q=80&w=1920';
-  const finalHeroScroll = siteSettings?.hero_scroll_url || '/assets/mainsub.jpg';
 
   // Helper to sort dynamic content lists by title/name
   const sortItems = (items: ArchiveItem[], order: 'default' | 'titleAsc' | 'titleDesc') => {
@@ -1315,79 +1300,12 @@ export default function App() {
                       
                       {/* Inner Parchment Scroll */}
                       <div className="w-full aspect-[2/3.8] bg-white border border-[#2C231E]/10 p-4 md:p-6 flex flex-col justify-between shadow-inner relative overflow-hidden min-h-[380px]">
-                        {finalHeroScroll ? (
-                          <img 
-                            src={finalHeroScroll} 
-                            alt="Calligraphy Scroll" 
-                            className="w-full h-full object-contain"
-                            referrerPolicy="no-referrer"
-                          />
-                        ) : (
-                          /* Authentic Brush Calligraphy CSS Representation */
-                          <div className="w-full h-full flex justify-around items-stretch py-2 font-serif relative">
-                            {/* Right column: 如映寫眞 */}
-                            <div className="flex flex-col justify-between items-center text-black/85 text-3xl md:text-4xl font-serif font-bold tracking-[0.3em] select-none leading-none">
-                              <span>如</span>
-                              <span>映</span>
-                              <span>寫</span>
-                              <span>眞</span>
-                            </div>
-                            
-                            {/* Left column: 心물之哲 */}
-                            <div className="flex flex-col justify-between items-center text-black/85 text-3xl md:text-4xl font-serif font-bold tracking-[0.3em] select-none leading-none">
-                              <span>心</span>
-                              <span>物</span>
-                              <span>之</span>
-                              <span>哲</span>
-                            </div>
-
-                            {/* Small Red Signature Seal (낙관) at the bottom left */}
-                            <div className="absolute bottom-2 left-1.5 w-6 h-6 border border-[#9A221F] bg-[#9A221F]/15 flex items-center justify-center text-[7px] text-[#9A221F] font-bold font-serif select-none p-0.5 leading-none">
-                              <span className="scale-90 block">弗寒</span>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Admin upload button overlay */}
-                        {isAuthAdmin && (
-                          <div className="absolute inset-0 bg-black/60 backdrop-blur-xs opacity-0 hover:opacity-100 flex flex-col items-center justify-center transition-opacity gap-2 p-4 z-20">
-                            <button
-                              onClick={async () => {
-                                try {
-                                  // Set to /assets/mainsub.jpg directly
-                                  const settingsRef = doc(db, 'site_settings', 'global');
-                                  const updated = { ...siteSettings, hero_scroll_url: '/assets/mainsub.jpg' } as SiteSettings;
-                                  await setDoc(settingsRef, updated);
-                                  setSiteSettings(updated);
-                                  alert('액자 그림이 assets/mainsub.jpg로 지정 및 저장되었습니다!');
-                                } catch (err: any) {
-                                  alert(`설정 실패: ${err.message || err}`);
-                                }
-                              }}
-                              className="bg-white text-black px-4 py-2 rounded-full text-[10px] font-bold hover:scale-105 transition-transform flex items-center gap-1 shadow-md"
-                            >
-                              <Check size={12} />
-                              {lang === 'KR' ? '액자 그림을 mainsub.jpg로 세팅' : 'Set to mainsub.jpg'}
-                            </button>
-                            {siteSettings?.hero_scroll_url && siteSettings.hero_scroll_url !== '/assets/mainsub.jpg' && (
-                              <button
-                                onClick={async () => {
-                                  if (confirm('기본 액자 그림으로 복원하시겠습니까?')) {
-                                    const settingsRef = doc(db, 'site_settings', 'global');
-                                    const updated = { ...siteSettings } as SiteSettings;
-                                    delete updated.hero_scroll_url;
-                                    await setDoc(settingsRef, updated);
-                                    setSiteSettings(updated);
-                                    alert('기본 액자 그림으로 복원되었습니다.');
-                                  }
-                                }}
-                                className="bg-red-600 text-white px-3 py-1 rounded-full text-[9px] font-bold hover:scale-105 transition-transform"
-                              >
-                                기본값 복원
-                              </button>
-                            )}
-                          </div>
-                        )}
+                        <img 
+                          src="/assets/mainsub.jpg" 
+                          alt="Calligraphy Scroll" 
+                          className="w-full h-full object-cover"
+                          referrerPolicy="no-referrer"
+                        />
                       </div>
 
                       {/* Wooden rollers detail at the bottom */}
@@ -1791,8 +1709,8 @@ export default function App() {
                         {lang === 'KR' ? '목록으로' : 'Back to List'}
                       </button>
 
-                      {/* Next button in the center */}
-                      <div className="flex justify-center text-center">
+                      {/* Previous / Next buttons in the center */}
+                      <div className="flex justify-center text-center flex-1 max-w-lg">
                         {(() => {
                           if (readingPhilosophy.category === 'philosophy_static') {
                             const currentChapterIdx = parseInt(readingPhilosophy.id.replace('static-chapter-', ''));
@@ -1802,36 +1720,70 @@ export default function App() {
                               'https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&q=80&w=600'
                             ];
                             const nextChapterIdx = currentChapterIdx + 1;
-                            if (nextChapterIdx < t.philosophy.chapters.length) {
-                              const nextChap = t.philosophy.chapters[nextChapterIdx];
-                              const nextMockPost = {
-                                id: `static-chapter-${nextChapterIdx}`,
-                                title: nextChap.title,
-                                content: nextChap.content,
-                                image_url: chapterImages[nextChapterIdx],
-                                created_at: '1997-01-01T00:00:00Z',
-                                category: 'philosophy_static',
-                                summary: lang === 'KR' ? '물파주의 심물철학 핵심 강론' : 'Core Doctrine of Mind-Matter Philosophy',
-                              };
-                              return (
-                                <button
-                                  onClick={() => setReadingPhilosophy(nextMockPost as any)}
-                                  className="group flex items-center gap-1 font-serif text-xs text-amber-800 hover:text-amber-950 font-bold transition-all p-1.5 rounded-lg hover:bg-neutral-50"
-                                >
-                                  <span>{lang === 'KR' ? '다음장' : 'Next Ch.'}</span>
-                                  <ChevronRight size={14} className="group-hover:translate-x-1.5 transition-transform" />
-                                  <span className="underline max-w-[150px] truncate block font-normal text-black/70">
-                                    {nextMockPost.title}
+                            const prevChapterIdx = currentChapterIdx - 1;
+
+                            const prevChap = prevChapterIdx >= 0 ? t.philosophy.chapters[prevChapterIdx] : null;
+                            const nextChap = nextChapterIdx < t.philosophy.chapters.length ? t.philosophy.chapters[nextChapterIdx] : null;
+
+                            const prevMockPost = prevChap ? {
+                              id: `static-chapter-${prevChapterIdx}`,
+                              title: prevChap.title,
+                              content: prevChap.content,
+                              image_url: chapterImages[prevChapterIdx],
+                              created_at: '1997-01-01T00:00:00Z',
+                              category: 'philosophy_static',
+                              summary: lang === 'KR' ? '물파주의 심물철학 핵심 강론' : 'Core Doctrine of Mind-Matter Philosophy',
+                            } : null;
+
+                            const nextMockPost = nextChap ? {
+                              id: `static-chapter-${nextChapterIdx}`,
+                              title: nextChap.title,
+                              content: nextChap.content,
+                              image_url: chapterImages[nextChapterIdx],
+                              created_at: '1997-01-01T00:00:00Z',
+                              category: 'philosophy_static',
+                              summary: lang === 'KR' ? '물파주의 심물철학 핵심 강론' : 'Core Doctrine of Mind-Matter Philosophy',
+                            } : null;
+
+                            return (
+                              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 text-center w-full">
+                                {prevMockPost ? (
+                                  <button
+                                    onClick={() => setReadingPhilosophy(prevMockPost as any)}
+                                    className="group flex items-center gap-1.5 font-serif text-xs text-amber-800 hover:text-amber-950 font-bold transition-all p-1.5 rounded-lg hover:bg-neutral-50"
+                                  >
+                                    <ChevronLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
+                                    <span>{lang === 'KR' ? '이전장' : 'Prev Ch.'}</span>
+                                    <span className="underline max-w-[120px] sm:max-w-[150px] truncate block font-normal text-black/70">
+                                      {prevMockPost.title}
+                                    </span>
+                                  </button>
+                                ) : (
+                                  <span className="font-serif text-[11px] italic text-neutral-400">
+                                    {lang === 'KR' ? '첫 번째 장입니다' : 'First chapter'}
                                   </span>
-                                </button>
-                              );
-                            } else {
-                              return (
-                                <span className="font-serif text-[11px] italic text-neutral-400">
-                                  {lang === 'KR' ? '마지막 장입니다' : 'End of chapters'}
-                                </span>
-                              );
-                            }
+                                )}
+
+                                <span className="hidden sm:inline text-neutral-300">|</span>
+
+                                {nextMockPost ? (
+                                  <button
+                                    onClick={() => setReadingPhilosophy(nextMockPost as any)}
+                                    className="group flex items-center gap-1.5 font-serif text-xs text-amber-800 hover:text-amber-950 font-bold transition-all p-1.5 rounded-lg hover:bg-neutral-50"
+                                  >
+                                    <span>{lang === 'KR' ? '다음장' : 'Next Ch.'}</span>
+                                    <ChevronRight size={14} className="group-hover:translate-x-1.5 transition-transform" />
+                                    <span className="underline max-w-[120px] sm:max-w-[150px] truncate block font-normal text-black/70">
+                                      {nextMockPost.title}
+                                    </span>
+                                  </button>
+                                ) : (
+                                  <span className="font-serif text-[11px] italic text-neutral-400">
+                                    {lang === 'KR' ? '마지막 장입니다' : 'End of chapters'}
+                                  </span>
+                                )}
+                              </div>
+                            );
                           } else {
                             const sortedPhilosophyPosts = sortItems(
                               [...archiveItems]
@@ -1843,22 +1795,48 @@ export default function App() {
                             const nextPost = currentIdx !== -1 && currentIdx + 1 < sortedPhilosophyPosts.length 
                               ? sortedPhilosophyPosts[currentIdx + 1] 
                               : null;
+                            const prevPost = currentIdx > 0 
+                              ? sortedPhilosophyPosts[currentIdx - 1] 
+                              : null;
 
-                            return nextPost ? (
-                              <button
-                                onClick={() => setReadingPhilosophy(nextPost)}
-                                className="group flex items-center gap-1 font-serif text-xs text-amber-800 hover:text-amber-950 font-bold transition-all p-1.5 rounded-lg hover:bg-neutral-50"
-                              >
-                                <span>{lang === 'KR' ? '다음글' : 'Next'}</span>
-                                <ChevronRight size={14} className="group-hover:translate-x-1.5 transition-transform" />
-                                <span className="underline max-w-[150px] truncate block font-normal text-black/70">
-                                  {nextPost.title}
-                                </span>
-                              </button>
-                            ) : (
-                              <span className="font-serif text-[11px] italic text-neutral-400">
-                                {lang === 'KR' ? '마지막 글입니다' : 'End of collection'}
-                              </span>
+                            return (
+                              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 text-center w-full">
+                                {prevPost ? (
+                                  <button
+                                    onClick={() => setReadingPhilosophy(prevPost)}
+                                    className="group flex items-center gap-1.5 font-serif text-xs text-amber-800 hover:text-amber-950 font-bold transition-all p-1.5 rounded-lg hover:bg-neutral-50"
+                                  >
+                                    <ChevronLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
+                                    <span>{lang === 'KR' ? '이전글' : 'Prev'}</span>
+                                    <span className="underline max-w-[120px] sm:max-w-[150px] truncate block font-normal text-black/70">
+                                      {prevPost.title}
+                                    </span>
+                                  </button>
+                                ) : (
+                                  <span className="font-serif text-[11px] italic text-neutral-400">
+                                    {lang === 'KR' ? '첫 번째 글입니다' : 'First post'}
+                                  </span>
+                                )}
+
+                                <span className="hidden sm:inline text-neutral-300">|</span>
+
+                                {nextPost ? (
+                                  <button
+                                    onClick={() => setReadingPhilosophy(nextPost)}
+                                    className="group flex items-center gap-1.5 font-serif text-xs text-amber-800 hover:text-amber-950 font-bold transition-all p-1.5 rounded-lg hover:bg-neutral-50"
+                                  >
+                                    <span>{lang === 'KR' ? '다음글' : 'Next'}</span>
+                                    <ChevronRight size={14} className="group-hover:translate-x-1.5 transition-transform" />
+                                    <span className="underline max-w-[120px] sm:max-w-[150px] truncate block font-normal text-black/70">
+                                      {nextPost.title}
+                                    </span>
+                                  </button>
+                                ) : (
+                                  <span className="font-serif text-[11px] italic text-neutral-400">
+                                    {lang === 'KR' ? '마지막 글입니다' : 'End of collection'}
+                                  </span>
+                                )}
+                              </div>
                             );
                           }
                         })()}
@@ -1927,26 +1905,26 @@ export default function App() {
               </div>
 
               {/* Sub-navigation tabs */}
-              <div className="flex justify-center gap-4 mb-16 text-[10px] tracking-widest uppercase font-mono font-bold">
+              <div className="flex flex-wrap gap-2 md:gap-3 justify-center mb-12 bg-[#FAF9F6] p-3 rounded-2xl border border-[#1C1A17]/10 shadow-inner">
                 <button 
                   onClick={() => setArtSubTab('doctrine')}
-                  className={`px-6 py-2.5 rounded-full border transition-all ${
+                  className={`text-sm sm:text-base md:text-lg font-serif font-bold py-2 px-4 md:px-5 rounded-xl transition-all duration-300 shadow-sm border ${
                     artSubTab === 'doctrine' 
-                      ? 'bg-black text-white border-black shadow-lg shadow-black/10'
-                      : 'border-[#1C1A17]/15 text-[#1C1A17]/60 hover:border-[#1C1A17]/40'
+                      ? 'bg-[#1C1A17] text-[#FAF9F6] border-[#1C1A17]' 
+                      : 'bg-white text-black/70 border-[#1C1A17]/15 hover:border-[#1C1A17]/40 hover:bg-[#FAF9F6]'
                   }`}
                 >
-                  {lang === 'KR' ? '물파주의 선언 & 에세이' : lang === 'SC' ? '物波主义宣言 &' : 'Mulpa Doctrine'}
+                  {lang === 'KR' ? '물파주의' : lang === 'SC' ? '物波主义' : 'Mulpaism'}
                 </button>
                 <button 
                   onClick={() => setArtSubTab('artists')}
-                  className={`px-6 py-2.5 rounded-full border transition-all ${
+                  className={`text-sm sm:text-base md:text-lg font-serif font-bold py-2 px-4 md:px-5 rounded-xl transition-all duration-300 shadow-sm border ${
                     artSubTab === 'artists' 
-                      ? 'bg-black text-white border-black shadow-lg shadow-black/10'
-                      : 'border-[#1C1A17]/15 text-[#1C1A17]/60 hover:border-[#1C1A17]/40'
+                      ? 'bg-[#1C1A17] text-[#FAF9F6] border-[#1C1A17]' 
+                      : 'bg-white text-black/70 border-[#1C1A17]/15 hover:border-[#1C1A17]/40 hover:bg-[#FAF9F6]'
                   }`}
                 >
-                  {lang === 'KR' ? '대표 물파작가' : lang === 'SC' ? '代表物波艺术家' : 'Mulpa Artists'}
+                  {lang === 'KR' ? '물파작가' : lang === 'SC' ? '物波艺术家' : 'Mulpa Artists'}
                 </button>
               </div>
 
@@ -2112,6 +2090,63 @@ export default function App() {
                               <List size={14} />
                               {lang === 'KR' ? '목록으로' : 'Back to List'}
                             </button>
+
+                            {/* Previous / Next buttons in the center */}
+                            <div className="flex justify-center text-center flex-1 max-w-lg">
+                              {(() => {
+                                const sortedMulpaPosts = sortItems(
+                                  archiveItems.filter(item => item.category === 'mulpa' && (item.language === lang || !item.language)),
+                                  mulpaSortOrder
+                                );
+                                const currentIdx = sortedMulpaPosts.findIndex(p => p.id === readingMulpa.id);
+                                const nextMulpa = currentIdx !== -1 && currentIdx + 1 < sortedMulpaPosts.length 
+                                  ? sortedMulpaPosts[currentIdx + 1] 
+                                  : null;
+                                const prevMulpa = currentIdx > 0 
+                                  ? sortedMulpaPosts[currentIdx - 1] 
+                                  : null;
+
+                                return (
+                                  <div className="flex flex-col sm:flex-row items-center justify-center gap-4 text-center w-full">
+                                    {prevMulpa ? (
+                                      <button
+                                        onClick={() => setReadingMulpa(prevMulpa)}
+                                        className="group flex items-center gap-1.5 font-serif text-xs text-amber-800 hover:text-amber-950 font-bold transition-all p-1.5 rounded-lg hover:bg-neutral-50"
+                                      >
+                                        <ChevronLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
+                                        <span>{lang === 'KR' ? '이전글' : 'Prev'}</span>
+                                        <span className="underline max-w-[120px] sm:max-w-[150px] truncate block font-normal text-black/70">
+                                          {prevMulpa.title}
+                                        </span>
+                                      </button>
+                                    ) : (
+                                      <span className="font-serif text-[11px] italic text-neutral-400">
+                                        {lang === 'KR' ? '첫 번째 글입니다' : 'First post'}
+                                      </span>
+                                    )}
+
+                                    <span className="hidden sm:inline text-neutral-300">|</span>
+
+                                    {nextMulpa ? (
+                                      <button
+                                        onClick={() => setReadingMulpa(nextMulpa)}
+                                        className="group flex items-center gap-1.5 font-serif text-xs text-amber-800 hover:text-amber-950 font-bold transition-all p-1.5 rounded-lg hover:bg-neutral-50"
+                                      >
+                                        <span>{lang === 'KR' ? '다음글' : 'Next'}</span>
+                                        <ChevronRight size={14} className="group-hover:translate-x-1.5 transition-transform" />
+                                        <span className="underline max-w-[120px] sm:max-w-[150px] truncate block font-normal text-black/70">
+                                          {nextMulpa.title}
+                                        </span>
+                                      </button>
+                                    ) : (
+                                      <span className="font-serif text-[11px] italic text-neutral-400">
+                                        {lang === 'KR' ? '마지막 글입니다' : 'End of collection'}
+                                      </span>
+                                    )}
+                                  </div>
+                                );
+                              })()}
+                            </div>
 
                             <div className="flex gap-2 flex-wrap">
                               {isUserAuthorized && (
@@ -2510,6 +2545,9 @@ export default function App() {
                     const nextPoem = currentIdx !== -1 && currentIdx + 1 < sortedBookPoems.length 
                       ? sortedBookPoems[currentIdx + 1] 
                       : null;
+                    const prevPoem = currentIdx > 0 
+                      ? sortedBookPoems[currentIdx - 1] 
+                      : null;
 
                     return (
                       <motion.div
@@ -2597,22 +2635,41 @@ export default function App() {
                             </button>
                           </div>
 
-                          {/* Center: Next Post display with arrow and title */}
-                          <div className="flex justify-center text-center">
+                          {/* Center: Previous / Next Post display with arrow and title */}
+                          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 text-center">
+                            {prevPoem ? (
+                              <button
+                                onClick={() => setReadingPoem(prevPoem)}
+                                className="group flex items-center gap-1.5 font-serif text-sm text-amber-800 hover:text-amber-950 font-bold transition-all p-1.5 rounded-lg hover:bg-neutral-50"
+                              >
+                                <ChevronLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
+                                <span>{lang === 'KR' ? '이전글' : 'Prev'}</span>
+                                <span className="underline max-w-[100px] sm:max-w-[130px] truncate block font-normal text-black/70">
+                                  {prevPoem.title}
+                                </span>
+                              </button>
+                            ) : (
+                              <span className="font-serif text-xs italic text-neutral-400">
+                                {lang === 'KR' ? '첫 번째 글입니다' : 'First post'}
+                              </span>
+                            )}
+
+                            <span className="hidden sm:inline text-neutral-300">|</span>
+
                             {nextPoem ? (
                               <button
                                 onClick={() => setReadingPoem(nextPoem)}
-                                className="group flex items-center gap-2 font-serif text-base md:text-lg text-amber-800 hover:text-amber-950 font-bold transition-all p-2 rounded-lg hover:bg-neutral-50"
+                                className="group flex items-center gap-1.5 font-serif text-sm text-amber-800 hover:text-amber-950 font-bold transition-all p-1.5 rounded-lg hover:bg-neutral-50"
                               >
                                 <span>{lang === 'KR' ? '다음글' : 'Next'}</span>
-                                <ChevronRight size={18} className="group-hover:translate-x-1.5 transition-transform" />
-                                <span className="underline max-w-[150px] sm:max-w-[200px] truncate block font-normal text-black/70">
+                                <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                                <span className="underline max-w-[100px] sm:max-w-[130px] truncate block font-normal text-black/70">
                                   {nextPoem.title}
                                 </span>
                               </button>
                             ) : (
-                              <span className="font-serif text-sm italic text-neutral-400">
-                                {lang === 'KR' ? '마지막 글입니다' : 'End of collection'}
+                              <span className="font-serif text-xs italic text-neutral-400">
+                                {lang === 'KR' ? '마지막 글입니다' : 'Last post'}
                               </span>
                             )}
                           </div>
@@ -2941,16 +2998,68 @@ export default function App() {
                     </p>
                   )}
 
-                  <div className="prose prose-stone max-w-none text-xs md:text-sm leading-[1.8] text-[#1C1A17]/90 font-sans break-words whitespace-pre-line bg-[#FAF9F6] border border-[#1C1A17]/5 p-6 rounded">
-                    <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
-                      {readingSuncha.content}
-                    </ReactMarkdown>
-
+                  <div className="prose prose-stone max-w-none text-xs md:text-sm leading-[1.8] text-[#1C1A17]/90 font-sans break-words bg-[#FAF9F6] border border-[#1C1A17]/5 p-6 rounded space-y-6">
+                    {/* 상(Top) Image */}
                     {readingSuncha.image_url && (
-                      <div className="mt-8 flex justify-center w-full">
+                      <div className="mb-6 flex justify-center w-full">
                         <img 
                           src={readingSuncha.image_url} 
-                          alt={readingSuncha.title} 
+                          alt="Top decoration" 
+                          referrerPolicy="no-referrer"
+                          className="max-w-full max-h-[350px] md:max-h-[480px] h-auto object-contain rounded border border-[#1C1A17]/10 p-1.5 bg-white shadow-sm"
+                        />
+                      </div>
+                    )}
+
+                    {/* Content (with optional middle split) */}
+                    {(() => {
+                      const content = readingSuncha.content || '';
+                      if (readingSuncha.image_mid_url) {
+                        const paragraphs = content.split('\n');
+                        const midPoint = Math.floor(paragraphs.length / 2);
+                        const firstHalf = paragraphs.slice(0, midPoint).join('\n');
+                        const secondHalf = paragraphs.slice(midPoint).join('\n');
+                        return (
+                          <div className="space-y-6">
+                            <div className="whitespace-pre-line">
+                              <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
+                                {firstHalf}
+                              </ReactMarkdown>
+                            </div>
+                            <div className="my-6 flex justify-center w-full">
+                              <img 
+                                src={readingSuncha.image_mid_url} 
+                                alt="Middle decoration" 
+                                referrerPolicy="no-referrer"
+                                className="max-w-full max-h-[350px] md:max-h-[480px] h-auto object-contain rounded border border-[#1C1A17]/10 p-1.5 bg-white shadow-sm"
+                              />
+                            </div>
+                            {secondHalf && (
+                              <div className="whitespace-pre-line">
+                                <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
+                                  {secondHalf}
+                                </ReactMarkdown>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      } else {
+                        return (
+                          <div className="whitespace-pre-line">
+                            <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
+                              {content}
+                            </ReactMarkdown>
+                          </div>
+                        );
+                      }
+                    })()}
+
+                    {/* 하(Bottom) Image */}
+                    {readingSuncha.image_bot_url && (
+                      <div className="mt-6 flex justify-center w-full">
+                        <img 
+                          src={readingSuncha.image_bot_url} 
+                          alt="Bottom decoration" 
                           referrerPolicy="no-referrer"
                           className="max-w-full max-h-[350px] md:max-h-[480px] h-auto object-contain rounded border border-[#1C1A17]/10 p-1.5 bg-white shadow-sm"
                         />
@@ -2958,7 +3067,7 @@ export default function App() {
                     )}
                   </div>
 
-                  {/* Detail bottom actions footer */}
+                   {/* Detail bottom actions footer */}
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-[#1C1A17]/10">
                     <button
                       onClick={() => setReadingSuncha(null)}
@@ -2967,6 +3076,77 @@ export default function App() {
                       <List size={14} />
                       {lang === 'KR' ? '목록으로' : 'Back to List'}
                     </button>
+
+                    {/* Previous / Next buttons in the center */}
+                    <div className="flex justify-center text-center flex-1 max-w-lg">
+                      {(() => {
+                        const relatedItems = sortItems(
+                          archiveItems.filter(item => {
+                            const isSunchaCategory = ['suncha_seo', 'suncha_hwa', 'suncha_cha', 'suncha_hyang', 'suncha_intro', 'suncha_review'].includes(item.category);
+                            if (!isSunchaCategory) return false;
+                            const matchesLang = item.language === lang || (!item.language && lang === 'KR');
+                            if (!matchesLang) return false;
+                            
+                            // Match the current filter group
+                            if (sunchaFilter === 'all') {
+                              return true;
+                            } else if (sunchaFilter === 'suncha_cha') {
+                              return ['suncha_cha', 'suncha_intro', 'suncha_review'].includes(item.category);
+                            } else {
+                              return item.category === sunchaFilter;
+                            }
+                          }),
+                          teaSortOrder
+                        );
+                        const currentIdx = relatedItems.findIndex(p => p.id === readingSuncha.id);
+                        const nextSuncha = currentIdx !== -1 && currentIdx + 1 < relatedItems.length 
+                          ? relatedItems[currentIdx + 1] 
+                          : null;
+                        const prevSuncha = currentIdx > 0 
+                          ? relatedItems[currentIdx - 1] 
+                          : null;
+
+                        return (
+                          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 text-center w-full">
+                            {prevSuncha ? (
+                              <button
+                                onClick={() => setReadingSuncha(prevSuncha)}
+                                className="group flex items-center gap-1.5 font-serif text-xs text-amber-800 hover:text-amber-950 font-bold transition-all p-1.5 rounded-lg hover:bg-neutral-50"
+                              >
+                                <ChevronLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
+                                <span>{lang === 'KR' ? '이전글' : 'Prev'}</span>
+                                <span className="underline max-w-[120px] sm:max-w-[150px] truncate block font-normal text-black/70">
+                                  {prevSuncha.title}
+                                </span>
+                              </button>
+                            ) : (
+                              <span className="font-serif text-[11px] italic text-neutral-400">
+                                {lang === 'KR' ? '첫 번째 글입니다' : 'First post'}
+                              </span>
+                            )}
+
+                            <span className="hidden sm:inline text-neutral-300">|</span>
+
+                            {nextSuncha ? (
+                              <button
+                                onClick={() => setReadingSuncha(nextSuncha)}
+                                className="group flex items-center gap-1.5 font-serif text-xs text-amber-800 hover:text-amber-950 font-bold transition-all p-1.5 rounded-lg hover:bg-neutral-50"
+                              >
+                                <span>{lang === 'KR' ? '다음글' : 'Next'}</span>
+                                <ChevronRight size={14} className="group-hover:translate-x-1.5 transition-transform" />
+                                <span className="underline max-w-[120px] sm:max-w-[150px] truncate block font-normal text-black/70">
+                                  {nextSuncha.title}
+                                </span>
+                              </button>
+                            ) : (
+                              <span className="font-serif text-[11px] italic text-neutral-400">
+                                {lang === 'KR' ? '마지막 글입니다' : 'End of collection'}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </div>
 
                     <div className="flex gap-2 flex-wrap">
                       {isUserAuthorized && (
@@ -3822,45 +4002,7 @@ export default function App() {
                           </div>
                         </div>
 
-                        {/* 4. Hero Hanging Scroll Calligraphy */}
-                        <div className="space-y-2">
-                          <label className="font-mono text-[9px] tracking-widest font-bold uppercase block text-[#1C1A17]/70">
-                            HERO CALLIGRAPHY SCROLL (히어로 액자 세로형 붓글씨)
-                          </label>
-                          <div className="border border-[#1C1A17]/15 rounded p-4 bg-[#FAF9F6] flex flex-col items-center justify-center space-y-3 relative overflow-hidden group">
-                            {finalHeroScroll ? (
-                              <div className="w-full h-16 border border-black/10 rounded overflow-hidden bg-white shadow-sm flex items-center justify-center">
-                                <img src={finalHeroScroll} alt="Calligraphy Scroll Preview" referrerPolicy="no-referrer" className="max-w-full max-h-full object-contain" />
-                              </div>
-                            ) : (
-                              <div className="w-full h-16 border border-dashed border-black/20 rounded flex items-center justify-center text-black/30 text-[10px] font-serif text-center font-bold">
-                                기본 액자 그림 (mainsub.jpg)
-                              </div>
-                            )}
-                            <div className="relative w-full text-center">
-                              <button 
-                                type="button" 
-                                onClick={async () => {
-                                  try {
-                                    const updated = { ...siteSettings, hero_scroll_url: '/assets/mainsub.jpg' } as SiteSettings;
-                                    setSiteSettings(updated);
-                                    await setDoc(doc(db, 'site_settings', 'global'), updated);
-                                    alert('액자 그림이 assets/mainsub.jpg 파일로 지정 및 저장되었습니다.');
-                                  } catch (err: any) {
-                                    alert('설정 실패: ' + (err?.message || err));
-                                  }
-                                }}
-                                className="w-full py-1.5 border border-[#1C1A17]/15 hover:bg-neutral-100 text-black text-[10px] uppercase tracking-wider font-bold rounded bg-white transition-all shadow-sm flex items-center justify-center gap-1"
-                              >
-                                <Check size={12} />
-                                {lang === 'KR' ? 'mainsub.jpg 이미지로 지정' : 'Set to mainsub.jpg image'}
-                              </button>
-                            </div>
-                            <span className="text-[9px] text-[#1C1A17]/50 font-mono break-all text-center">
-                              {siteSettings?.hero_scroll_url ? siteSettings.hero_scroll_url.substring(siteSettings.hero_scroll_url.lastIndexOf('/') + 1) : '기본 액자 그림 (mainsub.jpg)'}
-                            </span>
-                          </div>
-                        </div>
+
 
                       </div>
                     </div>
