@@ -9,6 +9,8 @@ import {
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
+import rehypeRaw from 'rehype-raw';
+import { RichTextEditor } from './components/RichTextEditor';
 
 // Firebase imports
 import { db, auth, OperationType, handleFirestoreError } from './lib/firebase';
@@ -24,6 +26,35 @@ import {
   DEFAULT_TEA_POEMS, DEFAULT_PHILOSOPHY_ITEMS, DEFAULT_JOURNEY_PHOTOS, DEFAULT_JOURNEY_PRESS,
   DEFAULT_MULPA_WRITINGS, DEFAULT_ARTISTS
 } from './lib/seedDataToFirebase';
+
+const cleanTextForSummary = (text: string): string => {
+  if (!text) return '';
+  // 1. Remove all HTML tags completely (like <strong>, <span>, etc.)
+  let cleaned = text.replace(/<\/?[^>]+(>|$)/g, "");
+  // 2. Remove Markdown image links: ![alt](url) -> Keep alt text or remove
+  cleaned = cleaned.replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1");
+  // 3. Remove Markdown standard links: [text](url) -> Keep text
+  cleaned = cleaned.replace(/\[([^\]]*)\]\([^)]*\)/g, "$1");
+  // 4. Remove Markdown headings (# Heading), blockquotes (> text), code blocks
+  cleaned = cleaned.replace(/^\s*#+\s+/gm, "");
+  cleaned = cleaned.replace(/^\s*>\s+/gm, "");
+  // 5. Remove styling markers like **, *, _, ~, `, etc.
+  cleaned = cleaned.replace(/[*_#`~]/g, "");
+  // 6. Clean up multiple spaces and line breaks into a single space
+  cleaned = cleaned.replace(/\s+/g, " ");
+  return cleaned.trim();
+};
+
+const getDisplaySummary = (item: any, limit: number = 150): string => {
+  if (item.summary && item.summary.trim()) {
+    return cleanTextForSummary(item.summary);
+  }
+  const cleanedContent = cleanTextForSummary(item.content || '');
+  if (cleanedContent.length <= limit) {
+    return cleanedContent;
+  }
+  return cleanedContent.substring(0, limit) + '...';
+};
 
 const convertImageToJpg = async (file: File): Promise<File> => {
   const fileNameLower = file.name.toLowerCase();
@@ -177,11 +208,18 @@ const uploadImageFile = async (rawFile: File): Promise<string> => {
 
   // If the error was a real backend error (e.g., file too large, multer error),
   // and NOT a network/missing-endpoint error (like 404 or failed to fetch),
+  // or an invalid JSON response error (which typically happens when a static server returns a 200 OK index.html instead of a 404),
   // we should throw it directly instead of hiding it behind PHP fallback!
   if (apiError) {
     const msg = apiError.message || String(apiError);
-    const isNetworkOr404 = msg.includes("404") || msg.includes("fetch") || msg.includes("Network") || msg.includes("Failed to fetch");
-    if (!isNetworkOr404) {
+    const isNetworkOr404OrInvalidJson = 
+      msg.includes("404") || 
+      msg.includes("fetch") || 
+      msg.includes("Network") || 
+      msg.includes("Failed to fetch") ||
+      msg.includes("not valid JSON");
+
+    if (!isNetworkOr404OrInvalidJson) {
       throw apiError;
     }
   }
@@ -500,7 +538,7 @@ export default function App() {
       <div className="space-y-6">
         {/* Content first half */}
         <div className="markdown-body font-serif text-lg md:text-xl leading-relaxed text-[#1C1A17]/90 text-justify whitespace-pre-wrap">
-          <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
+          <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeRaw]}>
             {firstHalf}
           </ReactMarkdown>
         </div>
@@ -513,6 +551,11 @@ export default function App() {
               alt="Middle decoration" 
               referrerPolicy="no-referrer"
               className="max-w-full max-h-[300px] sm:max-h-[400px] h-auto object-contain rounded-xl border border-[#1C1A17]/10 p-1 bg-white shadow-sm"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+                const parent = e.currentTarget.parentElement;
+                if (parent) parent.style.display = 'none';
+              }}
             />
           </div>
         )}
@@ -520,7 +563,7 @@ export default function App() {
         {/* Content second half */}
         {secondHalf && (
           <div className="markdown-body font-serif text-lg md:text-xl leading-relaxed text-[#1C1A17]/90 text-justify whitespace-pre-wrap">
-            <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
+            <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeRaw]}>
               {secondHalf}
             </ReactMarkdown>
           </div>
@@ -534,6 +577,11 @@ export default function App() {
               alt="Bottom decoration" 
               referrerPolicy="no-referrer"
               className="max-w-full max-h-[300px] sm:max-h-[400px] h-auto object-contain rounded-xl border border-[#1C1A17]/10 p-1 bg-white shadow-sm"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+                const parent = e.currentTarget.parentElement;
+                if (parent) parent.style.display = 'none';
+              }}
             />
           </div>
         )}
@@ -806,7 +854,7 @@ export default function App() {
 
   // Sorting states for uploaded content lists
   const [philosophySortOrder, setPhilosophySortOrder] = useState<'default' | 'titleAsc' | 'titleDesc'>('default');
-  const [poetrySortOrder, setPoetrySortOrder] = useState<'default' | 'titleAsc' | 'titleDesc'>('default');
+  const [poetrySortOrder, setPoetrySortOrder] = useState<'default' | 'titleAsc' | 'titleDesc'>('titleDesc');
   const [journeySortOrder, setJourneySortOrder] = useState<'default' | 'titleAsc' | 'titleDesc'>('default');
   const [mulpaSortOrder, setMulpaSortOrder] = useState<'default' | 'titleAsc' | 'titleDesc'>('default');
   const [teaSortOrder, setTeaSortOrder] = useState<'default' | 'titleAsc' | 'titleDesc'>('default');
@@ -1480,7 +1528,7 @@ export default function App() {
                               'https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&q=80&w=600'  // Garden
                             ];
                             const imgUrl = chapterImages[idx] || 'https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&q=80&w=600';
-                            const bodyExcerpt = chap.content.substring(0, 150) + (chap.content.length > 150 ? '...' : '');
+                            const displaySummary = getDisplaySummary({ content: chap.content }, 150);
 
                             const mockChapterPost = {
                               id: `static-chapter-${idx}`,
@@ -1519,7 +1567,7 @@ export default function App() {
                                       {chap.title}
                                     </h3>
                                     <p className="text-xs sm:text-sm text-[#1C1A17]/70 leading-relaxed font-serif line-clamp-3 h-14 overflow-hidden text-justify">
-                                      {bodyExcerpt}
+                                      {displaySummary}
                                     </p>
                                   </div>
                                 </div>
@@ -1611,9 +1659,7 @@ export default function App() {
                                 .sort((a, b) => getTimestampMs(b) - getTimestampMs(a)),
                               philosophySortOrder
                             ).map((post) => {
-                              const bodyExcerpt = post.content 
-                                ? (post.content.replace(/[*#_]/g, '').substring(0, 150) + (post.content.length > 150 ? '...' : '')) 
-                                : '';
+                              const displaySummary = getDisplaySummary(post, 150);
                               return (
                                 <div 
                                   key={post.id} 
@@ -1627,6 +1673,11 @@ export default function App() {
                                         alt={post.title} 
                                         referrerPolicy="no-referrer"
                                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                        onError={(e) => {
+                                          e.currentTarget.style.display = 'none';
+                                          const parent = e.currentTarget.parentElement;
+                                          if (parent) parent.style.display = 'none';
+                                        }}
                                       />
                                     </div>
                                     <div className="space-y-2">
@@ -1635,7 +1686,7 @@ export default function App() {
                                       </span>
                                       <h4 className="font-serif text-lg font-bold text-black group-hover:text-amber-800 transition-colors line-clamp-1">{post.title}</h4>
                                       <p className="text-xs sm:text-sm text-[#1C1A17]/70 leading-relaxed font-serif line-clamp-3 h-14 overflow-hidden text-justify">
-                                        {post.summary || bodyExcerpt}
+                                        {displaySummary}
                                       </p>
                                     </div>
                                   </div>
@@ -1683,7 +1734,7 @@ export default function App() {
                     )}
 
                     <div className="prose prose-stone max-w-none text-xs md:text-sm leading-[1.8] text-[#1C1A17]/90 font-sans break-words whitespace-pre-line bg-[#FAF9F6] border border-[#1C1A17]/5 p-6 rounded">
-                      <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
+                      <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeRaw]}>
                         {readingPhilosophy.content || ''}
                       </ReactMarkdown>
 
@@ -1694,6 +1745,11 @@ export default function App() {
                             alt={readingPhilosophy.title} 
                             referrerPolicy="no-referrer"
                             className="max-w-full max-h-[350px] md:max-h-[480px] h-auto object-contain rounded border border-[#1C1A17]/10 p-1.5 bg-white shadow-sm"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                              const parent = e.currentTarget.parentElement;
+                              if (parent) parent.style.display = 'none';
+                            }}
                           />
                         </div>
                       )}
@@ -2030,7 +2086,7 @@ export default function App() {
                                   </div>
                                   <h4 className="font-serif text-lg md:text-xl font-bold text-black group-hover:text-amber-800 transition-colors">{article.title}</h4>
                                   <p className="text-xs md:text-sm text-[#1C1A17]/75 font-sans leading-relaxed line-clamp-3 font-normal antialiased">
-                                    {article.summary}
+                                    {getDisplaySummary(article, 150)}
                                   </p>
                                 </div>
                                 <div className="mt-6 border-t border-[#1C1A17]/5 pt-4 flex justify-end items-center text-[10px] tracking-widest uppercase font-mono font-bold text-neutral-400 group-hover:text-black transition-colors">
@@ -2065,7 +2121,7 @@ export default function App() {
                           )}
 
                           <div className="prose prose-stone max-w-none text-xs md:text-sm leading-[1.8] text-[#1C1A17]/90 font-sans break-words whitespace-pre-line bg-[#FAF9F6] border border-[#1C1A17]/5 p-6 rounded">
-                            <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
+                            <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeRaw]}>
                               {readingMulpa.content}
                             </ReactMarkdown>
 
@@ -2076,6 +2132,11 @@ export default function App() {
                                   alt={readingMulpa.title} 
                                   referrerPolicy="no-referrer"
                                   className="max-w-full max-h-[350px] md:max-h-[480px] h-auto object-contain rounded border border-[#1C1A17]/10 p-1.5 bg-white shadow-sm"
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                    const parent = e.currentTarget.parentElement;
+                                    if (parent) parent.style.display = 'none';
+                                  }}
                                 />
                               </div>
                             )}
@@ -2489,9 +2550,7 @@ export default function App() {
                           .sort((a, b) => getTimestampMs(b) - getTimestampMs(a)),
                         poetrySortOrder
                       ).map((item) => {
-                          const bodyExcerpt = item.content 
-                            ? (item.content.replace(/[#*`_~[\]()]/g, '').substring(0, 150) + (item.content.length > 150 ? '...' : '')) 
-                            : '';
+                          const displaySummary = getDisplaySummary(item, 150);
                           return (
                             <div
                               key={item.id}
@@ -2506,6 +2565,11 @@ export default function App() {
                                     alt={item.title} 
                                     referrerPolicy="no-referrer"
                                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = 'none';
+                                      const parent = e.currentTarget.parentElement;
+                                      if (parent) parent.style.display = 'none';
+                                    }}
                                   />
                                 </div>
 
@@ -2519,7 +2583,7 @@ export default function App() {
                                     </h3>
                                   </div>
                                   <p className="text-xs sm:text-sm text-[#1C1A17]/70 leading-relaxed font-serif line-clamp-3 h-14 overflow-hidden text-justify">
-                                    {bodyExcerpt}
+                                    {displaySummary}
                                   </p>
                                 </div>
                               </div>
@@ -2567,6 +2631,11 @@ export default function App() {
                                 alt={readingPoem.title} 
                                 referrerPolicy="no-referrer"
                                 className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                  const parent = e.currentTarget.parentElement;
+                                  if (parent) parent.style.display = 'none';
+                                }}
                               />
                             </div>
                           )}
@@ -2910,9 +2979,7 @@ export default function App() {
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                       {sortedSunchaItems.map((item) => {
-                        const bodyExcerpt = item.content 
-                          ? (item.content.replace(/[*#_]/g, '').substring(0, 150) + (item.content.length > 150 ? '...' : '')) 
-                          : '';
+                        const displaySummary = getDisplaySummary(item, 150);
                         const categoryLabel = 
                           item.category === 'suncha_seo' ? '서(書)' :
                           item.category === 'suncha_hwa' ? '화(畵)' :
@@ -2933,6 +3000,11 @@ export default function App() {
                                   alt={item.title} 
                                   referrerPolicy="no-referrer"
                                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                    const parent = e.currentTarget.parentElement;
+                                    if (parent) parent.style.display = 'none';
+                                  }}
                                 />
                                 <div className="absolute top-3 left-3 bg-[#1C1A17] text-white text-[9px] font-serif px-2.5 py-0.5 rounded font-bold uppercase tracking-widest">
                                   {categoryLabel}
@@ -2947,7 +3019,7 @@ export default function App() {
                                   {item.title}
                                 </h3>
                                 <p className="text-xs text-[#1C1A17]/70 leading-relaxed font-serif line-clamp-3 h-14 overflow-hidden text-justify">
-                                  {bodyExcerpt}
+                                  {displaySummary}
                                 </p>
                               </div>
                             </div>
@@ -3007,6 +3079,11 @@ export default function App() {
                           alt="Top decoration" 
                           referrerPolicy="no-referrer"
                           className="max-w-full max-h-[350px] md:max-h-[480px] h-auto object-contain rounded border border-[#1C1A17]/10 p-1.5 bg-white shadow-sm"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            const parent = e.currentTarget.parentElement;
+                            if (parent) parent.style.display = 'none';
+                          }}
                         />
                       </div>
                     )}
@@ -3022,7 +3099,7 @@ export default function App() {
                         return (
                           <div className="space-y-6">
                             <div className="whitespace-pre-line">
-                              <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
+                              <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeRaw]}>
                                 {firstHalf}
                               </ReactMarkdown>
                             </div>
@@ -3032,11 +3109,16 @@ export default function App() {
                                 alt="Middle decoration" 
                                 referrerPolicy="no-referrer"
                                 className="max-w-full max-h-[350px] md:max-h-[480px] h-auto object-contain rounded border border-[#1C1A17]/10 p-1.5 bg-white shadow-sm"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                  const parent = e.currentTarget.parentElement;
+                                  if (parent) parent.style.display = 'none';
+                                }}
                               />
                             </div>
                             {secondHalf && (
                               <div className="whitespace-pre-line">
-                                <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
+                                <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeRaw]}>
                                   {secondHalf}
                                 </ReactMarkdown>
                               </div>
@@ -3046,7 +3128,7 @@ export default function App() {
                       } else {
                         return (
                           <div className="whitespace-pre-line">
-                            <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
+                            <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeRaw]}>
                               {content}
                             </ReactMarkdown>
                           </div>
@@ -3062,6 +3144,11 @@ export default function App() {
                           alt="Bottom decoration" 
                           referrerPolicy="no-referrer"
                           className="max-w-full max-h-[350px] md:max-h-[480px] h-auto object-contain rounded border border-[#1C1A17]/10 p-1.5 bg-white shadow-sm"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            const parent = e.currentTarget.parentElement;
+                            if (parent) parent.style.display = 'none';
+                          }}
                         />
                       </div>
                     )}
@@ -3312,6 +3399,11 @@ export default function App() {
                                 alt={item.title} 
                                 className="w-full h-full object-cover opacity-90 transition-transform duration-500 group-hover:scale-105"
                                 referrerPolicy="no-referrer"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                  const parent = e.currentTarget.parentElement;
+                                  if (parent) parent.style.display = 'none';
+                                }}
                               />
                               {/* Hover Overlay indicator */}
                               <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -3334,7 +3426,7 @@ export default function App() {
                               </div>
                               <h4 className="font-serif text-base md:text-lg font-bold text-black group-hover:text-black/80 transition-colors leading-snug">{item.title}</h4>
                               <p className="text-xs text-black/60 leading-relaxed font-sans font-normal antialiased line-clamp-3">
-                                {item.summary}
+                                {getDisplaySummary(item, 150)}
                               </p>
                             </div>
                           </div>
@@ -3400,7 +3492,7 @@ export default function App() {
                   )}
 
                   <div className="prose prose-stone max-w-none text-xs md:text-sm leading-[1.8] text-[#1C1A17]/90 font-sans break-words whitespace-pre-line bg-[#FAF9F6] border border-[#1C1A17]/5 p-6 rounded">
-                    <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
+                    <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeRaw]}>
                       {selectedJourneyItem.content || ''}
                     </ReactMarkdown>
 
@@ -3411,6 +3503,11 @@ export default function App() {
                           alt={selectedJourneyItem.title} 
                           referrerPolicy="no-referrer"
                           className="max-w-full max-h-[350px] md:max-h-[480px] h-auto object-contain rounded border border-[#1C1A17]/10 p-1.5 bg-white shadow-sm"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            const parent = e.currentTarget.parentElement;
+                            if (parent) parent.style.display = 'none';
+                          }}
                         />
                       </div>
                     )}
@@ -4213,13 +4310,13 @@ export default function App() {
 
                   <div className="md:col-span-2">
                     <label className="font-mono text-[9px] tracking-widest font-bold uppercase block mb-1">MARKDOWN MAIN STORY / CONTENT (시구 / 상세 내용)</label>
-                    <textarea 
-                      rows={6}
+                    <RichTextEditor 
                       value={editingItem.content || ''}
-                      onChange={e => setEditingItem({ ...editingItem, content: e.target.value })}
+                      onChange={val => setEditingItem({ ...editingItem, content: val })}
                       onPaste={(e) => handleTextAreaPaste(e, (val) => setEditingItem({ ...editingItem, content: val }), editingItem.content || '')}
-                      className="w-full bg-white border border-[#1C1A17]/15 rounded p-3 text-xs font-mono text-[#1C1A17] focus:outline-none"
-                      placeholder="Markdown 및 띄어쓰기 한 줄 개행 등이 완벽 지원됩니다."
+                      placeholder="Markdown 및 리치 텍스트 서식 지정이 지원됩니다."
+                      rows={8}
+                      onUploadImage={uploadImageFile}
                     />
                   </div>
                 </div>
@@ -5266,17 +5363,18 @@ export default function App() {
                   />
                 </div>
 
-                {/* Core content */}
+                {/* Core content with Rich Editor features (font, size, weight, color, cursor image insert) */}
                 <div>
-                  <label className="font-serif text-sm font-bold text-black block mb-1.5">본문 내용 (Content) - Markdown 지원</label>
-                  <textarea
-                    rows={10}
-                    required
-                    placeholder="본문 글을 입력하세요. 개행 시 본문이 상, 중, 하 이미지 배치를 위해 자동 배분될 수 있습니다."
+                  <label className="font-serif text-sm font-bold text-black block mb-1.5">
+                    본문 내용 (Content) - 리치 텍스트 &amp; Markdown 지원
+                  </label>
+                  <RichTextEditor
                     value={writeFormContent}
-                    onChange={(e) => setWriteFormContent(e.target.value)}
+                    onChange={setWriteFormContent}
                     onPaste={(e) => handleTextAreaPaste(e, setWriteFormContent, writeFormContent)}
-                    className="w-full bg-white border border-neutral-300 focus:border-black rounded-lg p-3 text-base focus:outline-none font-sans whitespace-pre-wrap leading-relaxed"
+                    placeholder="본문 글을 입력하세요. 상단 도구 모음을 이용해 폰트 지정, 글자 크기, 색상, 굵기 및 커서 위치 이미지 삽입을 하실 수 있습니다. (개행 시 본문이 상, 중, 하 이미지 배치를 위해 자동 배분될 수 있습니다.)"
+                    rows={12}
+                    onUploadImage={uploadImageFile}
                   />
                 </div>
 
