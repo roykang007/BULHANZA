@@ -288,6 +288,71 @@ const getTimestampMs = (item: any) => {
   }
 };
 
+interface PaginationProps {
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+  lang: Language;
+}
+
+const Pagination: React.FC<PaginationProps> = ({ currentPage, totalPages, onPageChange, lang }) => {
+  if (totalPages <= 1) return null;
+
+  const pages = [];
+  for (let i = 1; i <= totalPages; i++) {
+    pages.push(i);
+  }
+
+  const prevLabel = lang === 'KR' ? '이전' : lang === 'SC' ? '上一页' : 'Prev';
+  const nextLabel = lang === 'KR' ? '다음' : lang === 'SC' ? '下一页' : 'Next';
+
+  return (
+    <div className="flex justify-center items-center space-x-2 mt-12 py-4 select-none">
+      <button
+        disabled={currentPage === 1}
+        onClick={() => {
+          onPageChange(currentPage - 1);
+          window.scrollTo({ top: 300, behavior: 'smooth' });
+        }}
+        className="px-3 py-1.5 rounded-lg border border-[#1C1A17]/10 hover:border-[#1C1A17]/40 hover:bg-neutral-50 text-xs font-serif font-bold text-black/60 hover:text-black disabled:opacity-30 disabled:pointer-events-none transition-all flex items-center gap-1"
+      >
+        &larr; {prevLabel}
+      </button>
+      
+      {pages.map((p) => {
+        const isCurrent = p === currentPage;
+        return (
+          <button
+            key={p}
+            onClick={() => {
+              onPageChange(p);
+              window.scrollTo({ top: 300, behavior: 'smooth' });
+            }}
+            className={`w-8 h-8 rounded-lg font-serif font-bold text-xs transition-all border ${
+              isCurrent
+                ? 'bg-[#1C1A17] text-[#FAF9F6] border-[#1C1A17] shadow-md scale-105'
+                : 'bg-white text-black/70 border-[#1C1A17]/10 hover:border-[#1C1A17]/30 hover:bg-neutral-50'
+            }`}
+          >
+            {p}
+          </button>
+        );
+      })}
+
+      <button
+        disabled={currentPage === totalPages}
+        onClick={() => {
+          onPageChange(currentPage + 1);
+          window.scrollTo({ top: 300, behavior: 'smooth' });
+        }}
+        className="px-3 py-1.5 rounded-lg border border-[#1C1A17]/10 hover:border-[#1C1A17]/40 hover:bg-neutral-50 text-xs font-serif font-bold text-black/60 hover:text-black disabled:opacity-30 disabled:pointer-events-none transition-all flex items-center gap-1"
+      >
+        {nextLabel} &rarr;
+      </button>
+    </div>
+  );
+};
+
 export default function App() {
   const [lang, setLang] = useState<Language>('KR');
   const [page, setPage] = useState<Page>('home');
@@ -315,6 +380,14 @@ export default function App() {
   const [readingPhilosophy, setReadingPhilosophy] = useState<ArchiveItem | null>(null);
   const [philosophyTab, setPhilosophyTab] = useState<'chapters' | 'essays'>('chapters');
   const [sunchaFilter, setSunchaFilter] = useState<'all' | 'suncha_seo' | 'suncha_hwa' | 'suncha_cha' | 'suncha_hyang'>('all');
+
+  // Pagination States
+  const [poetryPage, setPoetryPage] = useState(1);
+  const [philosophyPage, setPhilosophyPage] = useState(1);
+  const [sunchaPage, setSunchaPage] = useState(1);
+  const [mulpaPage, setMulpaPage] = useState(1);
+  const [artistsPage, setArtistsPage] = useState(1);
+  const [journeyPage, setJourneyPage] = useState(1);
 
   // Reset all reading/detail states when the page or sub tab changes
   useEffect(() => {
@@ -863,6 +936,31 @@ export default function App() {
   // Language Dropdown open state for both desktop and mobile
   const [isLangDropdownOpen, setIsLangDropdownOpen] = useState(false);
 
+  // Reset pagination when filter/sort/language changes
+  useEffect(() => {
+    setPoetryPage(1);
+  }, [selectedBook, poetrySortOrder, lang]);
+
+  useEffect(() => {
+    setPhilosophyPage(1);
+  }, [philosophyTab, philosophySortOrder, lang]);
+
+  useEffect(() => {
+    setSunchaPage(1);
+  }, [sunchaFilter, teaSortOrder, lang]);
+
+  useEffect(() => {
+    setMulpaPage(1);
+  }, [mulpaSortOrder, lang]);
+
+  useEffect(() => {
+    setArtistsPage(1);
+  }, [lang]);
+
+  useEffect(() => {
+    setJourneyPage(1);
+  }, [journeyFilter, journeySortOrder, lang]);
+
   useEffect(() => {
     const handleOutsideClick = () => {
       setIsLangDropdownOpen(false);
@@ -982,7 +1080,9 @@ export default function App() {
                     siteSettings.logo_url === '/assets/logo_v2.svg'
     ? '/assets/logo.png'
     : siteSettings.logo_url;
-  const finalHeroBg = siteSettings?.hero_bg_url || 'https://images.unsplash.com/photo-1490127252417-7c393f993ee4?auto=format&fit=crop&q=80&w=1920';
+  const finalHeroBg = loading 
+    ? '' 
+    : (siteSettings?.hero_bg_url || 'https://images.unsplash.com/photo-1490127252417-7c393f993ee4?auto=format&fit=crop&q=80&w=1920');
 
   // Helper to sort dynamic content lists by title/name
   const sortItems = (items: ArchiveItem[], order: 'default' | 'titleAsc' | 'titleDesc') => {
@@ -1287,12 +1387,14 @@ export default function App() {
             >
               {/* Immersive background image with advanced vignette and overlay filters */}
               <div className="absolute inset-0 z-0 overflow-hidden bg-[#FAF9F6]">
-                <img 
-                  src={finalHeroBg} 
-                  alt="Immersive Backdrop" 
-                  className="w-full h-full object-cover scale-100 brightness-[0.95] contrast-[1.02] opacity-35 transition-transform duration-[4000ms] ease-out"
-                  referrerPolicy="no-referrer"
-                />
+                {finalHeroBg && (
+                  <img 
+                    src={finalHeroBg} 
+                    alt="Immersive Backdrop" 
+                    className="w-full h-full object-cover scale-100 brightness-[0.95] contrast-[1.02] opacity-35 transition-transform duration-[4000ms] ease-out"
+                    referrerPolicy="no-referrer"
+                  />
+                )}
                 <div className="absolute inset-0 bg-gradient-to-b from-[#FAF9F6]/80 via-transparent to-[#FAF9F6]" />
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(250,249,246,0.8),transparent_95%)]" />
               </div>
@@ -1314,7 +1416,7 @@ export default function App() {
 
                     <div className="space-y-6">
                       {/* Sub-copies placed and aligned at the bottom of the Hero section */}
-                      <p className="text-base md:text-xl font-serif text-[#1C1A17]/85 leading-relaxed font-normal max-w-xl">
+                      <p className="text-base md:text-xl font-serif text-[#1C1A17]/85 leading-relaxed font-normal max-w-xl whitespace-pre-line">
                         {t.hero.subtitle}
                       </p>
                       
@@ -1652,53 +1754,78 @@ export default function App() {
                               : 'No philosophy reflections found in this collection. Feel free to register one.'}
                           </div>
                         ) : (
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                            {sortItems(
-                              [...archiveItems]
-                                .filter(item => item.category === 'philosophy' && (item.language === lang || !item.language))
-                                .sort((a, b) => getTimestampMs(b) - getTimestampMs(a)),
-                              philosophySortOrder
-                            ).map((post) => {
-                              const displaySummary = getDisplaySummary(post, 150);
-                              return (
-                                <div 
-                                  key={post.id} 
-                                  onClick={() => setReadingPhilosophy(post)}
-                                  className="group bg-white border border-[#1C1A17]/10 p-6 rounded-2xl hover:shadow-2xl hover:border-[#1C1A17]/35 transition-all duration-300 flex flex-col justify-between cursor-pointer hover:scale-[1.01] text-left"
-                                >
-                                  <div className="space-y-4">
-                                    <div className="aspect-[16/10] w-full overflow-hidden rounded-xl bg-gray-50 border border-[#1C1A17]/5 shadow-inner relative">
-                                      <img 
-                                        src={post.image_url || 'https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&q=80&w=600'} 
-                                        alt={post.title} 
-                                        referrerPolicy="no-referrer"
-                                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                        onError={(e) => {
-                                          e.currentTarget.style.display = 'none';
-                                          const parent = e.currentTarget.parentElement;
-                                          if (parent) parent.style.display = 'none';
-                                        }}
-                                      />
+                          <div className="space-y-8">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                              {(() => {
+                                const filteredPhilosophyEssays = sortItems(
+                                  [...archiveItems]
+                                    .filter(item => item.category === 'philosophy' && (item.language === lang || !item.language))
+                                    .sort((a, b) => getTimestampMs(b) - getTimestampMs(a)),
+                                  philosophySortOrder
+                                );
+                                const totalPhilosophyPages = Math.ceil(filteredPhilosophyEssays.length / 15);
+                                const paginatedPhilosophyEssays = filteredPhilosophyEssays.slice((philosophyPage - 1) * 15, philosophyPage * 15);
+
+                                return paginatedPhilosophyEssays.map((post) => {
+                                  const displaySummary = getDisplaySummary(post, 150);
+                                  return (
+                                    <div 
+                                      key={post.id} 
+                                      onClick={() => setReadingPhilosophy(post)}
+                                      className="group bg-white border border-[#1C1A17]/10 p-6 rounded-2xl hover:shadow-2xl hover:border-[#1C1A17]/35 transition-all duration-300 flex flex-col justify-between cursor-pointer hover:scale-[1.01] text-left"
+                                    >
+                                      <div className="space-y-4">
+                                        <div className="aspect-[16/10] w-full overflow-hidden rounded-xl bg-gray-50 border border-[#1C1A17]/5 shadow-inner relative">
+                                          <img 
+                                            src={post.image_url || 'https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&q=80&w=600'} 
+                                            alt={post.title} 
+                                            referrerPolicy="no-referrer"
+                                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                            onError={(e) => {
+                                              e.currentTarget.style.display = 'none';
+                                              const parent = e.currentTarget.parentElement;
+                                              if (parent) parent.style.display = 'none';
+                                            }}
+                                          />
+                                        </div>
+                                        <div className="space-y-2">
+                                          <span className="font-mono text-[9px] tracking-widest text-[#1C1A17]/40 uppercase font-bold">
+                                            {formatFullDate(post.created_at)}
+                                          </span>
+                                          <h4 className="font-serif text-lg font-bold text-black group-hover:text-amber-800 transition-colors line-clamp-1">{post.title}</h4>
+                                          <p className="text-xs sm:text-sm text-[#1C1A17]/70 leading-relaxed font-serif line-clamp-3 h-14 overflow-hidden text-justify">
+                                            {displaySummary}
+                                          </p>
+                                        </div>
+                                      </div>
+                                      <div className="pt-4 border-t border-[#1C1A17]/5 mt-6 flex justify-between items-center text-[9px] tracking-widest uppercase font-mono font-bold text-neutral-400 group-hover:text-black transition-all">
+                                        <span>{lang === 'KR' ? '학술 단상' : 'Essay'}</span>
+                                        <span className="flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                                          {lang === 'KR' ? '자세히 보기' : 'Read details'} <ChevronRight size={12} />
+                                        </span>
+                                      </div>
                                     </div>
-                                    <div className="space-y-2">
-                                      <span className="font-mono text-[9px] tracking-widest text-[#1C1A17]/40 uppercase font-bold">
-                                        {formatFullDate(post.created_at)}
-                                      </span>
-                                      <h4 className="font-serif text-lg font-bold text-black group-hover:text-amber-800 transition-colors line-clamp-1">{post.title}</h4>
-                                      <p className="text-xs sm:text-sm text-[#1C1A17]/70 leading-relaxed font-serif line-clamp-3 h-14 overflow-hidden text-justify">
-                                        {displaySummary}
-                                      </p>
-                                    </div>
-                                  </div>
-                                  <div className="pt-4 border-t border-[#1C1A17]/5 mt-6 flex justify-between items-center text-[9px] tracking-widest uppercase font-mono font-bold text-neutral-400 group-hover:text-black transition-all">
-                                    <span>{lang === 'KR' ? '학술 단상' : 'Essay'}</span>
-                                    <span className="flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                                      {lang === 'KR' ? '자세히 보기' : 'Read details'} <ChevronRight size={12} />
-                                    </span>
-                                  </div>
-                                </div>
+                                  );
+                                });
+                              })()}
+                            </div>
+                            {(() => {
+                              const filteredPhilosophyEssays = sortItems(
+                                [...archiveItems]
+                                  .filter(item => item.category === 'philosophy' && (item.language === lang || !item.language))
+                                  .sort((a, b) => getTimestampMs(b) - getTimestampMs(a)),
+                                philosophySortOrder
                               );
-                            })}
+                              const totalPhilosophyPages = Math.ceil(filteredPhilosophyEssays.length / 15);
+                              return (
+                                <Pagination 
+                                  currentPage={philosophyPage} 
+                                  totalPages={totalPhilosophyPages} 
+                                  onPageChange={setPhilosophyPage} 
+                                  lang={lang} 
+                                />
+                              );
+                            })()}
                           </div>
                         )}
                       </div>
@@ -2067,35 +2194,58 @@ export default function App() {
                             {lang === 'KR' ? '게재된 물파주의 글이 없습니다. 관리자 대시보드에서 등록해 주세요.' : 'No writings found in this collection. Please check manager.'}
                           </div>
                         ) : (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {sortItems(
-                              archiveItems.filter(item => item.category === 'mulpa' && (item.language === lang || !item.language)),
-                              mulpaSortOrder
-                            ).map((article) => (
-                              <div 
-                                key={article.id} 
-                                onClick={() => setReadingMulpa(article)}
-                                className="group bg-white border border-[#1C1A17]/10 p-6 md:p-8 rounded hover:border-[#1C1A17]/40 transition-all duration-300 shadow-sm cursor-pointer hover:shadow-md flex flex-col justify-between"
-                              >
-                                <div className="space-y-4">
-                                  <div className="flex justify-between items-start md:items-center gap-4 mb-2 border-b border-[#1C1A17]/5 pb-3">
-                                    <span className="font-mono text-[8px] tracking-[0.2em] uppercase text-black/40 block">ARTICLE & CONSCIOUSNESS</span>
-                                    <span className="font-mono text-[9px] text-[#1C1A17]/60">
-                                      {formatFullDate(article.created_at)}
-                                    </span>
+                          <div className="space-y-8">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              {(() => {
+                                const filteredMulpaArticles = sortItems(
+                                  archiveItems.filter(item => item.category === 'mulpa' && (item.language === lang || !item.language)),
+                                  mulpaSortOrder
+                                );
+                                const totalMulpaPages = Math.ceil(filteredMulpaArticles.length / 10);
+                                const paginatedMulpaArticles = filteredMulpaArticles.slice((mulpaPage - 1) * 10, mulpaPage * 10);
+
+                                return paginatedMulpaArticles.map((article) => (
+                                  <div 
+                                    key={article.id} 
+                                    onClick={() => setReadingMulpa(article)}
+                                    className="group bg-white border border-[#1C1A17]/10 p-6 md:p-8 rounded hover:border-[#1C1A17]/40 transition-all duration-300 shadow-sm cursor-pointer hover:shadow-md flex flex-col justify-between"
+                                  >
+                                    <div className="space-y-4">
+                                      <div className="flex justify-between items-start md:items-center gap-4 mb-2 border-b border-[#1C1A17]/5 pb-3">
+                                        <span className="font-mono text-[8px] tracking-[0.2em] uppercase text-black/40 block">ARTICLE & CONSCIOUSNESS</span>
+                                        <span className="font-mono text-[9px] text-[#1C1A17]/60">
+                                          {formatFullDate(article.created_at)}
+                                        </span>
+                                      </div>
+                                      <h4 className="font-serif text-lg md:text-xl font-bold text-black group-hover:text-amber-800 transition-colors">{article.title}</h4>
+                                      <p className="text-xs md:text-sm text-[#1C1A17]/75 font-sans leading-relaxed line-clamp-3 font-normal antialiased">
+                                        {getDisplaySummary(article, 150)}
+                                      </p>
+                                    </div>
+                                    <div className="mt-6 border-t border-[#1C1A17]/5 pt-4 flex justify-end items-center text-[10px] tracking-widest uppercase font-mono font-bold text-neutral-400 group-hover:text-black transition-colors">
+                                      <span className="flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                                        {lang === 'KR' ? '읽기' : 'Read'} &rarr;
+                                      </span>
+                                    </div>
                                   </div>
-                                  <h4 className="font-serif text-lg md:text-xl font-bold text-black group-hover:text-amber-800 transition-colors">{article.title}</h4>
-                                  <p className="text-xs md:text-sm text-[#1C1A17]/75 font-sans leading-relaxed line-clamp-3 font-normal antialiased">
-                                    {getDisplaySummary(article, 150)}
-                                  </p>
-                                </div>
-                                <div className="mt-6 border-t border-[#1C1A17]/5 pt-4 flex justify-end items-center text-[10px] tracking-widest uppercase font-mono font-bold text-neutral-400 group-hover:text-black transition-colors">
-                                  <span className="flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                                    {lang === 'KR' ? '읽기' : 'Read'} &rarr;
-                                  </span>
-                                </div>
-                              </div>
-                            ))}
+                                ));
+                              })()}
+                            </div>
+                            {(() => {
+                              const filteredMulpaArticles = sortItems(
+                                archiveItems.filter(item => item.category === 'mulpa' && (item.language === lang || !item.language)),
+                                mulpaSortOrder
+                              );
+                              const totalMulpaPages = Math.ceil(filteredMulpaArticles.length / 10);
+                              return (
+                                <Pagination 
+                                  currentPage={mulpaPage} 
+                                  totalPages={totalMulpaPages} 
+                                  onPageChange={setMulpaPage} 
+                                  lang={lang} 
+                                />
+                              );
+                            })()}
                           </div>
                         )
                       ) : (
@@ -2286,9 +2436,21 @@ export default function App() {
                                 <button
                                   key={aIdx}
                                   onClick={() => {
-                                    const element = document.getElementById(`artist-profile-${artist.id || artist.name}`);
-                                    if (element) {
-                                      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                    const filteredList = artists
+                                      .filter(a => a.language === lang || !a.language)
+                                      .sort((a, b) => a.name.localeCompare(b.name, lang === 'KR' ? 'ko' : lang === 'SC' ? 'zh' : 'en'));
+                                    
+                                    const artistIndex = filteredList.findIndex(a => (a.id || a.name) === (artist.id || artist.name));
+                                    if (artistIndex !== -1) {
+                                      const targetPage = Math.floor(artistIndex / 5) + 1;
+                                      setArtistsPage(targetPage);
+                                      
+                                      setTimeout(() => {
+                                        const element = document.getElementById(`artist-profile-${artist.id || artist.name}`);
+                                        if (element) {
+                                          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                        }
+                                      }, 100);
                                     }
                                   }}
                                   className="text-xs font-serif font-medium bg-[#FAF9F6] border border-[#1C1A17]/10 hover:border-[#1C1A17]/40 hover:bg-[#E5DFD3] text-[#1C1A17] py-1.5 px-3 md:px-4 rounded transition-all duration-300 shadow-sm hover:scale-[1.02] active:scale-95 whitespace-nowrap flex items-center gap-1.5"
@@ -2310,9 +2472,15 @@ export default function App() {
 
                         {/* Artists Details */}
                         <div className="space-y-24">
-                          {artists
-                            .filter(a => a.language === lang || !a.language)
-                            .map((artist, idx) => (
+                          {(() => {
+                            const filteredArtists = artists
+                              .filter(a => a.language === lang || !a.language)
+                              .sort((a, b) => a.name.localeCompare(b.name, lang === 'KR' ? 'ko' : lang === 'SC' ? 'zh' : 'en'));
+                            const totalArtistsPages = Math.ceil(filteredArtists.length / 5);
+                            const paginatedArtists = filteredArtists.slice((artistsPage - 1) * 5, artistsPage * 5);
+                            return (
+                              <>
+                                {paginatedArtists.map((artist, idx) => (
                               <div 
                                 key={idx} 
                                 id={`artist-profile-${artist.id || artist.name}`}
@@ -2427,6 +2595,15 @@ export default function App() {
 
                             </div>
                           ))}
+                          <Pagination 
+                            currentPage={artistsPage} 
+                            totalPages={totalArtistsPages} 
+                            onPageChange={setArtistsPage} 
+                            lang={lang} 
+                          />
+                          </>
+                        );
+                       })()}
                         </div>
                       </div>
                     )}
@@ -2543,53 +2720,77 @@ export default function App() {
                     </div>
 
                     {/* The Grid of verses */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                      {sortItems(
-                        [...archiveItems]
-                          .filter(p => p.category === 'poetry' && p.poetry_collection_name === selectedBook && p.language === lang)
-                          .sort((a, b) => getTimestampMs(b) - getTimestampMs(a)),
-                        poetrySortOrder
-                      ).map((item) => {
-                          const displaySummary = getDisplaySummary(item, 150);
-                          return (
-                            <div
-                              key={item.id}
-                              onClick={() => setReadingPoem(item)}
-                              className="group bg-white border border-[#1C1A17]/10 p-6 rounded-2xl hover:shadow-2xl hover:border-[#1C1A17]/45 transition-all duration-300 flex flex-col justify-between cursor-pointer hover:scale-[1.01]"
-                            >
-                              <div className="space-y-4">
-                                {/* Top auto-scaled image (fixed size) */}
-                                <div className="aspect-[16/10] w-full overflow-hidden rounded-xl bg-gray-50 border border-[#1C1A17]/5 shadow-inner relative">
-                                  <img 
-                                    src={item.image_url || 'https://images.unsplash.com/photo-1518640467707-6811f4a6ab73?auto=format&fit=crop&q=80&w=1200'} 
-                                    alt={item.title} 
-                                    referrerPolicy="no-referrer"
-                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                    onError={(e) => {
-                                      e.currentTarget.style.display = 'none';
-                                      const parent = e.currentTarget.parentElement;
-                                      if (parent) parent.style.display = 'none';
-                                    }}
-                                  />
-                                </div>
+                    <div className="space-y-8">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        {(() => {
+                          const filteredPoetry = sortItems(
+                            [...archiveItems]
+                              .filter(p => p.category === 'poetry' && p.poetry_collection_name === selectedBook && p.language === lang)
+                              .sort((a, b) => getTimestampMs(b) - getTimestampMs(a)),
+                            poetrySortOrder
+                          );
+                          const paginatedPoetry = filteredPoetry.slice((poetryPage - 1) * 15, poetryPage * 15);
 
-                                <div className="space-y-2">
-                                  <span className="font-mono text-[9px] tracking-widest text-[#1C1A17]/40 block uppercase font-bold">
-                                    {formatFullDate(item.created_at)}
-                                  </span>
-                                  <div className="flex items-center justify-between gap-2">
-                                    <h3 className="font-serif text-lg sm:text-xl font-bold text-black group-hover:text-amber-800 transition-colors truncate">
-                                      {item.title}
-                                    </h3>
+                          return paginatedPoetry.map((item) => {
+                            const displaySummary = getDisplaySummary(item, 150);
+                            return (
+                              <div
+                                key={item.id}
+                                onClick={() => setReadingPoem(item)}
+                                className="group bg-white border border-[#1C1A17]/10 p-6 rounded-2xl hover:shadow-2xl hover:border-[#1C1A17]/45 transition-all duration-300 flex flex-col justify-between cursor-pointer hover:scale-[1.01]"
+                              >
+                                <div className="space-y-4">
+                                  {/* Top auto-scaled image (fixed size) */}
+                                  <div className="aspect-[16/10] w-full overflow-hidden rounded-xl bg-gray-50 border border-[#1C1A17]/5 shadow-inner relative">
+                                    <img 
+                                      src={item.image_url || 'https://images.unsplash.com/photo-1518640467707-6811f4a6ab73?auto=format&fit=crop&q=80&w=1200'} 
+                                      alt={item.title} 
+                                      referrerPolicy="no-referrer"
+                                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                      onError={(e) => {
+                                        e.currentTarget.style.display = 'none';
+                                        const parent = e.currentTarget.parentElement;
+                                        if (parent) parent.style.display = 'none';
+                                      }}
+                                    />
                                   </div>
-                                  <p className="text-xs sm:text-sm text-[#1C1A17]/70 leading-relaxed font-serif line-clamp-3 h-14 overflow-hidden text-justify">
-                                    {displaySummary}
-                                  </p>
+
+                                  <div className="space-y-2">
+                                    <span className="font-mono text-[9px] tracking-widest text-[#1C1A17]/40 block uppercase font-bold">
+                                      {formatFullDate(item.created_at)}
+                                    </span>
+                                    <div className="flex items-center justify-between gap-2">
+                                      <h3 className="font-serif text-lg sm:text-xl font-bold text-black group-hover:text-amber-800 transition-colors truncate">
+                                        {item.title}
+                                      </h3>
+                                    </div>
+                                    <p className="text-xs sm:text-sm text-[#1C1A17]/70 leading-relaxed font-serif line-clamp-3 h-14 overflow-hidden text-justify">
+                                      {displaySummary}
+                                    </p>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          );
-                        })}
+                            );
+                          });
+                        })()}
+                      </div>
+                      {(() => {
+                        const filteredPoetry = sortItems(
+                          [...archiveItems]
+                            .filter(p => p.category === 'poetry' && p.poetry_collection_name === selectedBook && p.language === lang)
+                            .sort((a, b) => getTimestampMs(b) - getTimestampMs(a)),
+                          poetrySortOrder
+                        );
+                        const totalPoetryPages = Math.ceil(filteredPoetry.length / 15);
+                        return (
+                          <Pagination 
+                            currentPage={poetryPage} 
+                            totalPages={totalPoetryPages} 
+                            onPageChange={setPoetryPage} 
+                            lang={lang} 
+                          />
+                        );
+                      })()}
                     </div>
 
                     {archiveItems.filter(p => p.category === 'poetry' && p.poetry_collection_name === selectedBook && p.language === lang).length === 0 && (
@@ -2816,13 +3017,26 @@ export default function App() {
                   {/* Category 서 */}
                   <div 
                     onClick={() => setSunchaFilter(sunchaFilter === 'suncha_seo' ? 'all' : 'suncha_seo')}
-                    className={`group cursor-pointer flex flex-col items-center space-y-2 transition-all duration-300 ${sunchaFilter === 'suncha_seo' ? 'scale-[1.03]' : 'hover:scale-[1.01]'}`}
+                    className={`group cursor-pointer flex flex-col items-center space-y-2 transition-all duration-300 ${
+                      sunchaFilter === 'suncha_seo' 
+                        ? 'scale-[1.06] z-10' 
+                        : sunchaFilter !== 'all' 
+                          ? 'opacity-40 scale-[0.95] grayscale hover:opacity-80 hover:grayscale-0' 
+                          : 'hover:scale-[1.02]'
+                    }`}
                   >
-                    <span className={`font-serif text-lg font-bold transition-colors ${sunchaFilter === 'suncha_seo' ? 'text-amber-800 font-extrabold' : 'text-black group-hover:text-amber-800'}`}>
+                    <span className={`font-serif text-lg font-bold transition-all duration-300 relative pb-1 ${
+                      sunchaFilter === 'suncha_seo' ? 'text-amber-900 font-extrabold scale-105' : 'text-black group-hover:text-amber-800'
+                    }`}>
                       서(書) <span className="text-[10px] font-mono font-normal opacity-55">Calligraphy</span>
+                      {sunchaFilter === 'suncha_seo' && (
+                        <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-amber-800 rounded-full" />
+                      )}
                     </span>
                     <div className={`aspect-square w-full rounded-xl overflow-hidden border transition-all duration-300 relative ${
-                      sunchaFilter === 'suncha_seo' ? 'border-amber-800 ring-2 ring-amber-800/20 shadow-md' : 'border-[#1C1A17]/10 group-hover:border-[#1C1A17]/30 shadow-sm'
+                      sunchaFilter === 'suncha_seo' 
+                        ? 'border-amber-800 ring-4 ring-amber-800/40 shadow-xl' 
+                        : 'border-[#1C1A17]/10 group-hover:border-[#1C1A17]/30 shadow-sm'
                     }`}>
                       <img 
                         src="/assets/suntea01.jpg" 
@@ -2830,22 +3044,41 @@ export default function App() {
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                         referrerPolicy="no-referrer"
                       />
-                      <div className={`absolute inset-0 bg-black/45 transition-opacity duration-300 flex items-center justify-center ${sunchaFilter === 'suncha_seo' ? 'opacity-0' : 'opacity-20 group-hover:opacity-10'}`}>
-                        <span className="text-white text-[10px] font-serif tracking-widest font-semibold uppercase">VIEW</span>
-                      </div>
+                      {sunchaFilter === 'suncha_seo' ? (
+                        <div className="absolute top-2 right-2 bg-amber-800 text-white text-[9px] font-serif px-2.5 py-0.5 rounded-full font-bold uppercase tracking-widest shadow-md z-10">
+                          선택됨
+                        </div>
+                      ) : (
+                        <div className="absolute inset-0 bg-black/45 transition-opacity duration-300 flex items-center justify-center opacity-20 group-hover:opacity-10">
+                          <span className="text-white text-[10px] font-serif tracking-widest font-semibold uppercase">VIEW</span>
+                        </div>
+                      )}
                     </div>
                   </div>
 
                   {/* Category 화 */}
                   <div 
                     onClick={() => setSunchaFilter(sunchaFilter === 'suncha_hwa' ? 'all' : 'suncha_hwa')}
-                    className={`group cursor-pointer flex flex-col items-center space-y-2 transition-all duration-300 ${sunchaFilter === 'suncha_hwa' ? 'scale-[1.03]' : 'hover:scale-[1.01]'}`}
+                    className={`group cursor-pointer flex flex-col items-center space-y-2 transition-all duration-300 ${
+                      sunchaFilter === 'suncha_hwa' 
+                        ? 'scale-[1.06] z-10' 
+                        : sunchaFilter !== 'all' 
+                          ? 'opacity-40 scale-[0.95] grayscale hover:opacity-80 hover:grayscale-0' 
+                          : 'hover:scale-[1.02]'
+                    }`}
                   >
-                    <span className={`font-serif text-lg font-bold transition-colors ${sunchaFilter === 'suncha_hwa' ? 'text-amber-800 font-extrabold' : 'text-black group-hover:text-amber-800'}`}>
+                    <span className={`font-serif text-lg font-bold transition-all duration-300 relative pb-1 ${
+                      sunchaFilter === 'suncha_hwa' ? 'text-amber-900 font-extrabold scale-105' : 'text-black group-hover:text-amber-800'
+                    }`}>
                       화(畵) <span className="text-[10px] font-mono font-normal opacity-55">Painting</span>
+                      {sunchaFilter === 'suncha_hwa' && (
+                        <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-amber-800 rounded-full" />
+                      )}
                     </span>
                     <div className={`aspect-square w-full rounded-xl overflow-hidden border transition-all duration-300 relative ${
-                      sunchaFilter === 'suncha_hwa' ? 'border-amber-800 ring-2 ring-amber-800/20 shadow-md' : 'border-[#1C1A17]/10 group-hover:border-[#1C1A17]/30 shadow-sm'
+                      sunchaFilter === 'suncha_hwa' 
+                        ? 'border-amber-800 ring-4 ring-amber-800/40 shadow-xl' 
+                        : 'border-[#1C1A17]/10 group-hover:border-[#1C1A17]/30 shadow-sm'
                     }`}>
                       <img 
                         src="/assets/suntea02.jpg" 
@@ -2853,22 +3086,41 @@ export default function App() {
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                         referrerPolicy="no-referrer"
                       />
-                      <div className={`absolute inset-0 bg-black/45 transition-opacity duration-300 flex items-center justify-center ${sunchaFilter === 'suncha_hwa' ? 'opacity-0' : 'opacity-20 group-hover:opacity-10'}`}>
-                        <span className="text-white text-[10px] font-serif tracking-widest font-semibold uppercase">VIEW</span>
-                      </div>
+                      {sunchaFilter === 'suncha_hwa' ? (
+                        <div className="absolute top-2 right-2 bg-amber-800 text-white text-[9px] font-serif px-2.5 py-0.5 rounded-full font-bold uppercase tracking-widest shadow-md z-10">
+                          선택됨
+                        </div>
+                      ) : (
+                        <div className="absolute inset-0 bg-black/45 transition-opacity duration-300 flex items-center justify-center opacity-20 group-hover:opacity-10">
+                          <span className="text-white text-[10px] font-serif tracking-widest font-semibold uppercase">VIEW</span>
+                        </div>
+                      )}
                     </div>
                   </div>
 
                   {/* Category 차 */}
                   <div 
                     onClick={() => setSunchaFilter(sunchaFilter === 'suncha_cha' ? 'all' : 'suncha_cha')}
-                    className={`group cursor-pointer flex flex-col items-center space-y-2 transition-all duration-300 ${sunchaFilter === 'suncha_cha' ? 'scale-[1.03]' : 'hover:scale-[1.01]'}`}
+                    className={`group cursor-pointer flex flex-col items-center space-y-2 transition-all duration-300 ${
+                      sunchaFilter === 'suncha_cha' 
+                        ? 'scale-[1.06] z-10' 
+                        : sunchaFilter !== 'all' 
+                          ? 'opacity-40 scale-[0.95] grayscale hover:opacity-80 hover:grayscale-0' 
+                          : 'hover:scale-[1.02]'
+                    }`}
                   >
-                    <span className={`font-serif text-lg font-bold transition-colors ${sunchaFilter === 'suncha_cha' ? 'text-amber-800 font-extrabold' : 'text-black group-hover:text-amber-800'}`}>
+                    <span className={`font-serif text-lg font-bold transition-all duration-300 relative pb-1 ${
+                      sunchaFilter === 'suncha_cha' ? 'text-amber-900 font-extrabold scale-105' : 'text-black group-hover:text-amber-800'
+                    }`}>
                       차(茶) <span className="text-[10px] font-mono font-normal opacity-55">Tea</span>
+                      {sunchaFilter === 'suncha_cha' && (
+                        <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-amber-800 rounded-full" />
+                      )}
                     </span>
                     <div className={`aspect-square w-full rounded-xl overflow-hidden border transition-all duration-300 relative ${
-                      sunchaFilter === 'suncha_cha' ? 'border-amber-800 ring-2 ring-amber-800/20 shadow-md' : 'border-[#1C1A17]/10 group-hover:border-[#1C1A17]/30 shadow-sm'
+                      sunchaFilter === 'suncha_cha' 
+                        ? 'border-amber-800 ring-4 ring-amber-800/40 shadow-xl' 
+                        : 'border-[#1C1A17]/10 group-hover:border-[#1C1A17]/30 shadow-sm'
                     }`}>
                       <img 
                         src="/assets/suntea03.jpg" 
@@ -2876,22 +3128,41 @@ export default function App() {
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                         referrerPolicy="no-referrer"
                       />
-                      <div className={`absolute inset-0 bg-black/45 transition-opacity duration-300 flex items-center justify-center ${sunchaFilter === 'suncha_cha' ? 'opacity-0' : 'opacity-20 group-hover:opacity-10'}`}>
-                        <span className="text-white text-[10px] font-serif tracking-widest font-semibold uppercase">VIEW</span>
-                      </div>
+                      {sunchaFilter === 'suncha_cha' ? (
+                        <div className="absolute top-2 right-2 bg-amber-800 text-white text-[9px] font-serif px-2.5 py-0.5 rounded-full font-bold uppercase tracking-widest shadow-md z-10">
+                          선택됨
+                        </div>
+                      ) : (
+                        <div className="absolute inset-0 bg-black/45 transition-opacity duration-300 flex items-center justify-center opacity-20 group-hover:opacity-10">
+                          <span className="text-white text-[10px] font-serif tracking-widest font-semibold uppercase">VIEW</span>
+                        </div>
+                      )}
                     </div>
                   </div>
 
                   {/* Category 향 */}
                   <div 
                     onClick={() => setSunchaFilter(sunchaFilter === 'suncha_hyang' ? 'all' : 'suncha_hyang')}
-                    className={`group cursor-pointer flex flex-col items-center space-y-2 transition-all duration-300 ${sunchaFilter === 'suncha_hyang' ? 'scale-[1.03]' : 'hover:scale-[1.01]'}`}
+                    className={`group cursor-pointer flex flex-col items-center space-y-2 transition-all duration-300 ${
+                      sunchaFilter === 'suncha_hyang' 
+                        ? 'scale-[1.06] z-10' 
+                        : sunchaFilter !== 'all' 
+                          ? 'opacity-40 scale-[0.95] grayscale hover:opacity-80 hover:grayscale-0' 
+                          : 'hover:scale-[1.02]'
+                    }`}
                   >
-                    <span className={`font-serif text-lg font-bold transition-colors ${sunchaFilter === 'suncha_hyang' ? 'text-amber-800 font-extrabold' : 'text-black group-hover:text-amber-800'}`}>
+                    <span className={`font-serif text-lg font-bold transition-all duration-300 relative pb-1 ${
+                      sunchaFilter === 'suncha_hyang' ? 'text-amber-900 font-extrabold scale-105' : 'text-black group-hover:text-amber-800'
+                    }`}>
                       향(香) <span className="text-[10px] font-mono font-normal opacity-55">Incense</span>
+                      {sunchaFilter === 'suncha_hyang' && (
+                        <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-amber-800 rounded-full" />
+                      )}
                     </span>
                     <div className={`aspect-square w-full rounded-xl overflow-hidden border transition-all duration-300 relative ${
-                      sunchaFilter === 'suncha_hyang' ? 'border-amber-800 ring-2 ring-amber-800/20 shadow-md' : 'border-[#1C1A17]/10 group-hover:border-[#1C1A17]/30 shadow-sm'
+                      sunchaFilter === 'suncha_hyang' 
+                        ? 'border-amber-800 ring-4 ring-amber-800/40 shadow-xl' 
+                        : 'border-[#1C1A17]/10 group-hover:border-[#1C1A17]/30 shadow-sm'
                     }`}>
                       <img 
                         src="/assets/suntea04.jpg" 
@@ -2899,9 +3170,15 @@ export default function App() {
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                         referrerPolicy="no-referrer"
                       />
-                      <div className={`absolute inset-0 bg-black/45 transition-opacity duration-300 flex items-center justify-center ${sunchaFilter === 'suncha_hyang' ? 'opacity-0' : 'opacity-20 group-hover:opacity-10'}`}>
-                        <span className="text-white text-[10px] font-serif tracking-widest font-semibold uppercase">VIEW</span>
-                      </div>
+                      {sunchaFilter === 'suncha_hyang' ? (
+                        <div className="absolute top-2 right-2 bg-amber-800 text-white text-[9px] font-serif px-2.5 py-0.5 rounded-full font-bold uppercase tracking-widest shadow-md z-10">
+                          선택됨
+                        </div>
+                      ) : (
+                        <div className="absolute inset-0 bg-black/45 transition-opacity duration-300 flex items-center justify-center opacity-20 group-hover:opacity-10">
+                          <span className="text-white text-[10px] font-serif tracking-widest font-semibold uppercase">VIEW</span>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -2977,62 +3254,78 @@ export default function App() {
                       </p>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                      {sortedSunchaItems.map((item) => {
-                        const displaySummary = getDisplaySummary(item, 150);
-                        const categoryLabel = 
-                          item.category === 'suncha_seo' ? '서(書)' :
-                          item.category === 'suncha_hwa' ? '화(畵)' :
-                          item.category === 'suncha_cha' || item.category === 'suncha_intro' || item.category === 'suncha_review' ? '차(茶)' :
-                          item.category === 'suncha_hyang' ? '향(香)' : '';
+                    <div className="space-y-8">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        {(() => {
+                          const paginatedSunchaItems = sortedSunchaItems.slice((sunchaPage - 1) * 15, sunchaPage * 15);
+                          return paginatedSunchaItems.map((item) => {
+                            const displaySummary = getDisplaySummary(item, 150);
+                            const categoryLabel = 
+                              item.category === 'suncha_seo' ? '서(書)' :
+                              item.category === 'suncha_hwa' ? '화(畵)' :
+                              item.category === 'suncha_cha' || item.category === 'suncha_intro' || item.category === 'suncha_review' ? '차(茶)' :
+                              item.category === 'suncha_hyang' ? '향(香)' : '';
 
-                        return (
-                          <div
-                            key={item.id}
-                            onClick={() => setReadingSuncha(item)}
-                            className="group bg-white border border-[#1C1A17]/10 p-6 rounded-2xl hover:shadow-2xl hover:border-[#1C1A17]/45 transition-all duration-300 flex flex-col justify-between cursor-pointer hover:scale-[1.01]"
-                          >
-                            <div className="space-y-4">
-                              {/* Top image */}
-                              <div className="aspect-[16/10] w-full overflow-hidden rounded-xl bg-gray-50 border border-[#1C1A17]/5 shadow-inner relative">
-                                <img 
-                                  src={item.image_url || 'https://images.unsplash.com/photo-1518640467707-6811f4a6ab73?auto=format&fit=crop&q=80&w=1200'} 
-                                  alt={item.title} 
-                                  referrerPolicy="no-referrer"
-                                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                  onError={(e) => {
-                                    e.currentTarget.style.display = 'none';
-                                    const parent = e.currentTarget.parentElement;
-                                    if (parent) parent.style.display = 'none';
-                                  }}
-                                />
-                                <div className="absolute top-3 left-3 bg-[#1C1A17] text-white text-[9px] font-serif px-2.5 py-0.5 rounded font-bold uppercase tracking-widest">
-                                  {categoryLabel}
+                            return (
+                              <div
+                                key={item.id}
+                                onClick={() => setReadingSuncha(item)}
+                                className="group bg-white border border-[#1C1A17]/10 p-6 rounded-2xl hover:shadow-2xl hover:border-[#1C1A17]/45 transition-all duration-300 flex flex-col justify-between cursor-pointer hover:scale-[1.01]"
+                              >
+                                <div className="space-y-4">
+                                  {/* Top image */}
+                                  <div className="aspect-[16/10] w-full overflow-hidden rounded-xl bg-gray-50 border border-[#1C1A17]/5 shadow-inner relative">
+                                    <img 
+                                      src={item.image_url || 'https://images.unsplash.com/photo-1518640467707-6811f4a6ab73?auto=format&fit=crop&q=80&w=1200'} 
+                                      alt={item.title} 
+                                      referrerPolicy="no-referrer"
+                                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                      onError={(e) => {
+                                        e.currentTarget.style.display = 'none';
+                                        const parent = e.currentTarget.parentElement;
+                                        if (parent) parent.style.display = 'none';
+                                      }}
+                                    />
+                                    <div className="absolute top-3 left-3 bg-[#1C1A17] text-white text-[9px] font-serif px-2.5 py-0.5 rounded font-bold uppercase tracking-widest">
+                                      {categoryLabel}
+                                    </div>
+                                  </div>
+
+                                  <div className="space-y-2">
+                                    <span className="font-mono text-[9px] tracking-widest text-[#1C1A17]/40 block uppercase font-bold">
+                                      {formatFullDate(item.created_at)}
+                                    </span>
+                                    <h3 className="font-serif text-lg font-bold text-black group-hover:text-amber-800 transition-colors line-clamp-1">
+                                      {item.title}
+                                    </h3>
+                                    <p className="text-xs text-[#1C1A17]/70 leading-relaxed font-serif line-clamp-3 h-14 overflow-hidden text-justify">
+                                      {displaySummary}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <div className="mt-6 pt-4 border-t border-[#1C1A17]/5 flex justify-between items-center text-[9px] tracking-widest uppercase font-mono font-bold text-[#1C1A17]/40 group-hover:text-[#1C1A17] transition-colors">
+                                  <span>VIEW WORKS</span>
+                                  <span className="flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                                    {lang === 'KR' ? '자세히 보기' : 'Read details'} <ChevronRight size={12} />
+                                  </span>
                                 </div>
                               </div>
-
-                              <div className="space-y-2">
-                                <span className="font-mono text-[9px] tracking-widest text-[#1C1A17]/40 block uppercase font-bold">
-                                  {formatFullDate(item.created_at)}
-                                </span>
-                                <h3 className="font-serif text-lg font-bold text-black group-hover:text-amber-800 transition-colors line-clamp-1">
-                                  {item.title}
-                                </h3>
-                                <p className="text-xs text-[#1C1A17]/70 leading-relaxed font-serif line-clamp-3 h-14 overflow-hidden text-justify">
-                                  {displaySummary}
-                                </p>
-                              </div>
-                            </div>
-
-                            <div className="mt-6 pt-4 border-t border-[#1C1A17]/5 flex justify-between items-center text-[9px] tracking-widest uppercase font-mono font-bold text-[#1C1A17]/40 group-hover:text-[#1C1A17] transition-colors">
-                              <span>VIEW WORKS</span>
-                              <span className="flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                                {lang === 'KR' ? '자세히 보기' : 'Read details'} <ChevronRight size={12} />
-                              </span>
-                            </div>
-                          </div>
+                            );
+                          });
+                        })()}
+                      </div>
+                      {(() => {
+                        const totalSunchaPages = Math.ceil(sortedSunchaItems.length / 15);
+                        return (
+                          <Pagination 
+                            currentPage={sunchaPage} 
+                            totalPages={totalSunchaPages} 
+                            onPageChange={setSunchaPage} 
+                            lang={lang} 
+                          />
                         );
-                      })}
+                      })()}
                     </div>
                   )}
                 </div>
@@ -3377,83 +3670,110 @@ export default function App() {
                       </p>
                     )}
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                      {sortItems(
-                        archiveItems.filter(item => {
+                    <div className="space-y-8">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {(() => {
+                          const filteredJourney = sortItems(
+                            archiveItems.filter(item => {
+                              if (item.language !== lang) return false;
+                              if (journeyFilter === 'photo') return item.category === 'journey';
+                              if (journeyFilter === 'press') return item.category === 'press';
+                              return (item.category === 'journey' || item.category === 'press');
+                            }),
+                            journeySortOrder
+                          );
+                          const paginatedJourney = filteredJourney.slice((journeyPage - 1) * 10, journeyPage * 10);
+
+                          return paginatedJourney.map((item) => (
+                            <div 
+                              key={item.id}
+                              onClick={() => setSelectedJourneyItem(item)}
+                              className="group bg-white border border-[#1C1A17]/10 p-6 rounded hover:shadow-2xl hover:border-[#1C1A17]/35 transition-all duration-300 flex flex-col justify-between cursor-pointer hover:scale-[1.01]"
+                            >
+                              <div className="space-y-4 text-left">
+                                <div className="aspect-[16/10] overflow-hidden rounded bg-gray-50 border border-[#1C1A17]/5 relative">
+                                  <img 
+                                    src={item.image_url} 
+                                    alt={item.title} 
+                                    className="w-full h-full object-cover opacity-90 transition-transform duration-500 group-hover:scale-105"
+                                    referrerPolicy="no-referrer"
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = 'none';
+                                      const parent = e.currentTarget.parentElement;
+                                      if (parent) parent.style.display = 'none';
+                                    }}
+                                  />
+                                  {/* Hover Overlay indicator */}
+                                  <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <span className="text-[10px] tracking-widest font-mono text-white bg-black/75 px-3 py-1.5 rounded uppercase font-bold shadow-md">
+                                      {lang === 'KR' ? '자세히 보기' : 'Read details'} &rarr;
+                                    </span>
+                                  </div>
+                                </div>
+                                
+                                <div className="space-y-2">
+                                  <div className="flex gap-2 items-center">
+                                    <span className="font-mono text-[9px] tracking-widest text-[#1C1A17]/40 font-bold uppercase">
+                                      {item.category === 'journey' ? 'Activity Performance' : 'Press Editorial'}
+                                    </span>
+                                    {item.category_tag && (
+                                      <span className="font-mono text-[8px] tracking-widest text-black/55 bg-neutral-100 px-1.5 py-0.5 rounded border border-black/5 uppercase">
+                                        {item.category_tag}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <h4 className="font-serif text-base md:text-lg font-bold text-black group-hover:text-black/80 transition-colors leading-snug">{item.title}</h4>
+                                  <p className="text-xs text-black/60 leading-relaxed font-sans font-normal antialiased line-clamp-3">
+                                    {getDisplaySummary(item, 150)}
+                                  </p>
+                                </div>
+                              </div>
+
+                              {/* Expandable details button at bottom */}
+                              <div className="pt-4 border-t border-[#1C1A17]/5 mt-6 flex justify-between items-center text-[9px] tracking-widest uppercase font-mono font-bold text-neutral-400 group-hover:text-black transition-all">
+                                <span>{item.category === 'journey' ? 'Perform Log' : 'Editorial'}</span>
+                                <span className="flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                                  {lang === 'KR' ? '자세히 보기' : 'View details'} &rarr;
+                                </span>
+                              </div>
+                            </div>
+                          ));
+                        })()}
+
+                        {archiveItems.filter(item => {
                           if (item.language !== lang) return false;
                           if (journeyFilter === 'photo') return item.category === 'journey';
                           if (journeyFilter === 'press') return item.category === 'press';
                           return (item.category === 'journey' || item.category === 'press');
-                        }),
-                        journeySortOrder
-                      ).map((item) => (
-                        <div 
-                          key={item.id}
-                          onClick={() => setSelectedJourneyItem(item)}
-                          className="group bg-white border border-[#1C1A17]/10 p-6 rounded hover:shadow-2xl hover:border-[#1C1A17]/35 transition-all duration-300 flex flex-col justify-between cursor-pointer hover:scale-[1.01]"
-                        >
-                          <div className="space-y-4 text-left">
-                            <div className="aspect-[16/10] overflow-hidden rounded bg-gray-50 border border-[#1C1A17]/5 relative">
-                              <img 
-                                src={item.image_url} 
-                                alt={item.title} 
-                                className="w-full h-full object-cover opacity-90 transition-transform duration-500 group-hover:scale-105"
-                                referrerPolicy="no-referrer"
-                                onError={(e) => {
-                                  e.currentTarget.style.display = 'none';
-                                  const parent = e.currentTarget.parentElement;
-                                  if (parent) parent.style.display = 'none';
-                                }}
-                              />
-                              {/* Hover Overlay indicator */}
-                              <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                <span className="text-[10px] tracking-widest font-mono text-white bg-black/75 px-3 py-1.5 rounded uppercase font-bold shadow-md">
-                                  {lang === 'KR' ? '자세히 보기' : 'Read details'} &rarr;
-                                </span>
-                              </div>
-                            </div>
-                            
-                            <div className="space-y-2">
-                              <div className="flex gap-2 items-center">
-                                <span className="font-mono text-[9px] tracking-widest text-[#1C1A17]/40 font-bold uppercase">
-                                  {item.category === 'journey' ? 'Activity Performance' : 'Press Editorial'}
-                                </span>
-                                {item.category_tag && (
-                                  <span className="font-mono text-[8px] tracking-widest text-black/55 bg-neutral-100 px-1.5 py-0.5 rounded border border-black/5 uppercase">
-                                    {item.category_tag}
-                                  </span>
-                                )}
-                              </div>
-                              <h4 className="font-serif text-base md:text-lg font-bold text-black group-hover:text-black/80 transition-colors leading-snug">{item.title}</h4>
-                              <p className="text-xs text-black/60 leading-relaxed font-sans font-normal antialiased line-clamp-3">
-                                {getDisplaySummary(item, 150)}
-                              </p>
-                            </div>
+                        }).length === 0 && (
+                          <div className="md:col-span-2 text-center py-24 border border-dashed border-[#1C1A17]/10 p-12 bg-white rounded flex flex-col items-center justify-center">
+                            <ImageIcon className="opacity-20 mb-4" size={40} />
+                            <p className="font-serif text-sm italic text-[#1C1A17]/55">
+                              {journeyFilter === 'photo' ? t.journey.emptyPhotos : t.journey.emptyPress}
+                            </p>
                           </div>
-
-                          {/* Expandable details button at bottom */}
-                          <div className="pt-4 border-t border-[#1C1A17]/5 mt-6 flex justify-between items-center text-[9px] tracking-widest uppercase font-mono font-bold text-neutral-400 group-hover:text-black transition-all">
-                            <span>{item.category === 'journey' ? 'Perform Log' : 'Editorial'}</span>
-                            <span className="flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                              {lang === 'KR' ? '자세히 보기' : 'View details'} &rarr;
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-
-                      {archiveItems.filter(item => {
-                        if (item.language !== lang) return false;
-                        if (journeyFilter === 'photo') return item.category === 'journey';
-                        if (journeyFilter === 'press') return item.category === 'press';
-                        return (item.category === 'journey' || item.category === 'press');
-                      }).length === 0 && (
-                        <div className="md:col-span-2 text-center py-24 border border-dashed border-[#1C1A17]/10 p-12 bg-white rounded flex flex-col items-center justify-center">
-                          <ImageIcon className="opacity-20 mb-4" size={40} />
-                          <p className="font-serif text-sm italic text-[#1C1A17]/55">
-                            {journeyFilter === 'photo' ? t.journey.emptyPhotos : t.journey.emptyPress}
-                          </p>
-                        </div>
-                      )}
+                        )}
+                      </div>
+                      {(() => {
+                        const filteredJourney = sortItems(
+                          archiveItems.filter(item => {
+                            if (item.language !== lang) return false;
+                            if (journeyFilter === 'photo') return item.category === 'journey';
+                            if (journeyFilter === 'press') return item.category === 'press';
+                            return (item.category === 'journey' || item.category === 'press');
+                          }),
+                          journeySortOrder
+                        );
+                        const totalJourneyPages = Math.ceil(filteredJourney.length / 10);
+                        return (
+                          <Pagination 
+                            currentPage={journeyPage} 
+                            totalPages={totalJourneyPages} 
+                            onPageChange={setJourneyPage} 
+                            lang={lang} 
+                          />
+                        );
+                      })()}
                     </div>
                   </div>
                 </div>

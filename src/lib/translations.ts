@@ -98,7 +98,7 @@ export const translations: Record<Language, Content> = {
   KR: {
     hero: {
       title: "심물지철(心物之哲)\n여영사진(如映寫眞)",
-      subtitle: "마음과 사물의 울림 속에서 비춤과 같으니, 차와 예술이 그 빛을 나누는 자리입니다.",
+      subtitle: "불한자(弗寒子)는 심물철학을 기반으로 한 사유와 예술의 장입니다.\n마음과 사물은 둘이 아니라 하나의 파동이며,\n그 파동은 글과 그림, 그리고 차로 드러납니다.\n이곳은 철학이 머물고, 예술이 숨 쉬며,\n차가 그것을 완성하는 공간입니다.",
       cta: "물파의 세계 탐색"
     },
     philosophy: {
@@ -224,7 +224,7 @@ export const translations: Record<Language, Content> = {
   SC: {
     hero: {
       title: "心物之哲\n如映写真",
-      subtitle: "在心灵与物质的共鸣中，如万象折射，茶与艺术是分享静谧光影的场所。",
+      subtitle: "關爲弗寒子\n弗寒子，乃以心物哲學為本之思想與藝術之場。\n心與物，非二而一，其為波動而顯於詩書畫與茶。\n此處，哲思所止，藝術所生,\n而茶，為其完成之境。",
       cta: "探寻物波世界"
     },
     philosophy: {
@@ -350,7 +350,7 @@ export const translations: Record<Language, Content> = {
   EN: {
     hero: {
       title: "Philosophy of\nMind & Matter",
-      subtitle: "In the resonance of consciousness and physical shapes, we mirror the cosmos. Tea and artwork share this quietude.",
+      subtitle: "About Bulhanza :\nBulhanza is a space of philosophy and art grounded in the philosophy of Mind and Matter.\nMind and matter are not separate—they move as one wave,\nexpressed through writing, art, and tea.\nHere, philosophy dwells, art breathes,\nand tea completes the experience.",
       cta: "Explore the Mulpa Universe"
     },
     philosophy: {
