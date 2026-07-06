@@ -610,7 +610,7 @@ export default function App() {
     return (
       <div className="space-y-6">
         {/* Content first half */}
-        <div className="markdown-body font-serif text-lg md:text-xl leading-relaxed text-[#1C1A17]/90 text-justify whitespace-pre-wrap">
+        <div className="markdown-body font-serif text-lg md:text-xl leading-relaxed text-[#1C1A17]/90 text-justify">
           <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeRaw]}>
             {firstHalf}
           </ReactMarkdown>
@@ -635,7 +635,7 @@ export default function App() {
         
         {/* Content second half */}
         {secondHalf && (
-          <div className="markdown-body font-serif text-lg md:text-xl leading-relaxed text-[#1C1A17]/90 text-justify whitespace-pre-wrap">
+          <div className="markdown-body font-serif text-lg md:text-xl leading-relaxed text-[#1C1A17]/90 text-justify">
             <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeRaw]}>
               {secondHalf}
             </ReactMarkdown>
@@ -1860,7 +1860,7 @@ export default function App() {
                       </p>
                     )}
 
-                    <div className="prose prose-stone max-w-none text-xs md:text-sm leading-[1.8] text-[#1C1A17]/90 font-sans break-words whitespace-pre-line bg-[#FAF9F6] border border-[#1C1A17]/5 p-6 rounded">
+                    <div className="prose prose-stone max-w-none text-sm md:text-base leading-[1.8] text-[#1C1A17]/90 font-sans break-words bg-[#FAF9F6] border border-[#1C1A17]/5 p-6 rounded [&_p]:my-0 [&_p]:mb-5 last:[&_p]:mb-0">
                       <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeRaw]}>
                         {readingPhilosophy.content || ''}
                       </ReactMarkdown>
@@ -3016,7 +3016,10 @@ export default function App() {
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
                   {/* Category 서 */}
                   <div 
-                    onClick={() => setSunchaFilter(sunchaFilter === 'suncha_seo' ? 'all' : 'suncha_seo')}
+                    onClick={() => {
+                      setSunchaFilter(sunchaFilter === 'suncha_seo' ? 'all' : 'suncha_seo');
+                      setReadingSuncha(null);
+                    }}
                     className={`group cursor-pointer flex flex-col items-center space-y-2 transition-all duration-300 ${
                       sunchaFilter === 'suncha_seo' 
                         ? 'scale-[1.06] z-10' 
@@ -3058,7 +3061,10 @@ export default function App() {
 
                   {/* Category 화 */}
                   <div 
-                    onClick={() => setSunchaFilter(sunchaFilter === 'suncha_hwa' ? 'all' : 'suncha_hwa')}
+                    onClick={() => {
+                      setSunchaFilter(sunchaFilter === 'suncha_hwa' ? 'all' : 'suncha_hwa');
+                      setReadingSuncha(null);
+                    }}
                     className={`group cursor-pointer flex flex-col items-center space-y-2 transition-all duration-300 ${
                       sunchaFilter === 'suncha_hwa' 
                         ? 'scale-[1.06] z-10' 
@@ -3100,7 +3106,10 @@ export default function App() {
 
                   {/* Category 차 */}
                   <div 
-                    onClick={() => setSunchaFilter(sunchaFilter === 'suncha_cha' ? 'all' : 'suncha_cha')}
+                    onClick={() => {
+                      setSunchaFilter(sunchaFilter === 'suncha_cha' ? 'all' : 'suncha_cha');
+                      setReadingSuncha(null);
+                    }}
                     className={`group cursor-pointer flex flex-col items-center space-y-2 transition-all duration-300 ${
                       sunchaFilter === 'suncha_cha' 
                         ? 'scale-[1.06] z-10' 
@@ -3142,7 +3151,10 @@ export default function App() {
 
                   {/* Category 향 */}
                   <div 
-                    onClick={() => setSunchaFilter(sunchaFilter === 'suncha_hyang' ? 'all' : 'suncha_hyang')}
+                    onClick={() => {
+                      setSunchaFilter(sunchaFilter === 'suncha_hyang' ? 'all' : 'suncha_hyang');
+                      setReadingSuncha(null);
+                    }}
                     className={`group cursor-pointer flex flex-col items-center space-y-2 transition-all duration-300 ${
                       sunchaFilter === 'suncha_hyang' 
                         ? 'scale-[1.06] z-10' 
@@ -3363,7 +3375,7 @@ export default function App() {
                     </p>
                   )}
 
-                  <div className="prose prose-stone max-w-none text-xs md:text-sm leading-[1.8] text-[#1C1A17]/90 font-sans break-words bg-[#FAF9F6] border border-[#1C1A17]/5 p-6 rounded space-y-6">
+                  <div className="prose prose-stone max-w-none text-sm md:text-base leading-[1.8] text-[#1C1A17]/90 font-sans break-words bg-[#FAF9F6] border border-[#1C1A17]/5 p-6 rounded [&_p]:my-0 [&_p]:mb-5 last:[&_p]:mb-0">
                     {/* 상(Top) Image */}
                     {readingSuncha.image_url && (
                       <div className="mb-6 flex justify-center w-full">
@@ -3391,11 +3403,9 @@ export default function App() {
                         const secondHalf = paragraphs.slice(midPoint).join('\n');
                         return (
                           <div className="space-y-6">
-                            <div className="whitespace-pre-line">
-                              <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeRaw]}>
-                                {firstHalf}
-                              </ReactMarkdown>
-                            </div>
+                            <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeRaw]}>
+                              {firstHalf}
+                            </ReactMarkdown>
                             <div className="my-6 flex justify-center w-full">
                               <img 
                                 src={readingSuncha.image_mid_url} 
@@ -3410,21 +3420,17 @@ export default function App() {
                               />
                             </div>
                             {secondHalf && (
-                              <div className="whitespace-pre-line">
-                                <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeRaw]}>
-                                  {secondHalf}
-                                </ReactMarkdown>
-                              </div>
+                              <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeRaw]}>
+                                {secondHalf}
+                              </ReactMarkdown>
                             )}
                           </div>
                         );
                       } else {
                         return (
-                          <div className="whitespace-pre-line">
-                            <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeRaw]}>
-                              {content}
-                            </ReactMarkdown>
-                          </div>
+                          <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeRaw]}>
+                            {content}
+                          </ReactMarkdown>
                         );
                       }
                     })()}
@@ -3811,7 +3817,7 @@ export default function App() {
                     </p>
                   )}
 
-                  <div className="prose prose-stone max-w-none text-xs md:text-sm leading-[1.8] text-[#1C1A17]/90 font-sans break-words whitespace-pre-line bg-[#FAF9F6] border border-[#1C1A17]/5 p-6 rounded">
+                  <div className="prose prose-stone max-w-none text-sm md:text-base leading-[1.8] text-[#1C1A17]/90 font-sans break-words bg-[#FAF9F6] border border-[#1C1A17]/5 p-6 rounded [&_p]:my-0 [&_p]:mb-5 last:[&_p]:mb-0">
                     <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeRaw]}>
                       {selectedJourneyItem.content || ''}
                     </ReactMarkdown>
