@@ -1104,8 +1104,12 @@ export default function App() {
       .sort((a, b) => getTimestampMs(b) - getTimestampMs(a))
       .filter(item => {
         // 1. Category Filter
-        if (adminCategoryFilter !== 'all' && item.category !== adminCategoryFilter) {
-          return false;
+        if (adminCategoryFilter !== 'all') {
+          if (adminCategoryFilter === 'journey') {
+            if (item.category !== 'journey' && item.category !== 'press') return false;
+          } else if (item.category !== adminCategoryFilter) {
+            return false;
+          }
         }
         // 2. Keyword Search
         if (adminSearchQuery.trim()) {
@@ -1210,7 +1214,7 @@ export default function App() {
       <header className={`fixed top-0 inset-x-0 z-50 transition-all duration-500 border-b ${
         scrolled 
           ? 'bg-[#FAF9F6]/85 backdrop-blur-md py-4 border-[#1C1A17]/10' 
-          : 'bg-transparent py-6 border-transparent'
+          : 'bg-transparent lg:bg-transparent bg-[#FAF9F6]/85 backdrop-blur-md py-4 lg:py-6 border-[#1C1A17]/10 lg:border-transparent'
       }`}>
         <div className="max-w-7xl mx-auto px-6 md:px-12 flex items-center justify-between">
           
@@ -1306,74 +1310,38 @@ export default function App() {
               </div>
             </div>
  
-            {/* Mobile Menu Icon */}
-            <button 
-              id="mobile-menu-toggle"
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className={`lg:hidden p-1 transition-colors duration-300 ${
-                isHomeDarkHeader ? 'text-white hover:text-white/80' : 'text-[#1C1A17] hover:opacity-75'
-              }`}
-            >
-              {isMenuOpen ? <X size={20} /> : <Menu size={20} />}
-            </button>
           </div>
         </div>
 
-        {/* Mobile dropdown Menu */}
-        <AnimatePresence>
-          {isMenuOpen && (
-            <motion.div 
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="absolute top-full inset-x-0 bg-[#FAF9F6] border-b border-[#1C1A17]/10 py-8 px-10 flex flex-col gap-5 shadow-xl z-40 lg:hidden"
-            >
-              {(Object.keys(t.nav) as Page[]).filter(p => p !== 'contact').map((p) => (
+        {/* Mobile Horizontal Paging/Scrollable Menu - Pinned under the header row */}
+        <div className="lg:hidden w-full border-t border-[#1C1A17]/10 bg-[#FAF9F6]/95 backdrop-blur-md py-2.5 relative overflow-hidden">
+          {/* Subtle horizontal scroll indicator overlays */}
+          <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-[#FAF9F6]/95 to-transparent pointer-events-none z-10" />
+          <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[#FAF9F6]/95 to-transparent pointer-events-none z-10" />
+          
+          <div className="overflow-x-auto scrollbar-none flex gap-2.5 px-6 snap-x snap-mandatory">
+            {(Object.keys(t.nav) as Page[]).filter(p => p !== 'contact').map((p) => {
+              const isCurrent = page === p;
+              return (
                 <button
                   key={p}
-                  onClick={() => {
-                    setPage(p);
-                    setIsMenuOpen(false);
-                  }}
-                  className={`text-left text-[20px] tracking-[0.15em] uppercase py-3 font-extrabold border-b border-[#1C1A17]/10 ${
-                    page === p ? 'text-black font-black' : 'text-black/60'
+                  onClick={() => setPage(p)}
+                  className={`snap-center shrink-0 px-4 py-2 rounded-full text-xs font-extrabold tracking-wider transition-all duration-300 border ${
+                    isCurrent
+                      ? 'bg-[#1C1A17] text-[#FAF9F6] border-[#1C1A17] shadow-sm scale-105'
+                      : 'bg-white/90 text-black/70 border-[#1C1A17]/15 hover:border-[#1C1A17]/45'
                   }`}
                 >
                   {t.nav[p]}
                 </button>
-              ))}
-
-              {/* Dedicated Mobile Language Switcher block */}
-              <div className="pt-4 flex flex-col gap-3">
-                <span className="font-mono text-[9px] tracking-widest text-[#1C1A17]/45 font-bold uppercase">
-                  {lang === 'KR' ? '언어 선택 (Language)' : lang === 'SC' ? '选择语言 (Language)' : 'Select Language'}
-                </span>
-                <div className="flex gap-2">
-                  {(['KR', 'SC', 'EN'] as const).map((l) => (
-                    <button
-                      key={l}
-                      onClick={() => {
-                        setLang(l);
-                        setIsMenuOpen(false);
-                      }}
-                      className={`px-4 py-2 text-xs font-bold tracking-widest rounded-full border transition-all ${
-                        lang === l
-                          ? 'bg-[#1C1A17] border-[#1C1A17] text-[#FAF9F6]'
-                          : 'bg-white border-[#1C1A17]/15 text-[#1C1A17]'
-                      }`}
-                    >
-                      {l === 'KR' ? '한국어' : l === 'SC' ? '中文(简体)' : 'ENGLISH'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              );
+            })}
+          </div>
+        </div>
       </header>
 
       {/* Main Pages Switch */}
-      <main className="pt-28 min-h-screen">
+      <main className="pt-36 lg:pt-28 min-h-screen">
         <AnimatePresence mode="wait">
           
           {/* HOME PAGE */}
@@ -1383,7 +1351,7 @@ export default function App() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="relative w-full -mt-28"
+              className="relative w-full -mt-36 lg:-mt-28"
             >
               {/* Immersive background image with advanced vignette and overlay filters */}
               <div className="absolute inset-0 z-0 overflow-hidden bg-[#FAF9F6]">
@@ -1409,14 +1377,14 @@ export default function App() {
                   
                   {/* Left Column - Empty top space, with Sub-copies and actions aligned at the bottom */}
                   <div className="lg:col-span-7 flex flex-col justify-end min-h-[360px] space-y-8 text-left">
-                    <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-[#1C1A17]/10 bg-[#1C1A17]/5 self-start">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#1C1A17] animate-pulse" />
-                      <span className="text-[9px] tracking-[0.3em] uppercase text-[#1C1A17] font-mono font-bold">ESTABLISHED 1997</span>
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#1C1A17]/10 bg-[#1C1A17]/5 self-start">
+                      <span className="w-2 h-2 rounded-full bg-[#1C1A17] animate-pulse" />
+                      <span className="text-xs sm:text-sm tracking-[0.2em] uppercase text-[#1C1A17] font-mono font-bold">ESTABLISHED 1997</span>
                     </div>
 
                     <div className="space-y-6">
                       {/* Sub-copies placed and aligned at the bottom of the Hero section */}
-                      <p className="text-base md:text-xl font-serif text-[#1C1A17]/85 leading-relaxed font-normal max-w-xl whitespace-pre-line">
+                      <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-serif text-[#1C1A17] leading-relaxed font-semibold max-w-2xl whitespace-pre-line">
                         {t.hero.subtitle}
                       </p>
                       
@@ -1424,14 +1392,14 @@ export default function App() {
                         <button 
                           id="hero-explore-btn"
                           onClick={() => setPage('philosophy')}
-                          className="px-8 py-4 bg-[#1C1A17] text-white hover:bg-neutral-800 hover:scale-105 active:scale-95 text-[10px] tracking-[0.3em] uppercase transition-all flex items-center gap-3 rounded-full font-bold shadow-lg shadow-black/10"
+                          className="px-10 py-5 bg-[#1C1A17] text-white hover:bg-neutral-800 hover:scale-105 active:scale-95 text-sm sm:text-base md:text-lg tracking-wider uppercase transition-all flex items-center gap-3 rounded-full font-bold shadow-lg shadow-black/10"
                         >
-                          <Compass size={14} /> {t.hero.cta}
+                          <Compass size={18} /> {t.hero.cta}
                         </button>
                         <button 
                           id="hero-tea-btn"
                           onClick={() => setPage('tea')}
-                          className="px-8 py-4 border border-[#1C1A17]/25 text-[#1C1A17] bg-transparent hover:bg-[#1C1A17] hover:text-white hover:scale-105 active:scale-95 text-[10px] tracking-[0.3em] uppercase transition-all rounded-full font-bold"
+                          className="px-10 py-5 border border-[#1C1A17]/35 text-[#1C1A17] bg-transparent hover:bg-[#1C1A17] hover:text-white hover:scale-105 active:scale-95 text-sm sm:text-base md:text-lg tracking-wider uppercase transition-all rounded-full font-bold"
                         >
                           {translations[lang].nav.tea}
                         </button>
@@ -1480,13 +1448,13 @@ export default function App() {
                       <Activity size={18} />
                     </div>
                     <div className="space-y-2">
-                      <h3 className="font-serif text-lg text-[#1C1A17] font-bold tracking-wide flex items-center gap-2">
+                      <h3 className="font-serif text-xl sm:text-2xl text-[#1C1A17] font-bold tracking-wide flex items-center gap-2">
                         {t.nav.philosophy}
-                        <span className="text-[9px] font-mono text-[#1C1A17]/60 border border-[#1C1A17]/20 px-1.5 py-0.5 rounded uppercase">MIND</span>
+                        <span className="text-xs font-mono text-[#1C1A17]/60 border border-[#1C1A17]/20 px-2 py-0.5 rounded uppercase font-bold">MIND</span>
                       </h3>
-                      <p className="text-xs text-[#1C1A17]/70 leading-relaxed font-sans line-clamp-3">{t.philosophy.text}</p>
+                      <p className="text-sm sm:text-base md:text-lg text-[#1C1A17]/85 leading-relaxed font-sans line-clamp-3">{t.philosophy.text}</p>
                     </div>
-                    <div className="pt-2 text-[9px] font-mono font-bold tracking-widest text-[#1C1A17]/40 group-hover:text-black transition-colors flex items-center gap-1.5">
+                    <div className="pt-2 text-xs sm:text-sm md:text-base font-mono font-bold tracking-wider text-[#1C1A17]/50 group-hover:text-black transition-colors flex items-center gap-1.5">
                       EXPLORE DOCTRINE <span className="transform group-hover:translate-x-1 transition-transform">&rarr;</span>
                     </div>
                   </div>
@@ -1501,13 +1469,13 @@ export default function App() {
                       <Sparkles size={18} />
                     </div>
                     <div className="space-y-2">
-                      <h3 className="font-serif text-lg text-[#1C1A17] font-bold tracking-wide flex items-center gap-2">
+                      <h3 className="font-serif text-xl sm:text-2xl text-[#1C1A17] font-bold tracking-wide flex items-center gap-2">
                         {t.nav.art}
-                        <span className="text-[9px] font-mono text-[#1C1A17]/60 border border-[#1C1A17]/20 px-1.5 py-0.5 rounded uppercase">SPACE</span>
+                        <span className="text-xs font-mono text-[#1C1A17]/60 border border-[#1C1A17]/20 px-2 py-0.5 rounded uppercase font-bold">SPACE</span>
                       </h3>
-                      <p className="text-xs text-[#1C1A17]/70 leading-relaxed font-sans line-clamp-3">{t.art.intro}</p>
+                      <p className="text-sm sm:text-base md:text-lg text-[#1C1A17]/85 leading-relaxed font-sans line-clamp-3">{t.art.intro}</p>
                     </div>
-                    <div className="pt-2 text-[9px] font-mono font-bold tracking-widest text-[#1C1A17]/40 group-hover:text-black transition-colors flex items-center gap-1.5">
+                    <div className="pt-2 text-xs sm:text-sm md:text-base font-mono font-bold tracking-wider text-[#1C1A17]/50 group-hover:text-black transition-colors flex items-center gap-1.5">
                       VIEW MASTERPIECES <span className="transform group-hover:translate-x-1 transition-transform">&rarr;</span>
                     </div>
                   </div>
@@ -1522,13 +1490,13 @@ export default function App() {
                       <BookOpen size={18} />
                     </div>
                     <div className="space-y-2">
-                      <h3 className="font-serif text-lg text-[#1C1A17] font-bold tracking-wide flex items-center gap-2">
+                      <h3 className="font-serif text-xl sm:text-2xl text-[#1C1A17] font-bold tracking-wide flex items-center gap-2">
                         {t.nav.tea}
-                        <span className="text-[9px] font-mono text-[#1C1A17]/60 border border-[#1C1A17]/20 px-1.5 py-0.5 rounded uppercase">TEA</span>
+                        <span className="text-xs font-mono text-[#1C1A17]/60 border border-[#1C1A17]/20 px-2 py-0.5 rounded uppercase font-bold">TEA</span>
                       </h3>
-                      <p className="text-xs text-[#1C1A17]/70 leading-relaxed font-sans line-clamp-3">{t.tea.storyContent}</p>
+                      <p className="text-sm sm:text-base md:text-lg text-[#1C1A17]/85 leading-relaxed font-sans line-clamp-3">{t.tea.storyContent}</p>
                     </div>
-                    <div className="pt-2 text-[9px] font-mono font-bold tracking-widest text-[#1C1A17]/40 group-hover:text-black transition-colors flex items-center gap-1.5">
+                    <div className="pt-2 text-xs sm:text-sm md:text-base font-mono font-bold tracking-wider text-[#1C1A17]/50 group-hover:text-black transition-colors flex items-center gap-1.5">
                       SUNCHATEA CEREMONY <span className="transform group-hover:translate-x-1 transition-transform">&rarr;</span>
                     </div>
                   </div>
@@ -1568,7 +1536,7 @@ export default function App() {
                       : 'bg-white text-black/70 border-[#1C1A17]/15 hover:border-[#1C1A17]/40 hover:bg-[#FAF9F6]'
                   }`}
                 >
-                  {lang === 'KR' ? '심물철학 강론 (Chapters)' : lang === 'SC' ? '心物哲学讲义' : 'Philosophy Chapters'}
+                  {lang === 'KR' ? '심물철학 강론' : lang === 'SC' ? '心物哲学讲义' : 'Philosophy Chapters'}
                 </button>
                 <button
                   onClick={() => {
@@ -1581,7 +1549,7 @@ export default function App() {
                       : 'bg-white text-black/70 border-[#1C1A17]/15 hover:border-[#1C1A17]/40 hover:bg-[#FAF9F6]'
                   }`}
                 >
-                  {lang === 'KR' ? '학술 단상 및 기록 (Essays)' : lang === 'SC' ? '学术随笔与感悟' : 'Writings & Essays'}
+                  {lang === 'KR' ? '심물 에세이' : lang === 'SC' ? '学术随笔与感悟' : 'Writings & Essays'}
                 </button>
               </div>
 
@@ -1668,7 +1636,7 @@ export default function App() {
                                     <h3 className="font-serif text-lg sm:text-xl font-bold text-black group-hover:text-amber-800 transition-colors truncate">
                                       {chap.title}
                                     </h3>
-                                    <p className="text-xs sm:text-sm text-[#1C1A17]/70 leading-relaxed font-serif line-clamp-3 h-14 overflow-hidden text-justify">
+                                    <p className="text-sm sm:text-base md:text-lg text-[#1C1A17]/85 leading-relaxed font-serif line-clamp-3 h-20 sm:h-24 overflow-hidden text-justify">
                                       {displaySummary}
                                     </p>
                                   </div>
@@ -1694,9 +1662,9 @@ export default function App() {
                               {lang === 'KR' ? '학술 단상 및 집필 기록' : lang === 'SC' ? '学术感悟与执笔记录' : 'Academic Writings & Archive'}
                               <button
                                 onClick={() => handleWriteClick('philosophy')}
-                                className="px-3.5 py-1.5 bg-[#1C1A17] hover:bg-black text-white text-[10px] tracking-widest font-bold uppercase rounded flex items-center gap-1 transition-colors"
+                                className="px-4 py-2.5 bg-[#1C1A17] hover:bg-black text-white text-xs sm:text-sm tracking-wide font-bold uppercase rounded-lg flex items-center gap-1.5 transition-all shadow-sm"
                               >
-                                <PenTool size={11} />
+                                <PenTool size={14} />
                                 {lang === 'KR' ? '새 글 작성' : 'Write'}
                               </button>
                             </h3>
@@ -1793,7 +1761,7 @@ export default function App() {
                                             {formatFullDate(post.created_at)}
                                           </span>
                                           <h4 className="font-serif text-lg font-bold text-black group-hover:text-amber-800 transition-colors line-clamp-1">{post.title}</h4>
-                                          <p className="text-xs sm:text-sm text-[#1C1A17]/70 leading-relaxed font-serif line-clamp-3 h-14 overflow-hidden text-justify">
+                                          <p className="text-sm sm:text-base md:text-lg text-[#1C1A17]/85 leading-relaxed font-serif line-clamp-3 h-20 sm:h-24 overflow-hidden text-justify">
                                             {displaySummary}
                                           </p>
                                         </div>
@@ -1861,12 +1829,8 @@ export default function App() {
                     )}
 
                     <div className="prose prose-stone max-w-none text-sm md:text-base leading-[1.8] text-[#1C1A17]/90 font-sans break-words bg-[#FAF9F6] border border-[#1C1A17]/5 p-6 rounded [&_p]:my-0 [&_p]:mb-5 last:[&_p]:mb-0">
-                      <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeRaw]}>
-                        {readingPhilosophy.content || ''}
-                      </ReactMarkdown>
-
                       {readingPhilosophy.image_url && (
-                        <div className="mt-8 flex justify-center w-full">
+                        <div className="mb-8 flex justify-center w-full">
                           <img 
                             src={readingPhilosophy.image_url} 
                             alt={readingPhilosophy.title} 
@@ -1880,6 +1844,10 @@ export default function App() {
                           />
                         </div>
                       )}
+
+                      <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeRaw]}>
+                        {readingPhilosophy.content || ''}
+                      </ReactMarkdown>
                     </div>
 
                     {/* Detail bottom actions footer */}
@@ -2271,12 +2239,8 @@ export default function App() {
                           )}
 
                           <div className="prose prose-stone max-w-none text-xs md:text-sm leading-[1.8] text-[#1C1A17]/90 font-sans break-words whitespace-pre-line bg-[#FAF9F6] border border-[#1C1A17]/5 p-6 rounded">
-                            <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeRaw]}>
-                              {readingMulpa.content}
-                            </ReactMarkdown>
-
                             {readingMulpa.image_url && (
-                              <div className="mt-8 flex justify-center w-full">
+                              <div className="mb-8 flex justify-center w-full">
                                 <img 
                                   src={readingMulpa.image_url} 
                                   alt={readingMulpa.title} 
@@ -2290,6 +2254,10 @@ export default function App() {
                                 />
                               </div>
                             )}
+
+                            <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeRaw]}>
+                              {readingMulpa.content}
+                            </ReactMarkdown>
                           </div>
 
                           {/* Detail bottom actions footer */}
@@ -3588,44 +3556,17 @@ export default function App() {
                     <div className="absolute bottom-6 left-6 text-white text-left space-y-1">
                       <span className="text-[9px] tracking-[0.3em] font-mono text-white/70 uppercase block font-bold">The Path of True Aesthetics</span>
                       <h3 className="font-serif text-lg md:text-2xl font-normal text-white drop-shadow-md">
-                        {lang === 'KR' ? '활동여정 (活動旅程) ㆍ 어제와 오늘을 잇는 발자취' : lang === 'SC' ? '活动旅程 ㆍ 连结过去与现在的足迹' : 'The Path of True Aesthetics'}
+                        {lang === 'KR' ? '라석여정 (羅石旅程) ㆍ 어제와 오늘을 잇는 발자취' : lang === 'SC' ? '罗石之路 ㆍ 连结过去与现在的足迹' : 'The Path of True Aesthetics'}
                       </h3>
                     </div>
                   </div>
 
-                  {/* Filter tabs */}
+                  {/* Top Bar with Sort Controller */}
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-16 pb-6 border-b border-[#1C1A17]/10">
-                    <div className="flex flex-wrap gap-4 text-[10px] tracking-widest uppercase font-mono font-bold">
-                      <button 
-                        onClick={() => setJourneyFilter('all')}
-                        className={`px-6 py-2 rounded-full border transition-all ${
-                          journeyFilter === 'all' 
-                            ? 'bg-black text-white border-black' 
-                            : 'bg-transparent border-[#1C1A17]/10 text-black hover:border-black/30'
-                        }`}
-                      >
-                        All Archive
-                      </button>
-                      <button 
-                        onClick={() => setJourneyFilter('photo')}
-                        className={`px-6 py-2 rounded-full border transition-all ${
-                          journeyFilter === 'photo' 
-                            ? 'bg-black text-white border-black' 
-                            : 'bg-transparent border-[#1C1A17]/10 text-black hover:border-black/30'
-                        }`}
-                      >
-                        Performances / Photos
-                      </button>
-                      <button 
-                        onClick={() => setJourneyFilter('press')}
-                        className={`px-6 py-2 rounded-full border transition-all ${
-                          journeyFilter === 'press' 
-                            ? 'bg-black text-white border-black' 
-                            : 'bg-transparent border-[#1C1A17]/10 text-black hover:border-black/30'
-                        }`}
-                      >
-                        Press Coverage / Publications
-                      </button>
+                    <div className="text-left">
+                      <span className="font-serif text-sm tracking-widest uppercase font-bold text-black">
+                        {lang === 'KR' ? '라석 여정록 전체 아카이브' : lang === 'SC' ? '罗石之路全纪录' : 'Complete News & Media Archive'}
+                      </span>
                     </div>
 
                     {/* Sort Controller */}
@@ -3670,20 +3611,12 @@ export default function App() {
 
                   {/* Grid layout */}
                   <div className="space-y-12">
-                    {JSON.stringify(journeyFilter) !== '"all"' && (
-                      <p className="font-mono text-[9px] tracking-widest uppercase opacity-45 mb-4 font-bold">
-                        Filtered view: {journeyFilter.toUpperCase()} logs
-                      </p>
-                    )}
-
                     <div className="space-y-8">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         {(() => {
                           const filteredJourney = sortItems(
                             archiveItems.filter(item => {
                               if (item.language !== lang) return false;
-                              if (journeyFilter === 'photo') return item.category === 'journey';
-                              if (journeyFilter === 'press') return item.category === 'press';
                               return (item.category === 'journey' || item.category === 'press');
                             }),
                             journeySortOrder
@@ -3720,7 +3653,7 @@ export default function App() {
                                 <div className="space-y-2">
                                   <div className="flex gap-2 items-center">
                                     <span className="font-mono text-[9px] tracking-widest text-[#1C1A17]/40 font-bold uppercase">
-                                      {item.category === 'journey' ? 'Activity Performance' : 'Press Editorial'}
+                                      {lang === 'KR' ? '라석여정' : lang === 'SC' ? '罗石之路' : 'News & Media'}
                                     </span>
                                     {item.category_tag && (
                                       <span className="font-mono text-[8px] tracking-widest text-black/55 bg-neutral-100 px-1.5 py-0.5 rounded border border-black/5 uppercase">
@@ -3737,7 +3670,7 @@ export default function App() {
 
                               {/* Expandable details button at bottom */}
                               <div className="pt-4 border-t border-[#1C1A17]/5 mt-6 flex justify-between items-center text-[9px] tracking-widest uppercase font-mono font-bold text-neutral-400 group-hover:text-black transition-all">
-                                <span>{item.category === 'journey' ? 'Perform Log' : 'Editorial'}</span>
+                                <span>{lang === 'KR' ? '여정 아카이브' : lang === 'SC' ? '行旅档案' : 'News & Media Log'}</span>
                                 <span className="flex items-center gap-1 group-hover:translate-x-1 transition-transform">
                                   {lang === 'KR' ? '자세히 보기' : 'View details'} &rarr;
                                 </span>
@@ -3748,14 +3681,12 @@ export default function App() {
 
                         {archiveItems.filter(item => {
                           if (item.language !== lang) return false;
-                          if (journeyFilter === 'photo') return item.category === 'journey';
-                          if (journeyFilter === 'press') return item.category === 'press';
                           return (item.category === 'journey' || item.category === 'press');
                         }).length === 0 && (
                           <div className="md:col-span-2 text-center py-24 border border-dashed border-[#1C1A17]/10 p-12 bg-white rounded flex flex-col items-center justify-center">
                             <ImageIcon className="opacity-20 mb-4" size={40} />
                             <p className="font-serif text-sm italic text-[#1C1A17]/55">
-                              {journeyFilter === 'photo' ? t.journey.emptyPhotos : t.journey.emptyPress}
+                              {lang === 'KR' ? '게시된 라석여정 기록이 비어 있습니다.' : lang === 'SC' ? '罗石之路档案为空。' : 'No news or media logs found in this collection.'}
                             </p>
                           </div>
                         )}
@@ -3764,8 +3695,6 @@ export default function App() {
                         const filteredJourney = sortItems(
                           archiveItems.filter(item => {
                             if (item.language !== lang) return false;
-                            if (journeyFilter === 'photo') return item.category === 'journey';
-                            if (journeyFilter === 'press') return item.category === 'press';
                             return (item.category === 'journey' || item.category === 'press');
                           }),
                           journeySortOrder
@@ -3793,10 +3722,7 @@ export default function App() {
                 >
                   <div className="border-b border-[#1C1A17]/10 pb-6">
                     <span className="font-mono text-[8px] tracking-[0.2em] uppercase text-black/40 block mb-1">
-                      {selectedJourneyItem.category === 'journey' 
-                        ? (lang === 'KR' ? '활동여정 기록 아카이브' : 'Activity Performance') 
-                        : (lang === 'KR' ? '언론보도 및 보도기사' : 'Press Coverage')
-                      }
+                      {lang === 'KR' ? '라석여정 기록 아카이브' : lang === 'SC' ? '罗石之路档案' : 'News & Media Archive'}
                     </span>
                     <h3 className="font-serif text-2xl sm:text-3xl font-bold text-black">{selectedJourneyItem.title}</h3>
                     <div className="flex items-center gap-2 mt-2">
@@ -3818,12 +3744,8 @@ export default function App() {
                   )}
 
                   <div className="prose prose-stone max-w-none text-sm md:text-base leading-[1.8] text-[#1C1A17]/90 font-sans break-words bg-[#FAF9F6] border border-[#1C1A17]/5 p-6 rounded [&_p]:my-0 [&_p]:mb-5 last:[&_p]:mb-0">
-                    <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeRaw]}>
-                      {selectedJourneyItem.content || ''}
-                    </ReactMarkdown>
-
                     {selectedJourneyItem.image_url && (
-                      <div className="mt-8 flex justify-center w-full">
+                      <div className="mb-8 flex justify-center w-full">
                         <img 
                           src={selectedJourneyItem.image_url} 
                           alt={selectedJourneyItem.title} 
@@ -3837,6 +3759,10 @@ export default function App() {
                         />
                       </div>
                     )}
+
+                    <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeRaw]}>
+                      {selectedJourneyItem.content || ''}
+                    </ReactMarkdown>
                   </div>
 
                   {/* Detail bottom actions footer */}
@@ -4043,16 +3969,15 @@ export default function App() {
                               onChange={e => setAdminCategoryFilter(e.target.value)}
                               className="bg-white border border-[#1C1A17]/15 rounded p-2 text-xs font-mono text-[#1C1A17] focus:outline-none focus:border-black min-w-[200px] h-9"
                             >
-                              <option value="all">ALL CATEGORIES (전체 보기)</option>
-                              <option value="poetry">Poetry (시집 수록전)</option>
-                              <option value="philosophy">Philosophy (심물철학 단상)</option>
-                              <option value="journey">Journey (활동 여정기록)</option>
-                              <option value="press">Press (언론 보도기사)</option>
-                              <option value="mulpa">Mulpaism (물파주의 기고글)</option>
-                              <option value="suncha_seo">서화차향 - 서(書) (Calligraphy)</option>
-                              <option value="suncha_hwa">서화차향 - 화(畵) (Painting)</option>
-                              <option value="suncha_cha">서화차향 - 차(茶) (Tea)</option>
-                              <option value="suncha_hyang">서화차향 - 향(香) (Incense)</option>
+                              <option value="all">전체 카테고리</option>
+                              <option value="poetry">라석시집</option>
+                              <option value="philosophy">심물 에세이</option>
+                              <option value="journey">라석여정</option>
+                              <option value="mulpa">물파공간</option>
+                              <option value="suncha_seo">서화차향 - 서(書)</option>
+                              <option value="suncha_hwa">서화차향 - 화(畵)</option>
+                              <option value="suncha_cha">서화차향 - 차(茶)</option>
+                              <option value="suncha_hyang">서화차향 - 향(香)</option>
                             </select>
                           </div>
 
@@ -4108,18 +4033,18 @@ export default function App() {
                                   </span>
                                 </td>
                                 <td className="p-3 text-[#1C1A17]/70 font-semibold text-[11px] uppercase tracking-wider">
-                                  {item.category === 'poetry' ? 'Poetry' :
-                                   item.category === 'philosophy' ? 'Philosophy' :
-                                   item.category === 'journey' ? 'Journey' :
-                                   item.category === 'press' ? 'Press' :
-                                   item.category === 'mulpa' ? 'Mulpaism' :
+                                  {item.category === 'poetry' ? '라석시집' :
+                                   item.category === 'philosophy' ? '심물 에세이' :
+                                   item.category === 'journey' ? '라석여정' :
+                                   item.category === 'press' ? '라석여정' :
+                                   item.category === 'mulpa' ? '물파공간' :
                                    item.category === 'suncha_seo' ? '서화차향 - 서(書)' :
                                    item.category === 'suncha_hwa' ? '서화차향 - 화(畵)' :
                                    item.category === 'suncha_cha' ? '서화차향 - 차(茶)' :
                                    item.category === 'suncha_hyang' ? '서화차향 - 향(香)' :
-                                   item.category === 'suncha_intro' ? '서화차향 - 차(茶) (Old)' :
-                                   item.category === 'suncha_review' ? '서화차향 - 차(茶) (Old)' :
-                                   item.category}
+                                   item.category === 'suncha_intro' ? '서화차향 - 차(茶)' :
+                                   item.category === 'suncha_review' ? '서화차향 - 차(茶)' :
+                                   '라석여정'}
                                 </td>
                                 <td className="p-3 font-medium text-black max-w-xs truncate font-serif">
                                   {item.title}
@@ -4475,9 +4400,12 @@ export default function App() {
             </div>
           </div>
         </div>
-        <div className="max-w-7xl mx-auto px-6 md:px-12 pt-8 border-t border-[#1C1A17]/5 mt-12 flex justify-between items-center text-[9px] font-mono text-black/40">
-          <span>&copy; {new Date().getFullYear()} BULHANZA. ALL RIGHTS REGISTERED.</span>
-          <span>BULHANZA DIGITAL ARCHIVE SYSTEM</span>
+        <div className="max-w-7xl mx-auto px-6 md:px-12 pt-8 border-t border-[#1C1A17]/5 mt-12 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs font-mono text-black/50">
+          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-8 text-center sm:text-left">
+            <span>&copy; {new Date().getFullYear()} BULHANZA. ALL RIGHTS REGISTERED.</span>
+            <span className="text-black/80 font-bold text-sm bg-neutral-100 px-3 py-1 rounded border border-neutral-200 shadow-sm">Made by 姜大振 2026.</span>
+          </div>
+          <span className="font-semibold">BULHANZA DIGITAL ARCHIVE SYSTEM</span>
         </div>
       </footer>
 
@@ -4531,15 +4459,14 @@ export default function App() {
                       onChange={e => setEditingItem({ ...editingItem, category: e.target.value })}
                       className="w-full bg-white border border-[#1C1A17]/15 rounded p-2 text-xs text-[#1C1A17] font-mono focus:outline-none"
                     >
-                      <option value="poetry">Poetry (시집 수록전)</option>
-                      <option value="philosophy">Philosophy (심물철학 단상)</option>
-                      <option value="journey">Journey (활동 여정기록)</option>
-                      <option value="press">Press (언론 보도기사)</option>
-                      <option value="mulpa">Mulpaism (물파주의 기고글)</option>
-                      <option value="suncha_seo">서화차향 - 서(書) (Calligraphy)</option>
-                      <option value="suncha_hwa">서화차향 - 화(畵) (Painting)</option>
-                      <option value="suncha_cha">서화차향 - 차(茶) (Tea)</option>
-                      <option value="suncha_hyang">서화차향 - 향(香) (Incense)</option>
+                      <option value="poetry">라석시집</option>
+                      <option value="philosophy">심물 에세이</option>
+                      <option value="journey">라석여정</option>
+                      <option value="mulpa">물파공간</option>
+                      <option value="suncha_seo">서화차향 - 서(書)</option>
+                      <option value="suncha_hwa">서화차향 - 화(畵)</option>
+                      <option value="suncha_cha">서화차향 - 차(茶)</option>
+                      <option value="suncha_hyang">서화차향 - 향(香)</option>
                     </select>
                   </div>
 
@@ -5630,20 +5557,20 @@ export default function App() {
                   </div>
 
                   <div>
-                    <label className="font-serif text-sm font-bold text-black block mb-1.5">카테고리 지정 (Category)</label>
+                    <label className="font-serif text-sm font-bold text-black block mb-1.5">카테고리 지정</label>
                     <select
                       value={writeFormCategory}
                       onChange={(e) => setWriteFormCategory(e.target.value)}
                       className="w-full bg-white border border-neutral-300 focus:border-black rounded-lg p-2.5 text-base font-medium focus:outline-none"
                     >
-                      <option value="poetry">라석시집 (Poetry Book)</option>
-                      <option value="philosophy">심물철학 에세이 (Philosophy Essay)</option>
-                      <option value="suncha_seo">서화차향 - 서(書) (Calligraphy)</option>
-                      <option value="suncha_hwa">서화차향 - 화(畵) (Painting)</option>
-                      <option value="suncha_cha">서화차향 - 차(茶) (Tea)</option>
-                      <option value="suncha_hyang">서화차향 - 향(香) (Incense)</option>
-                      <option value="journey">활동여정 사진 (Media Photos)</option>
-                      <option value="press">활동여정 언론보도 (Media Press)</option>
+                      <option value="poetry">라석시집</option>
+                      <option value="philosophy">심물 에세이</option>
+                      <option value="journey">라석여정</option>
+                      <option value="mulpa">물파공간</option>
+                      <option value="suncha_seo">서화차향 - 서(書)</option>
+                      <option value="suncha_hwa">서화차향 - 화(畵)</option>
+                      <option value="suncha_cha">서화차향 - 차(茶)</option>
+                      <option value="suncha_hyang">서화차향 - 향(香)</option>
                     </select>
                   </div>
                 </div>
@@ -5704,11 +5631,11 @@ export default function App() {
                   />
                 </div>
 
-                {/* Multi-Image Insertion (Top, Middle, Bottom) */}
+                {/* Multi-Image Insertion (Top, Bottom) */}
                 <div className="space-y-4 border-t border-neutral-200 pt-4">
                   <h4 className="font-serif text-base font-bold text-black flex items-center gap-1.5">
                     <ImageIcon size={18} />
-                    반응형 이미지 삽입 (최대 3개 배치: 상단, 중단, 하단)
+                    반응형 이미지 삽입 (최대 2개 배치: 상단, 하단)
                   </h4>
 
                   <div className="grid grid-cols-1 gap-4 text-left">
@@ -5752,50 +5679,10 @@ export default function App() {
                       </div>
                     </div>
 
-                    {/* Middle image */}
-                    <div className="bg-white p-4 rounded-xl border border-neutral-200 space-y-2">
-                      <div className="flex justify-between items-center">
-                        <span className="font-serif text-sm font-bold text-neutral-800">2. 중간 이미지 (본문 1/2 지점 배치)</span>
-                        {writeFormUploading.mid && <span className="text-xs text-amber-600 font-bold animate-pulse">업로드 중...</span>}
-                      </div>
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          placeholder="이미지 URL 주소"
-                          value={writeFormMidImg}
-                          onChange={(e) => setWriteFormMidImg(e.target.value)}
-                          className="flex-1 bg-neutral-50 border border-neutral-300 rounded-lg p-2 text-xs font-mono focus:outline-none"
-                        />
-                        <div className="relative">
-                          <input
-                            type="file"
-                            accept="image/*,image/heic,image/heif,.heic,.heif"
-                            onChange={async (e) => {
-                              const file = e.target.files?.[0];
-                              if (!file) return;
-                              setWriteFormUploading(p => ({ ...p, mid: true }));
-                              try {
-                                const url = await uploadImageFile(file);
-                                setWriteFormMidImg(url);
-                              } catch (err) {
-                                alert('이미지 업로드 실패: ' + err);
-                              } finally {
-                                setWriteFormUploading(p => ({ ...p, mid: false }));
-                              }
-                            }}
-                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                          />
-                          <button type="button" className="px-4 py-2 bg-neutral-800 hover:bg-black text-white text-xs font-bold rounded-lg whitespace-nowrap">
-                            파일 찾기
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-
                     {/* Bottom image */}
                     <div className="bg-white p-4 rounded-xl border border-neutral-200 space-y-2">
                       <div className="flex justify-between items-center">
-                        <span className="font-serif text-sm font-bold text-neutral-800">3. 하단 이미지 (본문 맨 아래 배치)</span>
+                        <span className="font-serif text-sm font-bold text-neutral-800">2. 하단 이미지 (본문 맨 아래 배치)</span>
                         {writeFormUploading.bot && <span className="text-xs text-amber-600 font-bold animate-pulse">업로드 중...</span>}
                       </div>
                       <div className="flex gap-2">

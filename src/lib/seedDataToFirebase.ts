@@ -87,7 +87,7 @@ export const DEFAULT_JOURNEY_PRESS: Omit<ArchiveItem, 'id'>[] = [
     summary: "물파 공간과 심물철학 연구소, 한-중 학술 교류 대회 개최 발표.",
     content: "기성 물질주의 한계를 극복하고 인간 본연의 주체성을 살려내기 위해 대안으로 동양의 심물철학을 제시한 학술 논총이 전 세계 연구자들의 높은 공감을 샀습니다.",
     image_url: "https://images.unsplash.com/photo-1505373877841-8d25f7d46678?auto=format&fit=crop&q=80&w=1200",
-    category: "press",
+    category: "journey",
     language: "KR"
   },
   {
@@ -95,7 +95,7 @@ export const DEFAULT_JOURNEY_PRESS: Omit<ArchiveItem, 'id'>[] = [
     summary: "物波美学研究所发表学术白皮书，引起东亚美学界热烈反响。",
     content: "为了应对信息泛滥和快节奏消费带来的心灵枯竭，东亚学者齐聚论坛，共同探讨水墨、禅茶以及艺术活动如何重塑大众精神，并推崇罗石的心物和谐假说作为前沿视角。",
     image_url: "https://images.unsplash.com/photo-1505373877841-8d25f7d46678?auto=format&fit=crop&q=80&w=1200",
-    category: "press",
+    category: "journey",
     language: "SC"
   },
   {
@@ -103,7 +103,7 @@ export const DEFAULT_JOURNEY_PRESS: Omit<ArchiveItem, 'id'>[] = [
     summary: "Annual Oriental Philosophy Conference profiles Lasok's critical works.",
     content: "Leading art historians debated the revival of calligraphic line art as a meditative vehicle. The unique concept 'Mind-Matter waves' was celebrated as a cornerstone to heal contemporary anxiety.",
     image_url: "https://images.unsplash.com/photo-1505373877841-8d25f7d46678?auto=format&fit=crop&q=80&w=1200",
-    category: "press",
+    category: "journey",
     language: "EN"
   }
 ];

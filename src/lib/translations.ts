@@ -99,7 +99,7 @@ export const translations: Record<Language, Content> = {
     hero: {
       title: "심물지철(心物之哲)\n여영사진(如映寫眞)",
       subtitle: "불한자(弗寒子)는 심물철학을 기반으로 한 사유와 예술의 장입니다.\n마음과 사물은 둘이 아니라 하나의 파동이며,\n그 파동은 글과 그림, 그리고 차로 드러납니다.\n이곳은 철학이 머물고, 예술이 숨 쉬며,\n차가 그것을 완성하는 공간입니다.",
-      cta: "물파의 세계 탐색"
+      cta: "물파공간"
     },
     philosophy: {
       title: "심물철학",
@@ -176,7 +176,7 @@ export const translations: Record<Language, Content> = {
       poemsTitle: "차가 선사하는 시적 상상"
     },
     journey: {
-      title: "활동여정",
+      title: "라석여정",
       subtitle: "라석 여정기록 (Poet Lasok Journey Archive)",
       photosSection: "여정 및 가야금 활동 아카이브",
       pressSection: "언론 보도 및 학술 기록",
@@ -216,7 +216,7 @@ export const translations: Record<Language, Content> = {
       art: "물파공간",
       poetryCollection: "라석시집",
       tea: "서화차향",
-      journey: "활동여정",
+      journey: "라석여정",
       contact: "연락처",
       admin: "관리자"
     }
@@ -302,7 +302,7 @@ export const translations: Record<Language, Content> = {
       poemsTitle: "茶中的诗意万物"
     },
     journey: {
-      title: "行旅足迹",
+      title: "罗石之路",
       subtitle: "罗石行旅实录 (Poet Lasok Journey Archive)",
       photosSection: "行旅、伽倻琴演奏与学术影像档案",
       pressSection: "新闻报道及学术文献辑录",
@@ -342,7 +342,7 @@ export const translations: Record<Language, Content> = {
       art: "物波空间",
       poetryCollection: "罗石诗集",
       tea: "書畵茶香",
-      journey: "行旅足迹",
+      journey: "罗石之路",
       contact: "联络",
       admin: "管理"
     }
@@ -428,7 +428,7 @@ export const translations: Record<Language, Content> = {
       poemsTitle: "Verses Infused with Tea Scent"
     },
     journey: {
-      title: "Journey",
+      title: "News&Media",
       subtitle: "Chronicles of Lasok (Poet Lasok Journey Archive)",
       photosSection: "Journey, Academic & Gayageum Performance Archive",
       pressSection: "Press Coverages & Academic Publications",
@@ -468,7 +468,7 @@ export const translations: Record<Language, Content> = {
       art: "Mulpa Space",
       poetryCollection: "Lasok Poetry Collection",
       tea: "SunCha",
-      journey: "Media",
+      journey: "News&Media",
       contact: "Contact",
       admin: "Admin"
     }
