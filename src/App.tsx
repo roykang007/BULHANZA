@@ -620,30 +620,42 @@ export default function App() {
     }
   };
 
-  const renderContentWithImages = (content: string, midImg?: string, botImg?: string) => {
-    const paragraphs = content.split('\n');
-    const midPoint = Math.floor(paragraphs.length / 2);
-    
-    const firstHalf = paragraphs.slice(0, midPoint).join('\n');
-    const secondHalf = paragraphs.slice(midPoint).join('\n');
-    
-    return (
-      <div className="space-y-6">
-        {/* Content first half */}
-        <div className="markdown-body font-serif text-lg md:text-xl leading-relaxed text-[#1C1A17]/90 text-justify">
-          <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeRaw]}>
-            {firstHalf}
-          </ReactMarkdown>
-        </div>
-        
-        {/* Middle Image */}
-        {midImg && (
+  const renderContentWithImages = (
+    content: string, 
+    midImg?: string, 
+    botImg?: string, 
+    isSerif: boolean = true,
+    customSizeClass?: string
+  ) => {
+    const sizeClass = customSizeClass || (isSerif ? "text-lg md:text-xl" : "text-sm md:text-base");
+    const fontClass = isSerif 
+      ? `markdown-body font-serif ${sizeClass} leading-relaxed text-[#1C1A17]/90 text-justify`
+      : `markdown-body font-sans ${sizeClass} leading-relaxed text-[#1C1A17]/90 text-justify`;
+
+    const renderMarkdown = (text: string) => (
+      <div className={fontClass}>
+        <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeRaw]}>
+          {text}
+        </ReactMarkdown>
+      </div>
+    );
+
+    if (midImg) {
+      const paragraphs = content.split('\n');
+      const midPoint = Math.floor(paragraphs.length / 2);
+      const firstHalf = paragraphs.slice(0, midPoint).join('\n');
+      const secondHalf = paragraphs.slice(midPoint).join('\n');
+
+      return (
+        <div className="space-y-6 w-full">
+          {firstHalf && renderMarkdown(firstHalf)}
+          
           <div className="my-8 flex justify-center w-full">
             <img 
               src={midImg} 
               alt="Middle decoration" 
               referrerPolicy="no-referrer"
-              className="max-w-full max-h-[300px] sm:max-h-[400px] h-auto object-contain rounded-xl border border-[#1C1A17]/10 p-1 bg-white shadow-sm"
+              className="max-w-full max-h-[350px] md:max-h-[480px] h-auto object-contain rounded border border-[#1C1A17]/10 p-1.5 bg-white shadow-sm"
               onError={(e) => {
                 e.currentTarget.style.display = 'none';
                 const parent = e.currentTarget.parentElement;
@@ -651,25 +663,39 @@ export default function App() {
               }}
             />
           </div>
-        )}
-        
-        {/* Content second half */}
-        {secondHalf && (
-          <div className="markdown-body font-serif text-lg md:text-xl leading-relaxed text-[#1C1A17]/90 text-justify">
-            <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeRaw]}>
-              {secondHalf}
-            </ReactMarkdown>
-          </div>
-        )}
-        
-        {/* Bottom Image */}
+
+          {secondHalf && renderMarkdown(secondHalf)}
+
+          {botImg && (
+            <div className="mt-8 flex justify-center w-full">
+              <img 
+                src={botImg} 
+                alt="Bottom decoration" 
+                referrerPolicy="no-referrer"
+                className="max-w-full max-h-[350px] md:max-h-[480px] h-auto object-contain rounded border border-[#1C1A17]/10 p-1.5 bg-white shadow-sm"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  const parent = e.currentTarget.parentElement;
+                  if (parent) parent.style.display = 'none';
+                }}
+              />
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-6 w-full">
+        {renderMarkdown(content)}
+
         {botImg && (
           <div className="mt-8 flex justify-center w-full">
             <img 
               src={botImg} 
               alt="Bottom decoration" 
               referrerPolicy="no-referrer"
-              className="max-w-full max-h-[300px] sm:max-h-[400px] h-auto object-contain rounded-xl border border-[#1C1A17]/10 p-1 bg-white shadow-sm"
+              className="max-w-full max-h-[350px] md:max-h-[480px] h-auto object-contain rounded border border-[#1C1A17]/10 p-1.5 bg-white shadow-sm"
               onError={(e) => {
                 e.currentTarget.style.display = 'none';
                 const parent = e.currentTarget.parentElement;
@@ -1029,6 +1055,8 @@ export default function App() {
         content: editingItem.content || '',
         summary: editingItem.summary || '',
         image_url: editingItem.image_url || 'https://images.unsplash.com/photo-1518640467707-6811f4a6ab73?auto=format&fit=crop&q=80&w=1200',
+        image_mid_url: editingItem.image_mid_url || '',
+        image_bot_url: editingItem.image_bot_url || '',
         category: editingItem.category,
         poetry_collection_name: editingItem.category === 'poetry' ? (editingItem.poetry_collection_name || null) : null,
         language: editingItem.language || lang,
@@ -1870,9 +1898,12 @@ export default function App() {
                         </div>
                       )}
 
-                      <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeRaw]}>
-                        {readingPhilosophy.content || ''}
-                      </ReactMarkdown>
+                      {renderContentWithImages(
+                        readingPhilosophy.content || '', 
+                        readingPhilosophy.image_mid_url, 
+                        readingPhilosophy.image_bot_url, 
+                        false
+                      )}
                     </div>
 
                     {/* Detail bottom actions footer */}
@@ -2280,9 +2311,13 @@ export default function App() {
                               </div>
                             )}
 
-                            <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeRaw]}>
-                              {readingMulpa.content}
-                            </ReactMarkdown>
+                            {renderContentWithImages(
+                              readingMulpa.content || '',
+                              readingMulpa.image_mid_url,
+                              readingMulpa.image_bot_url,
+                              false,
+                              "text-xs md:text-sm"
+                            )}
                           </div>
 
                           {/* Detail bottom actions footer */}
@@ -3393,63 +3428,11 @@ export default function App() {
                       </div>
                     )}
 
-                    {/* Content (with optional middle split) */}
-                    {(() => {
-                      const content = readingSuncha.content || '';
-                      if (readingSuncha.image_mid_url) {
-                        const paragraphs = content.split('\n');
-                        const midPoint = Math.floor(paragraphs.length / 2);
-                        const firstHalf = paragraphs.slice(0, midPoint).join('\n');
-                        const secondHalf = paragraphs.slice(midPoint).join('\n');
-                        return (
-                          <div className="space-y-6">
-                            <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeRaw]}>
-                              {firstHalf}
-                            </ReactMarkdown>
-                            <div className="my-6 flex justify-center w-full">
-                              <img 
-                                src={readingSuncha.image_mid_url} 
-                                alt="Middle decoration" 
-                                referrerPolicy="no-referrer"
-                                className="max-w-full max-h-[350px] md:max-h-[480px] h-auto object-contain rounded border border-[#1C1A17]/10 p-1.5 bg-white shadow-sm"
-                                onError={(e) => {
-                                  e.currentTarget.style.display = 'none';
-                                  const parent = e.currentTarget.parentElement;
-                                  if (parent) parent.style.display = 'none';
-                                }}
-                              />
-                            </div>
-                            {secondHalf && (
-                              <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeRaw]}>
-                                {secondHalf}
-                              </ReactMarkdown>
-                            )}
-                          </div>
-                        );
-                      } else {
-                        return (
-                          <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeRaw]}>
-                            {content}
-                          </ReactMarkdown>
-                        );
-                      }
-                    })()}
-
-                    {/* 하(Bottom) Image */}
-                    {readingSuncha.image_bot_url && (
-                      <div className="mt-6 flex justify-center w-full">
-                        <img 
-                          src={readingSuncha.image_bot_url} 
-                          alt="Bottom decoration" 
-                          referrerPolicy="no-referrer"
-                          className="max-w-full max-h-[350px] md:max-h-[480px] h-auto object-contain rounded border border-[#1C1A17]/10 p-1.5 bg-white shadow-sm"
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none';
-                            const parent = e.currentTarget.parentElement;
-                            if (parent) parent.style.display = 'none';
-                          }}
-                        />
-                      </div>
+                    {renderContentWithImages(
+                      readingSuncha.content || '', 
+                      readingSuncha.image_mid_url, 
+                      readingSuncha.image_bot_url, 
+                      false
                     )}
                   </div>
 
@@ -3792,9 +3775,12 @@ export default function App() {
                       </div>
                     )}
 
-                    <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeRaw]}>
-                      {selectedJourneyItem.content || ''}
-                    </ReactMarkdown>
+                    {renderContentWithImages(
+                      selectedJourneyItem.content || '', 
+                      selectedJourneyItem.image_mid_url, 
+                      selectedJourneyItem.image_bot_url, 
+                      false
+                    )}
                   </div>
 
                   {/* Detail bottom actions footer */}
@@ -4589,6 +4575,118 @@ export default function App() {
                       placeholder="FTP 직접 업로드한 이미지인 경우 /images/ 또는 /이미지저장/ 경로명을 직접 입력해도 됩니다."
                       value={editingItem.image_url || ''}
                       onChange={e => setEditingItem({ ...editingItem, image_url: e.target.value })}
+                      className="w-full bg-white border border-[#1C1A17]/15 rounded p-3 text-xs font-mono text-[#1C1A17] focus:outline-none"
+                    />
+                  </div>
+
+                  {/* Middle image */}
+                  <div className="md:col-span-2 space-y-3">
+                    <label className="font-mono text-[9px] tracking-widest font-bold uppercase block mb-1">IMAGE MID ASSET (본문 중간 배치 이미지 - 선택사항)</label>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                      {/* Left: upload box */}
+                      <div className="md:col-span-2 border border-dashed border-[#1C1A17]/25 hover:border-[#1C1A17]/50 rounded p-4 text-center bg-white cursor-pointer relative transition-colors">
+                        <input 
+                          type="file" 
+                          accept="image/*,image/heic,image/heif,.heic,.heif"
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            try {
+                              const btn = e.target.parentElement;
+                              if (btn) btn.style.opacity = '0.5';
+                              const url = await uploadImageFile(file);
+                              setEditingItem({ ...editingItem, image_mid_url: url });
+                              if (btn) btn.style.opacity = '1';
+                            } catch (err) {
+                              alert('이미지 업로드에 실패하였습니다: ' + err);
+                            }
+                          }}
+                        />
+                        <div className="space-y-1">
+                          <span className="text-xs text-[#1C1A17]/80 block font-semibold">📁 클릭 또는 드래그하여 로컬 이미지 선택</span>
+                          <span className="text-[10px] text-black/40 block font-mono">Max size 20MB (.jpg, .png, .webp, .gif)</span>
+                        </div>
+                      </div>
+
+                      {/* Right: preview if exists */}
+                      <div className="border border-[#1C1A17]/10 aspect-[16/10] bg-[#FAF9F6] rounded flex items-center justify-center p-2 relative overflow-hidden">
+                        {editingItem.image_mid_url ? (
+                          <img 
+                            src={editingItem.image_mid_url} 
+                            alt="Middle Preview" 
+                            className="w-full h-full object-cover rounded" 
+                            referrerPolicy="no-referrer"
+                          />
+                        ) : (
+                          <span className="text-[10px] text-black/35 font-mono">No Mid Image</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Manual path editor overlay */}
+                    <input 
+                      type="text" 
+                      placeholder="FTP 직접 업로드한 이미지인 경우 /images/ 또는 /이미지저장/ 경로명을 직접 입력해도 됩니다."
+                      value={editingItem.image_mid_url || ''}
+                      onChange={e => setEditingItem({ ...editingItem, image_mid_url: e.target.value })}
+                      className="w-full bg-white border border-[#1C1A17]/15 rounded p-3 text-xs font-mono text-[#1C1A17] focus:outline-none"
+                    />
+                  </div>
+
+                  {/* Bottom image */}
+                  <div className="md:col-span-2 space-y-3">
+                    <label className="font-mono text-[9px] tracking-widest font-bold uppercase block mb-1">IMAGE BOT ASSET (본문 하단 배치 이미지 - 선택사항)</label>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                      {/* Left: upload box */}
+                      <div className="md:col-span-2 border border-dashed border-[#1C1A17]/25 hover:border-[#1C1A17]/50 rounded p-4 text-center bg-white cursor-pointer relative transition-colors">
+                        <input 
+                          type="file" 
+                          accept="image/*,image/heic,image/heif,.heic,.heif"
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            try {
+                              const btn = e.target.parentElement;
+                              if (btn) btn.style.opacity = '0.5';
+                              const url = await uploadImageFile(file);
+                              setEditingItem({ ...editingItem, image_bot_url: url });
+                              if (btn) btn.style.opacity = '1';
+                            } catch (err) {
+                              alert('이미지 업로드에 실패하였습니다: ' + err);
+                            }
+                          }}
+                        />
+                        <div className="space-y-1">
+                          <span className="text-xs text-[#1C1A17]/80 block font-semibold">📁 클릭 또는 드래그하여 로컬 이미지 선택</span>
+                          <span className="text-[10px] text-black/40 block font-mono">Max size 20MB (.jpg, .png, .webp, .gif)</span>
+                        </div>
+                      </div>
+
+                      {/* Right: preview if exists */}
+                      <div className="border border-[#1C1A17]/10 aspect-[16/10] bg-[#FAF9F6] rounded flex items-center justify-center p-2 relative overflow-hidden">
+                        {editingItem.image_bot_url ? (
+                          <img 
+                            src={editingItem.image_bot_url} 
+                            alt="Bottom Preview" 
+                            className="w-full h-full object-cover rounded" 
+                            referrerPolicy="no-referrer"
+                          />
+                        ) : (
+                          <span className="text-[10px] text-black/35 font-mono">No Bot Image</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Manual path editor overlay */}
+                    <input 
+                      type="text" 
+                      placeholder="FTP 직접 업로드한 이미지인 경우 /images/ 또는 /이미지저장/ 경로명을 직접 입력해도 됩니다."
+                      value={editingItem.image_bot_url || ''}
+                      onChange={e => setEditingItem({ ...editingItem, image_bot_url: e.target.value })}
                       className="w-full bg-white border border-[#1C1A17]/15 rounded p-3 text-xs font-mono text-[#1C1A17] focus:outline-none"
                     />
                   </div>
