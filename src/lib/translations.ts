@@ -218,7 +218,7 @@ export const translations: Record<Language, Content> = {
       tea: "서화차향",
       journey: "라석여정",
       contact: "연락처",
-      admin: "관리자"
+      admin: "로그인"
     }
   },
   SC: {

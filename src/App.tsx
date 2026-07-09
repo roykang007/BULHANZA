@@ -419,6 +419,17 @@ export default function App() {
   const [writeFormLang, setWriteFormLang] = useState<Language>('KR');
   const [writeFormUploading, setWriteFormUploading] = useState({ top: false, mid: false, bot: false });
 
+  // Recent titles FIFO storage (max 5)
+  const [recentTitles, setRecentTitles] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('recent_post_titles');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [showRecentTitlesDropdown, setShowRecentTitlesDropdown] = useState(false);
+
   const handleWriteClick = (targetCategory?: string, targetCollection?: string) => {
     const isAuthorized = localStorage.getItem('authorized_write') === 'true';
     const proceed = () => {
@@ -570,6 +581,15 @@ export default function App() {
       
       setIsWriteModalOpen(false);
       setEditingPostId(null);
+      
+      // Save title in FIFO history
+      if (writeFormTitle.trim()) {
+        const titleText = writeFormTitle.trim();
+        const updatedTitles = [titleText, ...recentTitles.filter(t => t !== titleText)].slice(0, 5);
+        setRecentTitles(updatedTitles);
+        localStorage.setItem('recent_post_titles', JSON.stringify(updatedTitles));
+      }
+
       await fetchData();
     } catch (err: any) {
       console.error("Direct write failed:", err);
@@ -747,8 +767,13 @@ export default function App() {
             }
           ]
         };
-        await setDoc(settingsRef, initialSettings);
-        setSiteSettings(initialSettings);
+        try {
+          await setDoc(settingsRef, initialSettings);
+          setSiteSettings(initialSettings);
+        } catch (settingsErr) {
+          console.warn("Failed to seed initial site settings (probably non-admin user):", settingsErr);
+          setSiteSettings(initialSettings); // fallback in-memory
+        }
       }
 
       // 2. Fetch archive items
@@ -872,7 +897,7 @@ export default function App() {
   // Master login check
   const handlePasscodeLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (passcode === '2026' || passcode === 'secret24' || passcode === 'bulhanza') {
+    if (passcode === '8888' || passcode === 'secret24' || passcode === 'bulhanza') {
       localStorage.setItem('BULHANZA_ADMIN_SESSION', 'active');
       setIsAuthAdmin(true);
       setPasscodeError('');
@@ -2640,6 +2665,13 @@ export default function App() {
                         <span className="font-mono text-xs font-bold px-2.5 py-1 bg-[#1C1A17]/5 rounded-md border border-[#1C1A17]/10">
                           {archiveItems.filter(p => p.category === 'poetry' && p.poetry_collection_name === selectedBook && p.language === lang).length} Items
                         </span>
+                        <button
+                          onClick={() => handleWriteClick('poetry', selectedBook || undefined)}
+                          className="px-3 py-1 bg-[#1C1A17] hover:bg-black text-white text-[11px] font-bold rounded-lg flex items-center gap-1 transition-all"
+                        >
+                          <PenTool size={11} />
+                          {lang === 'KR' ? '글쓰기' : 'Write'}
+                        </button>
                       </div>
                     </div>
 
@@ -3831,7 +3863,7 @@ export default function App() {
                       <input 
                         type="password" 
                         required
-                        placeholder="Master pass: 2026"
+                        placeholder="4자리 숫자 입력."
                         value={passcode}
                         onChange={e => setPasscode(e.target.value)}
                         className="w-full bg-[#FAF9F6] border border-[#1C1A17]/15 rounded p-3 text-xs font-mono text-[#1C1A17] focus:outline-none focus:border-black"
@@ -5473,7 +5505,7 @@ export default function App() {
               <div className="space-y-4 text-left">
                 <input
                   type="password"
-                  placeholder="암호 입력 (8888)"
+                  placeholder="4자리 숫자 입력."
                   value={userPasscode}
                   onChange={(e) => setUserPasscode(e.target.value)}
                   onKeyDown={(e) => {
@@ -5592,7 +5624,7 @@ export default function App() {
                 )}
 
                 {/* Title */}
-                <div>
+                <div className="relative">
                   <label className="font-serif text-sm font-bold text-black block mb-1.5">제목 (Title)</label>
                   <input
                     type="text"
@@ -5600,8 +5632,34 @@ export default function App() {
                     placeholder="글 제목을 입력하세요."
                     value={writeFormTitle}
                     onChange={(e) => setWriteFormTitle(e.target.value)}
+                    onFocus={() => setShowRecentTitlesDropdown(true)}
+                    onBlur={() => {
+                      setTimeout(() => setShowRecentTitlesDropdown(false), 200);
+                    }}
                     className="w-full bg-white border border-neutral-300 focus:border-black rounded-lg p-2.5 text-base focus:outline-none"
                   />
+                  {showRecentTitlesDropdown && recentTitles.length > 0 && (
+                    <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-neutral-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                      <div className="p-1.5 text-[10px] text-neutral-400 font-mono tracking-wider uppercase border-b border-neutral-100 bg-neutral-50 px-3">
+                        최근 입력한 제목 (최대 5개)
+                      </div>
+                      <div className="divide-y divide-neutral-100">
+                        {recentTitles.map((titleText, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onMouseDown={() => {
+                              setWriteFormTitle(titleText);
+                              setShowRecentTitlesDropdown(false);
+                            }}
+                            className="w-full text-left px-3 py-2 text-xs text-neutral-700 hover:bg-neutral-50 hover:text-black transition-colors truncate block"
+                          >
+                            {titleText}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Summary / Subtext */}
