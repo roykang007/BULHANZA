@@ -193,3 +193,79 @@ export const DEFAULT_ARTISTS: Omit<Artist, 'id'>[] = [
   }
 ];
 
+export const DEFAULT_PHILOSOPHY_LECTURES: Omit<ArchiveItem, 'id'>[] = [
+  {
+    title: "제1장. 만남의 파동 (心物之波)",
+    summary: "예술은 단순한 시각적 재현이나 인위적인 기교가 아닙니다. 마음이 사물을 비추고, 사물의 깊은 울림이 마음에 와닿을 때 생겨나는 살아있는 대화입니다.",
+    content: "### 제1장. 만남의 파동 (心物之波)\n\n예술은 단순한 시각적 재현이나 인위적인 기교가 아닙니다. 마음이 사물을 비추고, 사물의 깊은 울림이 마음에 와닿을 때 생겨나는 살아있는 대화입니다. 붓질 하나, 찻잎 한 장도 대자연과 영적 우주가 나누는 고요한 호흡의 기록입니다.",
+    image_url: "https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&q=80&w=1200",
+    category: "philosophy_lecture",
+    language: "KR"
+  },
+  {
+    title: "제2장. 유무쌍즉 (有無雙則)",
+    summary: "비어 있는 화폭, 보이지 않는 향기는 '없음(無)'이 아니라 수많은 가능성의 요람입니다. 유(有)와 무(無)의 조화로운 상호 순환에 대한 탐구.",
+    content: "### 제2장. 유무쌍즉 (有無雙則)\n\n비어 있는 화폭, 보이지 않는 향기는 '없음(無)'이 아니라 다가올 수많은 가능성의 요람입니다. 먹빛과 형상이라는 '있음(有)'을 통해 발현된 세계는, 다시 당신의 마음속에서 보이지 않는 깊은 감동과 여운이라는 '무'의 상태로 끊임없이 순환합니다.",
+    image_url: "https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?auto=format&fit=crop&q=80&w=1200",
+    category: "philosophy_lecture",
+    language: "KR"
+  },
+  {
+    title: "제3장. 정신의 거울과 자연 (心鏡)",
+    summary: "우리 마음에 티없이 맑은 거울(心鏡)이 있을 때 비로소 자연의 밝은 기운이 온전히 비쳐듭니다. 현대사회를 치유하는 물파주의의 수행 예술.",
+    content: "### 제3장. 정신의 거울과 자연 (心鏡)\n\n우리 마음에 티없이 맑은 거울(心鏡)이 있을 때 비로소 자연의 밝은 기운이 온전히 비쳐듭니다. 물파주의는 마음의 거울을 맑게 닦고, 흐트러진 현대사회의 속도를 늦춰 우주 근원에 어린 평온한 주파수를 응축해 내는 수행적 예술입니다.",
+    image_url: "https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&q=80&w=1200",
+    category: "philosophy_lecture",
+    language: "KR"
+  },
+  {
+    title: "第一章. 邂逅的波动 (心物之波)",
+    summary: "艺术不仅是简单的视觉再现或人为技巧。当心灵映照事物，事物的深沉共鸣触动心灵，就诞生了鲜活的对话。",
+    content: "### 第一章. 邂逅的波动 (心物之波)\n\n艺术不仅是简单的视觉再现或人为技巧。当心灵映照事物，事物的深沉共鸣触动心灵，就诞生了鲜活的对话。一笔一划、一片茶叶，皆是大自然与精神宇宙静默呼吸的结晶。",
+    image_url: "https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&q=80&w=1200",
+    category: "philosophy_lecture",
+    language: "SC"
+  },
+  {
+    title: "第二章. 有无双即 (有無雙則)",
+    summary: "空旷的画布、看不见的香气，不是“无”，而是孕育无限可能的摇篮。通过“有”（墨色与形状）展现的世界，又在内心化为感动的循环。",
+    content: "### 第二章. 有无双即 (有無雙則)\n\n空旷的画布、看不见的香气，不是“无”，而是孕育无限可能的摇篮。通过“有”（墨色与形状）展现的世界，又在您的内心化为无形无迹的感动与余温，不断循环。",
+    image_url: "https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?auto=format&fit=crop&q=80&w=1200",
+    category: "philosophy_lecture",
+    language: "SC"
+  },
+  {
+    title: "第三章. 精神之镜与自然 (心镜)",
+    summary: "唯有当我们的内心拥有无暇的明镜（心镜）时，大自然的清明气韵才能完整地照进心灵。拂拭心镜、放慢喧嚣步伐的修行艺术。",
+    content: "### 第三章. 精神之镜与自然 (心镜)\n\n唯有当我们的内心拥有无暇的明镜（心镜）时，大自然的清明气韵才能完整地照进心灵。物波主义是拂拭心镜、放慢现代社会喧嚣步伐、浓缩宇宙本源宁静频率的修行艺术。",
+    image_url: "https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&q=80&w=1200",
+    category: "philosophy_lecture",
+    language: "SC"
+  },
+  {
+    title: "Chapter I. The Cosmic Resonance (心物之波)",
+    summary: "Art is never a mere visual reproduction or technical design. It is a dialogue awakened when the mind reflects nature, and nature vibrates through the soul.",
+    content: "### Chapter I. The Cosmic Resonance (心物之波)\n\nArt is never a mere visual reproduction or technical design. It is a dialogue awakened when the mind reflects nature, and nature vibrates through the soul. Every brush stroke is a trace of the universe breathing.",
+    image_url: "https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&q=80&w=1200",
+    category: "philosophy_lecture",
+    language: "EN"
+  },
+  {
+    title: "Chapter II. Dual Oneness (有無雙則)",
+    summary: "The empty canvas and formless scent are not blank spaces; they are cradles of absolute potential. Exploring the circular harmony between form and void.",
+    content: "### Chapter II. Dual Oneness (有無雙則)\n\nThe empty canvas and formless scent are not blank spaces; they are cradles of absolute potential. The manifested world through shape and ink returns to formlessness inside your mind as a lasting resonance.",
+    image_url: "https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?auto=format&fit=crop&q=80&w=1200",
+    category: "philosophy_lecture",
+    language: "EN"
+  },
+  {
+    title: "Chapter III. The Mind Mirror (心鏡)",
+    summary: "When our inner mind mirror remains transparently quiet, the clear energy of the universe reflects neatly. Polishing this inner mirror to condense peaceful rhythms.",
+    content: "### Chapter III. The Mind Mirror (心鏡)\n\nWhen our inner mind mirror remains transparently quiet, the clear energy of the universe reflects neatly. Mulpaism is a practice of polishing this inner mirror, slowing down modern complexity to condense peaceful rhythms.",
+    image_url: "https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&q=80&w=1200",
+    category: "philosophy_lecture",
+    language: "EN"
+  }
+];
+
+

@@ -309,7 +309,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onPaste={onPaste}
-        className="w-full p-4 text-base focus:outline-none bg-transparent whitespace-pre-wrap leading-relaxed font-sans min-h-[220px] resize-y"
+        className="w-full p-4 text-base focus:outline-none bg-transparent whitespace-pre-wrap leading-relaxed font-serif min-h-[220px] resize-y"
       />
     </div>
   );

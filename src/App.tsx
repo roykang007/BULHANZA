@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
+import {
   Menu, X, Plus, Trash2, Edit2, ArrowLeft, Newspaper, Image as ImageIcon, Check,
   Upload, ChevronLeft, ChevronRight, BookOpen, Settings, ChevronDown, Database,
   Activity, Key, RefreshCw, Sparkles, MessageSquare, Compass, Send, Calendar, Monitor,
-  ArrowUpDown, List, PenTool
+  ArrowUpDown, List, PenTool, LogIn, LogOut
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -14,17 +14,17 @@ import { RichTextEditor } from './components/RichTextEditor';
 
 // Firebase imports
 import { db, auth, OperationType, handleFirestoreError } from './lib/firebase';
-import { 
-  collection, doc, getDocs, getDoc, setDoc, addDoc, updateDoc, deleteDoc, query, orderBy 
+import {
+  collection, doc, getDocs, getDoc, setDoc, addDoc, updateDoc, deleteDoc, query, orderBy
 } from 'firebase/firestore';
 import { signInWithPopup, GoogleAuthProvider, signOut as fbSignOut, onAuthStateChanged } from 'firebase/auth';
 
 import { translations } from './lib/translations';
 import { Language, Page, ArchiveItem, SiteSettings, Artist, Work } from './types';
 import { FallingLeaves } from './components/FallingLeaves';
-import { 
+import {
   DEFAULT_TEA_POEMS, DEFAULT_PHILOSOPHY_ITEMS, DEFAULT_JOURNEY_PHOTOS, DEFAULT_JOURNEY_PRESS,
-  DEFAULT_MULPA_WRITINGS, DEFAULT_ARTISTS
+  DEFAULT_MULPA_WRITINGS, DEFAULT_ARTISTS, DEFAULT_PHILOSOPHY_LECTURES
 } from './lib/seedDataToFirebase';
 
 const cleanTextForSummary = (text: string): string => {
@@ -70,13 +70,13 @@ const convertImageToJpg = async (file: File): Promise<File> => {
       const heic2anyModule = await import('heic2any');
       // heic2any default or direct module call
       const heicConverter = (heic2anyModule.default || heic2anyModule) as any;
-      
+
       const converted = await heicConverter({
         blob: file,
         toType: 'image/jpeg',
         quality: 0.85
       });
-      
+
       const blob = Array.isArray(converted) ? converted[0] : converted;
       const newName = file.name.replace(/\.(heic|heif)$/i, '') + '.jpg';
       currentFile = new File([blob], newName, { type: 'image/jpeg' });
@@ -176,7 +176,7 @@ const uploadImageFile = async (rawFile: File): Promise<string> => {
       method: 'POST',
       body: formData,
     });
-    
+
     if (response.ok) {
       const contentType = response.headers.get('content-type');
       if (contentType && contentType.includes('application/json')) {
@@ -212,10 +212,10 @@ const uploadImageFile = async (rawFile: File): Promise<string> => {
   // we should throw it directly instead of hiding it behind PHP fallback!
   if (apiError) {
     const msg = apiError.message || String(apiError);
-    const isNetworkOr404OrInvalidJson = 
-      msg.includes("404") || 
-      msg.includes("fetch") || 
-      msg.includes("Network") || 
+    const isNetworkOr404OrInvalidJson =
+      msg.includes("404") ||
+      msg.includes("fetch") ||
+      msg.includes("Network") ||
       msg.includes("Failed to fetch") ||
       msg.includes("not valid JSON");
 
@@ -243,7 +243,7 @@ const uploadImageFile = async (rawFile: File): Promise<string> => {
   } catch (e: any) {
     console.error("PHP file upload fallback failed:", e);
     // Include both errors to help debugging
-    const finalErrorMsg = apiError 
+    const finalErrorMsg = apiError
       ? `Backend Upload Error: ${apiError.message}. PHP Fallback Error: ${e.message || e}`
       : `Image upload failed. If hosted on Cafe24, ensure /upload.php is present. Error: ${e.message || e}`;
     throw new Error(finalErrorMsg);
@@ -261,9 +261,9 @@ const formatMonthDay = (createdAt: any) => {
     } else {
       date = new Date(createdAt);
     }
-    
+
     if (isNaN(date.getTime())) return '—';
-    
+
     const mm = (date.getMonth() + 1).toString().padStart(2, '0');
     const dd = date.getDate().toString().padStart(2, '0');
     return `${mm}/${dd}`;
@@ -314,11 +314,11 @@ const Pagination: React.FC<PaginationProps> = ({ currentPage, totalPages, onPage
           onPageChange(currentPage - 1);
           window.scrollTo({ top: 300, behavior: 'smooth' });
         }}
-        className="px-3 py-1.5 rounded-lg border border-[#1C1A17]/10 hover:border-[#1C1A17]/40 hover:bg-neutral-50 text-xs font-serif font-bold text-black/60 hover:text-black disabled:opacity-30 disabled:pointer-events-none transition-all flex items-center gap-1"
+        className="px-3 py-1.5 rounded-full border border-[#1C1A17]/10 hover:border-[#1C1A17]/40 hover:bg-[#FAF6EE]/50 text-xs font-serif font-bold text-black/60 hover:text-black disabled:opacity-30 disabled:pointer-events-none transition-all flex items-center gap-1"
       >
         &larr; {prevLabel}
       </button>
-      
+
       {pages.map((p) => {
         const isCurrent = p === currentPage;
         return (
@@ -328,10 +328,10 @@ const Pagination: React.FC<PaginationProps> = ({ currentPage, totalPages, onPage
               onPageChange(p);
               window.scrollTo({ top: 300, behavior: 'smooth' });
             }}
-            className={`w-8 h-8 rounded-lg font-serif font-bold text-xs transition-all border ${
+            className={`w-8 h-8 rounded-full font-serif font-bold text-xs transition-all border ${
               isCurrent
-                ? 'bg-[#1C1A17] text-[#FAF9F6] border-[#1C1A17] shadow-md scale-105'
-                : 'bg-white text-black/70 border-[#1C1A17]/10 hover:border-[#1C1A17]/30 hover:bg-neutral-50'
+                ? 'bg-[#1C1A17] text-[#FAF6EE] border-[#1C1A17] shadow-md scale-105'
+                : 'bg-white/80 text-black/70 border-[#1C1A17]/10 hover:border-[#1C1A17]/30 hover:bg-[#FAF6EE]/50'
             }`}
           >
             {p}
@@ -345,7 +345,7 @@ const Pagination: React.FC<PaginationProps> = ({ currentPage, totalPages, onPage
           onPageChange(currentPage + 1);
           window.scrollTo({ top: 300, behavior: 'smooth' });
         }}
-        className="px-3 py-1.5 rounded-lg border border-[#1C1A17]/10 hover:border-[#1C1A17]/40 hover:bg-neutral-50 text-xs font-serif font-bold text-black/60 hover:text-black disabled:opacity-30 disabled:pointer-events-none transition-all flex items-center gap-1"
+        className="px-3 py-1.5 rounded-full border border-[#1C1A17]/10 hover:border-[#1C1A17]/40 hover:bg-[#FAF6EE]/50 text-xs font-serif font-bold text-black/60 hover:text-black disabled:opacity-30 disabled:pointer-events-none transition-all flex items-center gap-1"
       >
         {nextLabel} &rarr;
       </button>
@@ -481,7 +481,9 @@ export default function App() {
   const handleVerifyPasscode = () => {
     if (userPasscode === '8888') {
       localStorage.setItem('authorized_write', 'true');
+      localStorage.setItem('BULHANZA_ADMIN_SESSION', 'active');
       setIsUserAuthorized(true);
+      setIsAuthAdmin(true);
       setIsAuthModalOpen(false);
       setUserPasscode('');
       if (onSuccessAuth) {
@@ -499,10 +501,10 @@ export default function App() {
   ) => {
     e.preventDefault();
     const pastedText = e.clipboardData.getData('text/plain') || '';
-    
+
     // Normalize CRLF (\r\n) and CR (\r) to LF (\n)
     let cleaned = pastedText.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-    
+
     // Check if the pasted text has an empty line after almost every single line
     const lines = cleaned.split('\n');
     if (lines.length > 2) {
@@ -516,7 +518,7 @@ export default function App() {
           nonEmptyOddCount++;
         }
       }
-      
+
       let alternatingEvenEmpty = true;
       let nonEmptyEvenCount = 0;
       for (let i = 0; i < lines.length; i += 2) {
@@ -527,7 +529,7 @@ export default function App() {
           nonEmptyEvenCount++;
         }
       }
-      
+
       if (alternatingOddEmpty && nonEmptyOddCount > 0) {
         cleaned = lines.filter((_, idx) => idx % 2 === 0).join('\n');
       } else if (alternatingEvenEmpty && nonEmptyEvenCount > 0) {
@@ -538,14 +540,14 @@ export default function App() {
     } else {
       cleaned = cleaned.replace(/\n\s*\n/g, '\n');
     }
-    
+
     const textarea = e.currentTarget;
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
     const newValue = currentValue.substring(0, start) + cleaned + currentValue.substring(end);
-    
+
     setValue(newValue);
-    
+
     setTimeout(() => {
       textarea.selectionStart = textarea.selectionEnd = start + cleaned.length;
     }, 0);
@@ -562,7 +564,7 @@ export default function App() {
         title: writeFormTitle,
         content: writeFormContent,
         summary: writeFormSummary || '',
-        image_url: writeFormTopImg || 'https://images.unsplash.com/photo-1518640467707-6811f4a6ab73?auto=format&fit=crop&q=80&w=1200',
+        image_url: writeFormTopImg || siteSettings?.tea_detail_url || 'https://images.unsplash.com/photo-1518640467707-6811f4a6ab73?auto=format&fit=crop&q=80&w=1200',
         image_mid_url: writeFormMidImg || '',
         image_bot_url: writeFormBotImg || '',
         category: writeFormCategory,
@@ -578,10 +580,10 @@ export default function App() {
         await addDoc(collection(db, 'archive_items'), payload);
         alert('성공적으로 게시글이 업로드되었습니다!');
       }
-      
+
       setIsWriteModalOpen(false);
       setEditingPostId(null);
-      
+
       // Save title in FIFO history
       if (writeFormTitle.trim()) {
         const titleText = writeFormTitle.trim();
@@ -608,9 +610,9 @@ export default function App() {
       } else {
         date = new Date(createdAt);
       }
-      
+
       if (isNaN(date.getTime())) return '—';
-      
+
       const yyyy = date.getFullYear();
       const mm = (date.getMonth() + 1).toString().padStart(2, '0');
       const dd = date.getDate().toString().padStart(2, '0');
@@ -621,14 +623,14 @@ export default function App() {
   };
 
   const renderContentWithImages = (
-    content: string, 
-    midImg?: string, 
-    botImg?: string, 
+    content: string,
+    midImg?: string,
+    botImg?: string,
     isSerif: boolean = true,
     customSizeClass?: string
   ) => {
     const sizeClass = customSizeClass || (isSerif ? "text-lg md:text-xl" : "text-sm md:text-base");
-    const fontClass = isSerif 
+    const fontClass = isSerif
       ? `markdown-body font-serif ${sizeClass} leading-relaxed text-[#1C1A17]/90 text-justify`
       : `markdown-body font-sans ${sizeClass} leading-relaxed text-[#1C1A17]/90 text-justify`;
 
@@ -649,18 +651,16 @@ export default function App() {
       return (
         <div className="space-y-6 w-full">
           {firstHalf && renderMarkdown(firstHalf)}
-          
+
           <div className="my-8 flex justify-center w-full">
-            <img 
-              src={midImg} 
-              alt="Middle decoration" 
+            <img
+              src={midImg}
+              alt="Middle decoration"
               referrerPolicy="no-referrer"
               className="max-w-full max-h-[350px] md:max-h-[480px] h-auto object-contain rounded border border-[#1C1A17]/10 p-1.5 bg-white shadow-sm"
               onError={(e) => {
-                e.currentTarget.style.display = 'none';
-                const parent = e.currentTarget.parentElement;
-                if (parent) parent.style.display = 'none';
-              }}
+                                      e.currentTarget.src = 'https://images.unsplash.com/photo-1518640467707-6811f4a6ab73?auto=format&fit=crop&q=80&w=1200';
+                                    }}
             />
           </div>
 
@@ -668,16 +668,14 @@ export default function App() {
 
           {botImg && (
             <div className="mt-8 flex justify-center w-full">
-              <img 
-                src={botImg} 
-                alt="Bottom decoration" 
+              <img
+                src={botImg}
+                alt="Bottom decoration"
                 referrerPolicy="no-referrer"
                 className="max-w-full max-h-[350px] md:max-h-[480px] h-auto object-contain rounded border border-[#1C1A17]/10 p-1.5 bg-white shadow-sm"
                 onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                  const parent = e.currentTarget.parentElement;
-                  if (parent) parent.style.display = 'none';
-                }}
+                                      e.currentTarget.src = 'https://images.unsplash.com/photo-1518640467707-6811f4a6ab73?auto=format&fit=crop&q=80&w=1200';
+                                    }}
               />
             </div>
           )}
@@ -691,16 +689,14 @@ export default function App() {
 
         {botImg && (
           <div className="mt-8 flex justify-center w-full">
-            <img 
-              src={botImg} 
-              alt="Bottom decoration" 
+            <img
+              src={botImg}
+              alt="Bottom decoration"
               referrerPolicy="no-referrer"
               className="max-w-full max-h-[350px] md:max-h-[480px] h-auto object-contain rounded border border-[#1C1A17]/10 p-1.5 bg-white shadow-sm"
               onError={(e) => {
-                e.currentTarget.style.display = 'none';
-                const parent = e.currentTarget.parentElement;
-                if (parent) parent.style.display = 'none';
-              }}
+                                      e.currentTarget.src = 'https://images.unsplash.com/photo-1518640467707-6811f4a6ab73?auto=format&fit=crop&q=80&w=1200';
+                                    }}
             />
           </div>
         )}
@@ -743,12 +739,16 @@ export default function App() {
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
       if (user && user.email === 'roykang007@gmail.com') {
+        localStorage.setItem('BULHANZA_ADMIN_SESSION', 'active');
+        localStorage.setItem('authorized_write', 'true');
         setIsAuthAdmin(true);
+        setIsUserAuthorized(true);
       } else {
         // Also check if local storage has a valid passcode session
         const sess = localStorage.getItem('BULHANZA_ADMIN_SESSION');
         if (sess === 'active') {
           setIsAuthAdmin(true);
+          setIsUserAuthorized(true);
         }
       }
     });
@@ -805,10 +805,24 @@ export default function App() {
       // 2. Fetch archive items
       const itemsRef = collection(db, 'archive_items');
       const querySnap = await getDocs(itemsRef);
-      const items: ArchiveItem[] = [];
+      let items: ArchiveItem[] = [];
       querySnap.forEach((docSnap) => {
         items.push({ id: docSnap.id, ...docSnap.data() } as ArchiveItem);
       });
+
+      // Auto-seed philosophy_lecture if none exist in the database
+      const hasLectures = items.some(item => item.category === 'philosophy_lecture');
+      if (!hasLectures) {
+        console.log("Seeding default philosophy lectures...");
+        for (const item of DEFAULT_PHILOSOPHY_LECTURES) {
+          try {
+            const docRef = await addDoc(itemsRef, item);
+            items.push({ id: docRef.id, ...item } as ArchiveItem);
+          } catch (seedErr) {
+            console.error("Failed to auto-seed a philosophy lecture item:", seedErr);
+          }
+        }
+      }
       setArchiveItems(items);
 
       // 3. Fetch artists
@@ -826,6 +840,7 @@ export default function App() {
       setArchiveItems([
         ...DEFAULT_TEA_POEMS.map((p, i) => ({ ...p, id: `tea-${i}` })),
         ...DEFAULT_PHILOSOPHY_ITEMS.map((p, i) => ({ ...p, id: `phil-${i}` })),
+        ...DEFAULT_PHILOSOPHY_LECTURES.map((p, i) => ({ ...p, id: `lecture-${i}` })),
         ...DEFAULT_JOURNEY_PHOTOS.map((p, i) => ({ ...p, id: `photo-${i}` })),
         ...DEFAULT_JOURNEY_PRESS.map((p, i) => ({ ...p, id: `press-${i}` })),
         ...DEFAULT_MULPA_WRITINGS.map((p, i) => ({ ...p, id: `mulpa-${i}` }))
@@ -890,28 +905,68 @@ export default function App() {
     }, 1200);
   };
 
-  // 1-Click Database Restore to Firebase
+  // 1-Click Database Restore to Firebase (with duplicate prevention)
   const handleFullRestore = async () => {
     setLoading(true);
     try {
+      // 1. Fetch existing items from db to avoid duplicates
+      const itemsRef = collection(db, 'archive_items');
+      const querySnap = await getDocs(itemsRef);
+      const existingTitles = new Set<string>();
+      querySnap.forEach((docSnap) => {
+        const data = docSnap.data();
+        if (data && data.title) {
+          existingTitles.add(data.title.trim());
+        }
+      });
+
+      // 2. Fetch existing artists from db to avoid duplicates
+      const artistsRef = collection(db, 'artists');
+      const artistsSnap = await getDocs(artistsRef);
+      const existingArtistNames = new Set<string>();
+      artistsSnap.forEach((docSnap) => {
+        const data = docSnap.data();
+        if (data && data.name) {
+          existingArtistNames.add(data.name.trim());
+        }
+      });
+
       // Seed default items
       const allToSeed = [
         ...DEFAULT_TEA_POEMS,
         ...DEFAULT_PHILOSOPHY_ITEMS,
+        ...DEFAULT_PHILOSOPHY_LECTURES,
         ...DEFAULT_JOURNEY_PHOTOS,
         ...DEFAULT_JOURNEY_PRESS,
         ...DEFAULT_MULPA_WRITINGS
       ];
 
+      let addedItemsCount = 0;
       for (const item of allToSeed) {
-        await addDoc(collection(db, 'archive_items'), item);
+        if (item.title && existingTitles.has(item.title.trim())) {
+          // Skip if already exists in database
+          continue;
+        }
+        await addDoc(itemsRef, item);
+        addedItemsCount++;
       }
 
+      let addedArtistsCount = 0;
       for (const artist of DEFAULT_ARTISTS) {
-        await addDoc(collection(db, 'artists'), artist);
+        if (artist.name && existingArtistNames.has(artist.name.trim())) {
+          // Skip if already exists in database
+          continue;
+        }
+        await addDoc(artistsRef, artist);
+        addedArtistsCount++;
       }
 
-      alert('성공적으로 40여 종의 시문학, 철학 단상, 물파주의 기고문 및 대표 작가 아카이브를 Firebase로 완벽히 복원 및 안전 연동 완료하였습니다!');
+      if (addedItemsCount === 0 && addedArtistsCount === 0) {
+        alert('이미 모든 데이터가 데이터베이스에 존재하여 추가 복원할 신규 데이터가 없습니다.');
+      } else {
+        alert(`성공적으로 신규 데이터 ${addedItemsCount}개 및 작가 아카이브 ${addedArtistsCount}개를 데이터베이스에 안전하게 추가 및 동기화 완료하였습니다!`);
+      }
+
       await fetchData();
     } catch (err) {
       alert('복원 진행 중 오류가 발생하였습니다. 데이터 스토어 혹은 Rules 권한을 점검해 주세요.');
@@ -925,7 +980,9 @@ export default function App() {
     e.preventDefault();
     if (passcode === '8888' || passcode === 'secret24' || passcode === 'bulhanza') {
       localStorage.setItem('BULHANZA_ADMIN_SESSION', 'active');
+      localStorage.setItem('authorized_write', 'true');
       setIsAuthAdmin(true);
+      setIsUserAuthorized(true);
       setPasscodeError('');
     } else {
       setPasscodeError('인증번호번호가 올바르지 않습니다.');
@@ -938,7 +995,10 @@ export default function App() {
       const provider = new GoogleAuthProvider();
       const res = await signInWithPopup(auth, provider);
       if (res.user?.email === 'roykang007@gmail.com') {
+        localStorage.setItem('BULHANZA_ADMIN_SESSION', 'active');
+        localStorage.setItem('authorized_write', 'true');
         setIsAuthAdmin(true);
+        setIsUserAuthorized(true);
       } else {
         alert('사전에 지정된 최고 관리자 메일 계정만 접근 승인됩니다.');
         await fbSignOut(auth);
@@ -951,7 +1011,9 @@ export default function App() {
   const handleSignOut = async () => {
     await fbSignOut(auth);
     localStorage.removeItem('BULHANZA_ADMIN_SESSION');
+    localStorage.removeItem('authorized_write');
     setIsAuthAdmin(false);
+    setIsUserAuthorized(false);
   };
 
   // Admin states for modal editors
@@ -1025,7 +1087,7 @@ export default function App() {
   // Lightbox keyboard navigation & overflow prevention
   useEffect(() => {
     if (!lightboxActive) return;
-    
+
     document.body.style.overflow = "hidden";
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -1054,7 +1116,7 @@ export default function App() {
         title: editingItem.title,
         content: editingItem.content || '',
         summary: editingItem.summary || '',
-        image_url: editingItem.image_url || 'https://images.unsplash.com/photo-1518640467707-6811f4a6ab73?auto=format&fit=crop&q=80&w=1200',
+        image_url: editingItem.image_url || siteSettings?.tea_detail_url || 'https://images.unsplash.com/photo-1518640467707-6811f4a6ab73?auto=format&fit=crop&q=80&w=1200',
         image_mid_url: editingItem.image_mid_url || '',
         image_bot_url: editingItem.image_bot_url || '',
         category: editingItem.category,
@@ -1078,12 +1140,28 @@ export default function App() {
   };
 
   const handleDeleteItem = async (id: string) => {
-    if (!window.confirm('정말로 이 영단 자료를 데이터베이스에서 영구 삭제하시겠습니까?')) return;
+    if (!window.confirm('정말로 이 보관함 데이터를 데이터베이스에서 영구 삭제하시겠습니까?')) return;
+    
+    const isLocalSandbox = !!dbError;
+    const isFallbackPrefix = id.startsWith('tea-') || id.startsWith('phil-') || id.startsWith('lecture-') || id.startsWith('photo-') || id.startsWith('press-') || id.startsWith('mulpa-');
+
+    if (isLocalSandbox) {
+      setArchiveItems(prev => prev.filter(item => item.id !== id));
+      return;
+    }
+
     try {
+      // Optimistic UI update
+      setArchiveItems(prev => prev.filter(item => item.id !== id));
       await deleteDoc(doc(db, 'archive_items', id));
+    } catch (err: any) {
+      console.error("Firestore delete failed, restoring state:", err);
+      if (isFallbackPrefix) {
+        console.warn("Ignoring delete error for fallback-prefixed item in connected mode.");
+        return;
+      }
       await fetchData();
-    } catch (err) {
-      alert('삭제 권한이 없습니다.');
+      alert(`삭제 중 에러가 발생했습니다: ${err?.message || err}\n권한이 없거나 Firebase 설정을 확인하세요.`);
     }
   };
 
@@ -1119,23 +1197,35 @@ export default function App() {
 
   const handleDeleteArtist = async (id: string) => {
     if (!window.confirm('정말로 이 물파작가 레코드를 데이터베이스에서 영구 삭제하시겠습니까?')) return;
+    
+    const isLocalSandbox = !!dbError;
+    const isFallbackPrefix = id.startsWith('artist-');
+
+    if (isLocalSandbox) {
+      setArtists(prev => prev.filter(artist => artist.id !== id));
+      return;
+    }
+
     try {
+      // Optimistic UI update
+      setArtists(prev => prev.filter(artist => artist.id !== id));
       await deleteDoc(doc(db, 'artists', id));
+    } catch (err: any) {
+      console.error("Artist delete failed, restoring state:", err);
+      if (isFallbackPrefix) {
+        console.warn("Ignoring delete error for fallback-prefixed artist in connected mode.");
+        return;
+      }
       await fetchData();
-    } catch (err) {
-      alert('삭제 실패: 권한을 확인하세요.');
+      alert(`작가 삭제 중 에러가 발생했습니다: ${err?.message || err}\n권한을 확인하세요.`);
     }
   };
 
   // Dynamic image loaders
-  const finalLogo = !siteSettings?.logo_url || 
-                    siteSettings.logo_url === '/assets/logo_v2.jpg' || 
-                    siteSettings.logo_url === '/assets/logo_v2.svg'
-    ? '/assets/logo.png'
-    : siteSettings.logo_url;
-  const finalHeroBg = loading 
-    ? '' 
-    : (siteSettings?.hero_bg_url || 'https://images.unsplash.com/photo-1490127252417-7c393f993ee4?auto=format&fit=crop&q=80&w=1920');
+  const finalLogo = siteSettings?.logo_url || '/assets/logo.png';
+  const finalHeroBg = loading
+    ? ''
+    : (siteSettings?.hero_bg_url || '/assets/hero-bg.jpeg');
 
   // Helper to sort dynamic content lists by title/name
   const sortItems = (items: ArchiveItem[], order: 'default' | 'titleAsc' | 'titleDesc') => {
@@ -1191,7 +1281,7 @@ export default function App() {
   const sunchaItems = archiveItems.filter(item => {
     const isSunchaCategory = ['suncha_seo', 'suncha_hwa', 'suncha_cha', 'suncha_hyang', 'suncha_intro', 'suncha_review'].includes(item.category);
     if (!isSunchaCategory) return false;
-    
+
     // Language filter
     const matchesLang = item.language === lang || (!item.language && lang === 'KR');
     if (!matchesLang) return false;
@@ -1237,8 +1327,8 @@ export default function App() {
   };
 
   return (
-    <div className="relative min-h-screen bg-[#FAF9F6] text-[#1C1A17] font-sans overflow-x-hidden selection:bg-[#E5DFD3] selection:text-[#1C1A17]">
-      
+    <div className="relative min-h-screen bg-transparent text-[#1C1A17] font-sans overflow-x-hidden selection:bg-[#E5DFD3] selection:text-[#1C1A17]">
+
       {/* Dynamic Emotional Backgrounds with smooth crossfade */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none" style={{ minHeight: '100%' }}>
         {Object.entries(pageBackgrounds).map(([pKey, bg]) => {
@@ -1257,29 +1347,29 @@ export default function App() {
                 referrerPolicy="no-referrer"
               />
               {/* Overlay fade layer matching background color */}
-              <div className="absolute inset-0 bg-gradient-to-b from-[#FAF9F6] via-transparent to-[#FAF9F6] opacity-85" />
+              <div className="absolute inset-0 bg-gradient-to-b from-[#FAF6EE]/50 via-transparent to-[#FAF6EE]/50 opacity-70" />
             </div>
           );
         })}
       </div>
-      
+
       {/* Dynamic Header */}
       <header className={`fixed top-0 inset-x-0 z-50 transition-all duration-500 border-b ${
-        scrolled 
-          ? 'bg-[#FAF9F6]/85 backdrop-blur-md py-4 border-[#1C1A17]/10' 
-          : 'bg-transparent lg:bg-transparent bg-[#FAF9F6]/85 backdrop-blur-md py-4 lg:py-6 border-[#1C1A17]/10 lg:border-transparent'
+        scrolled
+          ? 'bg-[#FAF6EE]/85 backdrop-blur-md py-4 border-[#1C1A17]/10'
+          : 'bg-transparent lg:bg-transparent bg-[#FAF6EE]/85 backdrop-blur-md py-4 lg:py-6 border-[#1C1A17]/10 lg:border-transparent'
       }`}>
         <div className="max-w-7xl mx-auto px-6 md:px-12 flex items-center justify-between">
-          
+
           {/* Logo Name */}
-          <button 
+          <button
             id="nav-logo"
             onClick={() => setPage('home')}
             className="group flex items-center gap-2 md:gap-3.5 text-left select-none shrink-0"
           >
             <div className="h-9 md:h-11 px-1.5 py-0.5 md:px-2 md:py-1 border border-[#1C1A17]/15 bg-white rounded flex items-center justify-center transition-transform hover:scale-[1.03] duration-300 shadow-sm shrink-0">
-              <img 
-                src={finalLogo} 
+              <img
+                src={finalLogo}
                 alt="BULHANZA"
                 referrerPolicy="no-referrer"
                 className="h-full w-auto object-contain"
@@ -1294,23 +1384,29 @@ export default function App() {
               }`}>Mind-Matter Art</p>
             </div>
           </button>
- 
+
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center gap-6 text-[18px] tracking-[0.12em] font-extrabold">
-            {(Object.keys(t.nav) as Page[]).filter(p => p !== 'contact').map((p) => (
+            {(Object.keys(t.nav) as Page[]).filter(p => p !== 'contact' && (p !== 'admin' || isUserAuthorized)).map((p) => (
               <button
                 key={p}
                 id={`nav-${p}`}
                 onClick={() => setPage(p)}
                 className={`relative py-1 transition-colors duration-300 ${
-                  isHomeDarkHeader 
+                  isHomeDarkHeader
                     ? page === p ? 'text-white' : 'text-white/70 hover:text-white'
                     : page === p ? 'text-[#1C1A17]' : 'text-[#1C1A17]/70 hover:text-black'
                 }`}
               >
-                {t.nav[p]}
+                {p === 'admin'
+                  ? lang === 'KR'
+                    ? '관리자'
+                    : lang === 'SC'
+                      ? '管理员'
+                      : 'Admin'
+                  : t.nav[p]}
                 {page === p && (
-                  <motion.span 
+                  <motion.span
                     layoutId="activeHeaderLine"
                     className={`absolute bottom-0 left-0 right-0 h-[2.5px] ${
                       isHomeDarkHeader ? 'bg-white' : 'bg-[#1C1A17]'
@@ -1320,40 +1416,40 @@ export default function App() {
               </button>
             ))}
           </nav>
- 
+
           {/* Language Toggle & Burger */}
           <div className="flex items-center gap-4">
-            
+
             {/* Lang Dropdown Select */}
-            <div 
+            <div
               onClick={(e) => {
                 e.stopPropagation();
                 setIsLangDropdownOpen(!isLangDropdownOpen);
               }}
               className={`relative group/lang font-bold text-[10px] tracking-widest border rounded-full px-3 py-1 flex items-center gap-1 transition-[colors,border,background-color] cursor-pointer select-none ${
-                isHomeDarkHeader 
-                  ? 'bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/40' 
+                isHomeDarkHeader
+                  ? 'bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/40'
                   : 'bg-white border-[#1C1A17]/15 text-[#1C1A17] hover:border-[#1C1A17]/40'
               }`}
             >
               <span>Language</span>
               <ChevronDown size={11} className={isHomeDarkHeader ? 'opacity-75 text-white' : 'opacity-40 text-[#1C1A17]'} />
-              
+
               <div className={`absolute right-0 top-full pt-1 min-w-[70px] z-[100] ${isLangDropdownOpen ? 'block' : 'hidden group-hover/lang:block'}`}>
                 <div className="bg-[#FAF9F6] border border-[#1C1A17]/10 shadow-lg rounded-lg overflow-hidden flex flex-col font-mono text-black">
-                  <button 
+                  <button
                     onClick={() => setLang('KR')}
                     className="px-3 py-2 text-left hover:bg-[#E5DFD3] transition-colors"
                   >
                     한국어
                   </button>
-                  <button 
+                  <button
                     onClick={() => setLang('SC')}
                     className="px-3 py-2 text-left hover:bg-[#E5DFD3] transition-colors"
                   >
                     中文(简体)
                   </button>
-                  <button 
+                  <button
                     onClick={() => setLang('EN')}
                     className="px-3 py-2 text-left hover:bg-[#E5DFD3] transition-colors"
                   >
@@ -1362,7 +1458,43 @@ export default function App() {
                 </div>
               </div>
             </div>
- 
+
+            {/* Login / Logout Button */}
+            <button
+              onClick={() => {
+                if (isUserAuthorized) {
+                  localStorage.removeItem('authorized_write');
+                  setIsUserAuthorized(false);
+                  if (page === 'admin') {
+                    setPage('home');
+                  }
+                } else {
+                  setIsAuthModalOpen(true);
+                }
+              }}
+              className={`font-bold text-[10px] tracking-widest border rounded-full px-3 py-1 flex items-center gap-1.5 transition-all cursor-pointer select-none ${
+                isHomeDarkHeader
+                  ? isUserAuthorized
+                    ? 'bg-amber-500/10 border-amber-500/30 text-amber-300 hover:bg-amber-500/20 hover:border-amber-500/50'
+                    : 'bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/40'
+                  : isUserAuthorized
+                    ? 'bg-amber-50 border-amber-600/30 text-amber-700 hover:bg-amber-100 hover:border-amber-600/50'
+                    : 'bg-white border-[#1C1A17]/15 text-[#1C1A17] hover:border-[#1C1A17]/40'
+              }`}
+            >
+              {isUserAuthorized ? (
+                <>
+                  <LogOut size={11} />
+                  <span>{lang === 'KR' ? '로그아웃' : lang === 'SC' ? '登出' : 'LOGOUT'}</span>
+                </>
+              ) : (
+                <>
+                  <LogIn size={11} />
+                  <span>{lang === 'KR' ? '로그인' : lang === 'SC' ? '登录' : 'LOGIN'}</span>
+                </>
+              )}
+            </button>
+
           </div>
         </div>
 
@@ -1371,9 +1503,9 @@ export default function App() {
           {/* Subtle horizontal scroll indicator overlays */}
           <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-[#FAF9F6]/95 to-transparent pointer-events-none z-10" />
           <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[#FAF9F6]/95 to-transparent pointer-events-none z-10" />
-          
+
           <div className="overflow-x-auto scrollbar-none flex gap-2.5 px-6 snap-x snap-mandatory">
-            {(Object.keys(t.nav) as Page[]).filter(p => p !== 'contact').map((p) => {
+            {(Object.keys(t.nav) as Page[]).filter(p => p !== 'contact' && (p !== 'admin' || isUserAuthorized)).map((p) => {
               const isCurrent = page === p;
               return (
                 <button
@@ -1385,7 +1517,13 @@ export default function App() {
                       : 'bg-white/90 text-black/70 border-[#1C1A17]/15 hover:border-[#1C1A17]/45'
                   }`}
                 >
-                  {t.nav[p]}
+                  {p === 'admin'
+                    ? lang === 'KR'
+                      ? '관리자'
+                      : lang === 'SC'
+                        ? '管理员'
+                        : 'Admin'
+                    : t.nav[p]}
                 </button>
               );
             })}
@@ -1396,10 +1534,10 @@ export default function App() {
       {/* Main Pages Switch */}
       <main className="pt-36 lg:pt-28 min-h-screen">
         <AnimatePresence mode="wait">
-          
+
           {/* HOME PAGE */}
           {page === 'home' && (
-            <motion.div 
+            <motion.div
               key="home"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -1407,27 +1545,27 @@ export default function App() {
               className="relative w-full -mt-36 lg:-mt-28"
             >
               {/* Immersive background image with advanced vignette and overlay filters */}
-              <div className="absolute inset-0 z-0 overflow-hidden bg-[#FAF9F6]">
+              <div className="absolute inset-0 z-0 overflow-hidden bg-transparent">
                 {finalHeroBg && (
-                  <img 
-                    src={finalHeroBg} 
-                    alt="Immersive Backdrop" 
-                    className="w-full h-full object-cover scale-100 brightness-[0.95] contrast-[1.02] opacity-35 transition-transform duration-[4000ms] ease-out"
+                  <img
+                    src={finalHeroBg}
+                    alt="Immersive Backdrop"
+                    className="w-full h-full object-cover scale-100 brightness-[0.95] contrast-[1.02] opacity-30 transition-transform duration-[4000ms] ease-out"
                     referrerPolicy="no-referrer"
                   />
                 )}
-                <div className="absolute inset-0 bg-gradient-to-b from-[#FAF9F6]/80 via-transparent to-[#FAF9F6]" />
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(250,249,246,0.8),transparent_95%)]" />
+                <div className="absolute inset-0 bg-gradient-to-b from-[#FAF6EE]/50 via-transparent to-[#FAF6EE]" />
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(250,246,238,0.5),transparent_95%)]" />
               </div>
 
               {/* Gentle Snowy Falling Leaves Overlay */}
               <FallingLeaves />
 
               <div className="relative z-10 max-w-7xl mx-auto px-6 md:px-12 pt-36 md:pt-44 pb-32 flex flex-col justify-between min-h-screen">
-                
+
                 {/* Hero Headline content */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center py-8">
-                  
+
                   {/* Left Column - Empty top space, with Sub-copies and actions aligned at the bottom */}
                   <div className="lg:col-span-7 flex flex-col justify-end min-h-[360px] space-y-8 text-left">
                     <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#1C1A17]/10 bg-[#1C1A17]/5 self-start">
@@ -1440,16 +1578,16 @@ export default function App() {
                       <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-serif text-[#1C1A17] leading-relaxed font-semibold max-w-2xl whitespace-pre-line">
                         {t.hero.subtitle}
                       </p>
-                      
+
                       <div className="pt-2 flex flex-wrap gap-4">
-                        <button 
+                        <button
                           id="hero-explore-btn"
                           onClick={() => setPage('philosophy')}
                           className="px-10 py-5 bg-[#1C1A17] text-white hover:bg-neutral-800 hover:scale-105 active:scale-95 text-sm sm:text-base md:text-lg tracking-wider uppercase transition-all flex items-center gap-3 rounded-full font-bold shadow-lg shadow-black/10"
                         >
                           <Compass size={18} /> {t.hero.cta}
                         </button>
-                        <button 
+                        <button
                           id="hero-tea-btn"
                           onClick={() => setPage('tea')}
                           className="px-10 py-5 border border-[#1C1A17]/35 text-[#1C1A17] bg-transparent hover:bg-[#1C1A17] hover:text-white hover:scale-105 active:scale-95 text-sm sm:text-base md:text-lg tracking-wider uppercase transition-all rounded-full font-bold"
@@ -1468,12 +1606,12 @@ export default function App() {
                         <div className="w-2.5 h-2.5 rounded-full bg-[#2C231E]" />
                         <div className="w-0.5 h-6 bg-[#2C231E]" />
                       </div>
-                      
+
                       {/* Inner Parchment Scroll */}
                       <div className="w-full aspect-[2/3.8] bg-white border border-[#2C231E]/10 p-4 md:p-6 flex flex-col justify-between shadow-inner relative overflow-hidden min-h-[380px]">
-                        <img 
-                          src="/assets/mainsub.jpg" 
-                          alt="Calligraphy Scroll" 
+                        <img
+                          src="/assets/mainsub.jpg"
+                          alt="Calligraphy Scroll"
                           className="w-full h-full object-cover"
                           referrerPolicy="no-referrer"
                         />
@@ -1490,10 +1628,10 @@ export default function App() {
 
                 {/* Elegant Translucent Bento Blocks with Dark Borders */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 pt-16 border-t border-[#1C1A17]/10 mt-16">
-                  
+
                   {/* Card 1 */}
-                  <div 
-                    onClick={() => setPage('philosophy')} 
+                  <div
+                    onClick={() => setPage('philosophy')}
                     className="group p-8 bg-white/60 backdrop-blur-md border border-[#1C1A17]/10 rounded-2xl hover:border-[#1C1A17]/35 hover:bg-white/90 hover:shadow-xl transition-all duration-300 cursor-pointer text-left space-y-5 relative overflow-hidden"
                   >
                     <div className="absolute inset-0 bg-gradient-to-br from-[#1C1A17]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -1513,8 +1651,8 @@ export default function App() {
                   </div>
 
                   {/* Card 2 */}
-                  <div 
-                    onClick={() => setPage('art')} 
+                  <div
+                    onClick={() => setPage('art')}
                     className="group p-8 bg-white/60 backdrop-blur-md border border-[#1C1A17]/10 rounded-2xl hover:border-[#1C1A17]/35 hover:bg-white/90 hover:shadow-xl transition-all duration-300 cursor-pointer text-left space-y-5 relative overflow-hidden"
                   >
                     <div className="absolute inset-0 bg-gradient-to-br from-[#1C1A17]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -1534,8 +1672,8 @@ export default function App() {
                   </div>
 
                   {/* Card 3 */}
-                  <div 
-                    onClick={() => setPage('tea')} 
+                  <div
+                    onClick={() => setPage('tea')}
                     className="group p-8 bg-white/60 backdrop-blur-md border border-[#1C1A17]/10 rounded-2xl hover:border-[#1C1A17]/35 hover:bg-white/90 hover:shadow-xl transition-all duration-300 cursor-pointer text-left space-y-5 relative overflow-hidden"
                   >
                     <div className="absolute inset-0 bg-gradient-to-br from-[#1C1A17]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -1562,7 +1700,7 @@ export default function App() {
 
           {/* PHILOSOPHY PAGE */}
           {page === 'philosophy' && (
-            <motion.div 
+            <motion.div
               key="philosophy"
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
@@ -1577,16 +1715,16 @@ export default function App() {
               </div>
 
               {/* Sub-categories/Tabs at the top */}
-              <div className="flex flex-wrap gap-2 md:gap-3 justify-center mb-12 bg-[#FAF9F6] p-3 rounded-2xl border border-[#1C1A17]/10 shadow-inner">
+              <div className="flex flex-wrap gap-2 md:gap-3 justify-center mb-12 bg-[#FAF6EE]/60 p-3 rounded-full border border-[#1C1A17]/10 shadow-inner backdrop-blur-sm">
                 <button
                   onClick={() => {
                     setPhilosophyTab('chapters');
                     setReadingPhilosophy(null);
                   }}
-                  className={`text-sm sm:text-base md:text-lg font-serif font-bold py-2 px-5 rounded-xl transition-all duration-300 shadow-sm border ${
+                  className={`text-sm sm:text-base md:text-lg font-serif font-bold py-2.5 px-6 rounded-full transition-all duration-300 shadow-sm border ${
                     philosophyTab === 'chapters'
-                      ? 'bg-[#1C1A17] text-[#FAF9F6] border-[#1C1A17]'
-                      : 'bg-white text-black/70 border-[#1C1A17]/15 hover:border-[#1C1A17]/40 hover:bg-[#FAF9F6]'
+                      ? 'bg-[#1C1A17] text-[#FAF6EE] border-[#1C1A17]'
+                      : 'bg-white text-black/70 border-[#1C1A17]/15 hover:border-[#1C1A17]/40 hover:bg-[#FAF6EE]'
                   }`}
                 >
                   {lang === 'KR' ? '심물철학 강론' : lang === 'SC' ? '心物哲学讲义' : 'Philosophy Chapters'}
@@ -1596,10 +1734,10 @@ export default function App() {
                     setPhilosophyTab('essays');
                     setReadingPhilosophy(null);
                   }}
-                  className={`text-sm sm:text-base md:text-lg font-serif font-bold py-2 px-5 rounded-xl transition-all duration-300 shadow-sm border ${
+                  className={`text-sm sm:text-base md:text-lg font-serif font-bold py-2.5 px-6 rounded-full transition-all duration-300 shadow-sm border ${
                     philosophyTab === 'essays'
-                      ? 'bg-[#1C1A17] text-[#FAF9F6] border-[#1C1A17]'
-                      : 'bg-white text-black/70 border-[#1C1A17]/15 hover:border-[#1C1A17]/40 hover:bg-[#FAF9F6]'
+                      ? 'bg-[#1C1A17] text-[#FAF6EE] border-[#1C1A17]'
+                      : 'bg-white text-black/70 border-[#1C1A17]/15 hover:border-[#1C1A17]/40 hover:bg-[#FAF6EE]'
                   }`}
                 >
                   {lang === 'KR' ? '심물 에세이' : lang === 'SC' ? '学术随笔与感悟' : 'Writings & Essays'}
@@ -1620,9 +1758,9 @@ export default function App() {
                       <div className="space-y-12 animate-fadeIn">
                         {/* Elegant Atmospheric Philosophy Cover Banner */}
                         <div className="w-full h-48 md:h-64 rounded-xl overflow-hidden mb-12 relative border border-[#1C1A17]/10 shadow-lg group select-none">
-                          <img 
-                            src="https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&q=80&w=1200" 
-                            alt="Philosophy Banner" 
+                          <img
+                            src="https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&q=80&w=1200"
+                            alt="Philosophy Banner"
                             className="w-full h-full object-cover brightness-[0.85] contrast-[1.05] transition-transform duration-[4000ms] group-hover:scale-103"
                             referrerPolicy="no-referrer"
                           />
@@ -1642,67 +1780,107 @@ export default function App() {
                           </p>
                         </div>
 
+                        {/* Header Controls for Chapters/Lectures */}
+                        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-4 border-b border-[#1C1A17]/15">
+                          <div>
+                            <h3 className="font-serif text-xl md:text-2xl font-bold text-black flex items-center gap-3">
+                              {lang === 'KR' ? '심물철학 강론 목차' : lang === 'SC' ? '心物哲学讲义目录' : 'Mind-Matter Philosophy Lectures'}
+                              {isUserAuthorized && (
+                                <button
+                                  onClick={() => handleWriteClick('philosophy_lecture')}
+                                  className="px-4 py-2.5 bg-[#1C1A17] hover:bg-black text-white text-xs sm:text-sm tracking-wide font-bold uppercase rounded-lg flex items-center gap-1.5 transition-all shadow-sm"
+                                >
+                                  <PenTool size={14} />
+                                  {lang === 'KR' ? '새 강론 작성' : 'Write Lecture'}
+                                </button>
+                              )}
+                            </h3>
+                            <p className="text-xs text-black/50 mt-1 uppercase tracking-wider font-mono">
+                              {lang === 'KR' ? '심물철학 핵심 사상에 관한 체계적인 강론 목록입니다' : 'Systematic lectures on the core philosophy of Mind & Matter'}
+                            </p>
+                          </div>
+                        </div>
+
                         {/* Chapters Grid Layout */}
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                          {t.philosophy.chapters.map((chap, idx) => {
-                            const chapterImages = [
-                              'https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&q=80&w=600', // Wave
-                              'https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?auto=format&fit=crop&q=80&w=600', // Forest
-                              'https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&q=80&w=600'  // Garden
-                            ];
-                            const imgUrl = chapterImages[idx] || 'https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&q=80&w=600';
-                            const displaySummary = getDisplaySummary({ content: chap.content }, 150);
+                          {(() => {
+                            const staticChaptersList = t.philosophy.chapters.map((chap, idx) => {
+                              const chapterImages = [
+                                'https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&q=80&w=600', // Wave
+                                'https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?auto=format&fit=crop&q=80&w=600', // Forest
+                                'https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&q=80&w=600'  // Garden
+                              ];
+                              const imgUrl = chapterImages[idx] || 'https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&q=80&w=600';
+                              return {
+                                id: `static-chapter-${idx}`,
+                                title: chap.title,
+                                content: chap.content,
+                                image_url: imgUrl,
+                                created_at: '1997-01-01T00:00:00Z',
+                                category: 'philosophy_static',
+                                summary: lang === 'KR' ? '물파주의 심물철학 핵심 강론' : 'Core Doctrine of Mind-Matter Philosophy',
+                                index: idx
+                              };
+                            });
 
-                            const mockChapterPost = {
-                              id: `static-chapter-${idx}`,
-                              title: chap.title,
-                              content: chap.content,
-                              image_url: imgUrl,
-                              created_at: '1997-01-01T00:00:00Z',
-                              category: 'philosophy_static',
-                              summary: lang === 'KR' ? '물파주의 심물철학 핵심 강론' : 'Core Doctrine of Mind-Matter Philosophy',
-                            };
+                            const dynamicLecturesList = [...archiveItems]
+                              .filter(item => item.category === 'philosophy_lecture' && (item.language === lang || !item.language))
+                              .sort((a, b) => getTimestampMs(a) - getTimestampMs(b))
+                              .map((item, dIdx) => ({
+                                ...item,
+                                index: dIdx
+                              }));
 
-                            return (
-                              <div
-                                key={mockChapterPost.id}
-                                onClick={() => setReadingPhilosophy(mockChapterPost as any)}
-                                className="group bg-white border border-[#1C1A17]/10 p-6 rounded-2xl hover:shadow-2xl hover:border-[#1C1A17]/45 transition-all duration-300 flex flex-col justify-between cursor-pointer hover:scale-[1.01]"
-                              >
-                                <div className="space-y-4">
-                                  <div className="aspect-[16/10] w-full overflow-hidden rounded-xl bg-gray-50 border border-[#1C1A17]/5 shadow-inner relative">
-                                    <img 
-                                      src={imgUrl} 
-                                      alt={chap.title} 
-                                      referrerPolicy="no-referrer"
-                                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                    />
-                                    <div className="absolute top-3 left-3 bg-[#1C1A17] text-white text-[9px] font-serif px-2.5 py-0.5 rounded font-bold uppercase tracking-widest">
-                                      {lang === 'KR' ? `강론 제${idx + 1}장` : `Chapter ${idx + 1}`}
+                            const unifiedChaptersList = dynamicLecturesList.length > 0 ? dynamicLecturesList : staticChaptersList;
+
+                            return unifiedChaptersList.map((chap) => {
+                              const imgUrl = chap.image_url || 'https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&q=80&w=600';
+                              const displaySummary = getDisplaySummary({ content: chap.content }, 150);
+
+                              return (
+                                <div
+                                  key={chap.id}
+                                  onClick={() => setReadingPhilosophy(chap as any)}
+                                  className="group bg-white border border-[#1C1A17]/10 p-6 rounded-2xl hover:shadow-2xl hover:border-[#1C1A17]/45 transition-all duration-300 flex flex-col justify-between cursor-pointer hover:scale-[1.01]"
+                                >
+                                  <div className="space-y-4">
+                                    <div className="aspect-[16/10] w-full overflow-hidden rounded-xl bg-gray-50 border border-[#1C1A17]/5 shadow-inner relative">
+                                      <img
+                                        src={imgUrl}
+                                        alt={chap.title}
+                                        referrerPolicy="no-referrer"
+                                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                        onError={(e) => {
+                                          e.currentTarget.src = 'https://images.unsplash.com/photo-1518640467707-6811f4a6ab73?auto=format&fit=crop&q=80&w=1200';
+                                        }}
+                                      />
+                                      <div className="absolute top-3 left-3 bg-[#1C1A17] text-white text-[9px] font-serif px-2.5 py-0.5 rounded font-bold uppercase tracking-widest">
+                                        {lang === 'KR' ? `강론 제${chap.index + 1}장` : `Chapter ${chap.index + 1}`}
+                                      </div>
+                                    </div>
+
+                                    <div className="space-y-2 text-left">
+                                      <span className="font-mono text-[9px] tracking-widest text-[#1C1A17]/40 block uppercase font-bold">
+                                        {lang === 'KR' ? '물파주의 사상 강론' : 'Mulpa Philosophy Doctrine'}
+                                      </span>
+                                      <h3 className="font-serif text-lg sm:text-xl font-bold text-black group-hover:text-amber-800 transition-colors truncate">
+                                        {chap.title}
+                                      </h3>
+                                      <p className="text-sm sm:text-base md:text-lg text-[#1C1A17]/85 leading-relaxed font-serif line-clamp-3 h-20 sm:h-24 overflow-hidden text-justify">
+                                        {displaySummary}
+                                      </p>
                                     </div>
                                   </div>
-
-                                  <div className="space-y-2 text-left">
-                                    <span className="font-mono text-[9px] tracking-widest text-[#1C1A17]/40 block uppercase font-bold">
-                                      {lang === 'KR' ? '물파주의 사상 강론' : 'Mulpa Philosophy Doctrine'}
+                                  <div className="mt-6 pt-4 border-t border-[#1C1A17]/5 flex justify-between items-center text-[9px] tracking-widest uppercase font-mono font-bold text-[#1C1A17]/40 group-hover:text-[#1C1A17] transition-colors">
+                                    <span>VIEW CHAPTER</span>
+                                    <span className="flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                                      {lang === 'KR' ? '강론 읽기' : 'Read Chapter'} <ChevronRight size={12} />
                                     </span>
-                                    <h3 className="font-serif text-lg sm:text-xl font-bold text-black group-hover:text-amber-800 transition-colors truncate">
-                                      {chap.title}
-                                    </h3>
-                                    <p className="text-sm sm:text-base md:text-lg text-[#1C1A17]/85 leading-relaxed font-serif line-clamp-3 h-20 sm:h-24 overflow-hidden text-justify">
-                                      {displaySummary}
-                                    </p>
                                   </div>
                                 </div>
-                                <div className="mt-6 pt-4 border-t border-[#1C1A17]/5 flex justify-between items-center text-[9px] tracking-widest uppercase font-mono font-bold text-[#1C1A17]/40 group-hover:text-[#1C1A17] transition-colors">
-                                  <span>VIEW CHAPTER</span>
-                                  <span className="flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                                    {lang === 'KR' ? '강론 읽기' : 'Read Chapter'} <ChevronRight size={12} />
-                                  </span>
-                                </div>
-                              </div>
-                            );
-                          })}
+                              );
+                            });
+                          })()}
                         </div>
                       </div>
                     ) : (
@@ -1713,13 +1891,15 @@ export default function App() {
                           <div>
                             <h3 className="font-serif text-xl md:text-2xl font-bold text-black flex items-center gap-3">
                               {lang === 'KR' ? '학술 단상 및 집필 기록' : lang === 'SC' ? '学术感悟与执笔记录' : 'Academic Writings & Archive'}
-                              <button
-                                onClick={() => handleWriteClick('philosophy')}
-                                className="px-4 py-2.5 bg-[#1C1A17] hover:bg-black text-white text-xs sm:text-sm tracking-wide font-bold uppercase rounded-lg flex items-center gap-1.5 transition-all shadow-sm"
-                              >
-                                <PenTool size={14} />
-                                {lang === 'KR' ? '새 글 작성' : 'Write'}
-                              </button>
+                              {isUserAuthorized && (
+                                <button
+                                  onClick={() => handleWriteClick('philosophy')}
+                                  className="px-4 py-2.5 bg-[#1C1A17] hover:bg-black text-white text-xs sm:text-sm tracking-wide font-bold uppercase rounded-lg flex items-center gap-1.5 transition-all shadow-sm"
+                                >
+                                  <PenTool size={14} />
+                                  {lang === 'KR' ? '새 글 작성' : 'Write'}
+                                </button>
+                              )}
                             </h3>
                             <p className="text-xs text-black/50 mt-1 uppercase tracking-wider font-mono">
                               {lang === 'KR' ? '기록보관소의 심물철학 연구 단상 목록입니다' : 'Dynamic philosophical research notes'}
@@ -1768,8 +1948,8 @@ export default function App() {
 
                         {archiveItems.filter(item => item.category === 'philosophy' && (item.language === lang || !item.language)).length === 0 ? (
                           <div className="text-center py-24 bg-white border-2 border-dashed border-[#1C1A17]/10 rounded-2xl text-neutral-400 font-serif text-base italic">
-                            {lang === 'KR' 
-                              ? '등록된 심물철학 단상이 없습니다. 관리자 대시보드에서 새로운 글을 등록하실 수 있습니다.' 
+                            {lang === 'KR'
+                              ? '등록된 심물철학 단상이 없습니다. 관리자 대시보드에서 새로운 글을 등록하실 수 있습니다.'
                               : lang === 'SC'
                               ? '暂无已登记的心物哲学随笔。您可以在管理员控制台发布新文章。'
                               : 'No philosophy reflections found in this collection. Feel free to register one.'}
@@ -1790,23 +1970,21 @@ export default function App() {
                                 return paginatedPhilosophyEssays.map((post) => {
                                   const displaySummary = getDisplaySummary(post, 150);
                                   return (
-                                    <div 
-                                      key={post.id} 
+                                    <div
+                                      key={post.id}
                                       onClick={() => setReadingPhilosophy(post)}
                                       className="group bg-white border border-[#1C1A17]/10 p-6 rounded-2xl hover:shadow-2xl hover:border-[#1C1A17]/35 transition-all duration-300 flex flex-col justify-between cursor-pointer hover:scale-[1.01] text-left"
                                     >
                                       <div className="space-y-4">
                                         <div className="aspect-[16/10] w-full overflow-hidden rounded-xl bg-gray-50 border border-[#1C1A17]/5 shadow-inner relative">
-                                          <img 
-                                            src={post.image_url || 'https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&q=80&w=600'} 
-                                            alt={post.title} 
+                                          <img
+                                            src={post.image_url || 'https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&q=80&w=600'}
+                                            alt={post.title}
                                             referrerPolicy="no-referrer"
                                             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                                             onError={(e) => {
-                                              e.currentTarget.style.display = 'none';
-                                              const parent = e.currentTarget.parentElement;
-                                              if (parent) parent.style.display = 'none';
-                                            }}
+                                      e.currentTarget.src = 'https://images.unsplash.com/photo-1518640467707-6811f4a6ab73?auto=format&fit=crop&q=80&w=1200';
+                                    }}
                                           />
                                         </div>
                                         <div className="space-y-2">
@@ -1839,11 +2017,11 @@ export default function App() {
                               );
                               const totalPhilosophyPages = Math.ceil(filteredPhilosophyEssays.length / 15);
                               return (
-                                <Pagination 
-                                  currentPage={philosophyPage} 
-                                  totalPages={totalPhilosophyPages} 
-                                  onPageChange={setPhilosophyPage} 
-                                  lang={lang} 
+                                <Pagination
+                                  currentPage={philosophyPage}
+                                  totalPages={totalPhilosophyPages}
+                                  onPageChange={setPhilosophyPage}
+                                  lang={lang}
                                 />
                               );
                             })()}
@@ -1854,7 +2032,7 @@ export default function App() {
                   </motion.div>
                 ) : (
                   /* PHILOSOPHY DETAIL VIEW */
-                  <motion.div 
+                  <motion.div
                     key="philosophy-detail"
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -1863,7 +2041,7 @@ export default function App() {
                   >
                     <div className="border-b border-[#1C1A17]/10 pb-6">
                       <span className="font-mono text-[8px] tracking-[0.2em] uppercase text-black/40 block mb-1">
-                        {readingPhilosophy.category === 'philosophy_static'
+                        {readingPhilosophy.category === 'philosophy_static' || readingPhilosophy.category === 'philosophy_lecture'
                           ? (lang === 'KR' ? '심물철학 강론' : 'Mind-Matter Philosophy Chapters')
                           : (lang === 'KR' ? '심물철학 학술 단상' : 'Mind-Matter Essays & Reflections')}
                       </span>
@@ -1884,24 +2062,22 @@ export default function App() {
                     <div className="prose prose-stone max-w-none text-sm md:text-base leading-[1.8] text-[#1C1A17]/90 font-sans break-words bg-[#FAF9F6] border border-[#1C1A17]/5 p-6 rounded [&_p]:my-0 [&_p]:mb-5 last:[&_p]:mb-0">
                       {readingPhilosophy.image_url && (
                         <div className="mb-8 flex justify-center w-full">
-                          <img 
-                            src={readingPhilosophy.image_url} 
-                            alt={readingPhilosophy.title} 
+                          <img
+                            src={readingPhilosophy.image_url}
+                            alt={readingPhilosophy.title}
                             referrerPolicy="no-referrer"
                             className="max-w-full max-h-[350px] md:max-h-[480px] h-auto object-contain rounded border border-[#1C1A17]/10 p-1.5 bg-white shadow-sm"
                             onError={(e) => {
-                              e.currentTarget.style.display = 'none';
-                              const parent = e.currentTarget.parentElement;
-                              if (parent) parent.style.display = 'none';
-                            }}
+                                      e.currentTarget.src = 'https://images.unsplash.com/photo-1518640467707-6811f4a6ab73?auto=format&fit=crop&q=80&w=1200';
+                                    }}
                           />
                         </div>
                       )}
 
                       {renderContentWithImages(
-                        readingPhilosophy.content || '', 
-                        readingPhilosophy.image_mid_url, 
-                        readingPhilosophy.image_bot_url, 
+                        readingPhilosophy.content || '',
+                        readingPhilosophy.image_mid_url,
+                        readingPhilosophy.image_bot_url,
                         false
                       )}
                     </div>
@@ -1919,50 +2095,51 @@ export default function App() {
                       {/* Previous / Next buttons in the center */}
                       <div className="flex justify-center text-center flex-1 max-w-lg">
                         {(() => {
-                          if (readingPhilosophy.category === 'philosophy_static') {
-                            const currentChapterIdx = parseInt(readingPhilosophy.id.replace('static-chapter-', ''));
-                            const chapterImages = [
-                              'https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&q=80&w=600',
-                              'https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?auto=format&fit=crop&q=80&w=600',
-                              'https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&q=80&w=600'
-                            ];
-                            const nextChapterIdx = currentChapterIdx + 1;
-                            const prevChapterIdx = currentChapterIdx - 1;
+                          if (readingPhilosophy.category === 'philosophy_static' || readingPhilosophy.category === 'philosophy_lecture') {
+                            const staticChaptersList = t.philosophy.chapters.map((chap, idx) => {
+                              const chapterImages = [
+                                'https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&q=80&w=600',
+                                'https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?auto=format&fit=crop&q=80&w=600',
+                                'https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&q=80&w=600'
+                              ];
+                              const imgUrl = chapterImages[idx] || 'https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&q=80&w=600';
+                              return {
+                                id: `static-chapter-${idx}`,
+                                title: chap.title,
+                                content: chap.content,
+                                image_url: imgUrl,
+                                created_at: '1997-01-01T00:00:00Z',
+                                category: 'philosophy_static',
+                                summary: lang === 'KR' ? '물파주의 심물철학 핵심 강론' : 'Core Doctrine of Mind-Matter Philosophy',
+                                index: idx
+                              };
+                            });
 
-                            const prevChap = prevChapterIdx >= 0 ? t.philosophy.chapters[prevChapterIdx] : null;
-                            const nextChap = nextChapterIdx < t.philosophy.chapters.length ? t.philosophy.chapters[nextChapterIdx] : null;
+                            const dynamicLecturesList = [...archiveItems]
+                              .filter(item => item.category === 'philosophy_lecture' && (item.language === lang || !item.language))
+                              .sort((a, b) => getTimestampMs(a) - getTimestampMs(b))
+                              .map((item, dIdx) => ({
+                                ...item,
+                                index: dIdx
+                              }));
 
-                            const prevMockPost = prevChap ? {
-                              id: `static-chapter-${prevChapterIdx}`,
-                              title: prevChap.title,
-                              content: prevChap.content,
-                              image_url: chapterImages[prevChapterIdx],
-                              created_at: '1997-01-01T00:00:00Z',
-                              category: 'philosophy_static',
-                              summary: lang === 'KR' ? '물파주의 심물철학 핵심 강론' : 'Core Doctrine of Mind-Matter Philosophy',
-                            } : null;
+                            const unifiedChaptersList = dynamicLecturesList.length > 0 ? dynamicLecturesList : staticChaptersList;
 
-                            const nextMockPost = nextChap ? {
-                              id: `static-chapter-${nextChapterIdx}`,
-                              title: nextChap.title,
-                              content: nextChap.content,
-                              image_url: chapterImages[nextChapterIdx],
-                              created_at: '1997-01-01T00:00:00Z',
-                              category: 'philosophy_static',
-                              summary: lang === 'KR' ? '물파주의 심물철학 핵심 강론' : 'Core Doctrine of Mind-Matter Philosophy',
-                            } : null;
+                            const currentIdx = unifiedChaptersList.findIndex(item => item.id === readingPhilosophy.id);
+                            const prevChapter = currentIdx > 0 ? unifiedChaptersList[currentIdx - 1] : null;
+                            const nextChapter = currentIdx !== -1 && currentIdx + 1 < unifiedChaptersList.length ? unifiedChaptersList[currentIdx + 1] : null;
 
                             return (
                               <div className="flex flex-col sm:flex-row items-center justify-center gap-4 text-center w-full">
-                                {prevMockPost ? (
+                                {prevChapter ? (
                                   <button
-                                    onClick={() => setReadingPhilosophy(prevMockPost as any)}
+                                    onClick={() => setReadingPhilosophy(prevChapter as any)}
                                     className="group flex items-center gap-1.5 font-serif text-xs text-amber-800 hover:text-amber-950 font-bold transition-all p-1.5 rounded-lg hover:bg-neutral-50"
                                   >
                                     <ChevronLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
                                     <span>{lang === 'KR' ? '이전장' : 'Prev Ch.'}</span>
                                     <span className="underline max-w-[120px] sm:max-w-[150px] truncate block font-normal text-black/70">
-                                      {prevMockPost.title}
+                                      {prevChapter.title}
                                     </span>
                                   </button>
                                 ) : (
@@ -1973,15 +2150,15 @@ export default function App() {
 
                                 <span className="hidden sm:inline text-neutral-300">|</span>
 
-                                {nextMockPost ? (
+                                {nextChapter ? (
                                   <button
-                                    onClick={() => setReadingPhilosophy(nextMockPost as any)}
+                                    onClick={() => setReadingPhilosophy(nextChapter as any)}
                                     className="group flex items-center gap-1.5 font-serif text-xs text-amber-800 hover:text-amber-950 font-bold transition-all p-1.5 rounded-lg hover:bg-neutral-50"
                                   >
                                     <span>{lang === 'KR' ? '다음장' : 'Next Ch.'}</span>
                                     <ChevronRight size={14} className="group-hover:translate-x-1.5 transition-transform" />
                                     <span className="underline max-w-[120px] sm:max-w-[150px] truncate block font-normal text-black/70">
-                                      {nextMockPost.title}
+                                      {nextChapter.title}
                                     </span>
                                   </button>
                                 ) : (
@@ -1999,11 +2176,11 @@ export default function App() {
                               philosophySortOrder
                             );
                             const currentIdx = sortedPhilosophyPosts.findIndex(p => p.id === readingPhilosophy.id);
-                            const nextPost = currentIdx !== -1 && currentIdx + 1 < sortedPhilosophyPosts.length 
-                              ? sortedPhilosophyPosts[currentIdx + 1] 
+                            const nextPost = currentIdx !== -1 && currentIdx + 1 < sortedPhilosophyPosts.length
+                              ? sortedPhilosophyPosts[currentIdx + 1]
                               : null;
-                            const prevPost = currentIdx > 0 
-                              ? sortedPhilosophyPosts[currentIdx - 1] 
+                            const prevPost = currentIdx > 0
+                              ? sortedPhilosophyPosts[currentIdx - 1]
                               : null;
 
                             return (
@@ -2061,9 +2238,9 @@ export default function App() {
                             {lang === 'KR' ? '수정' : 'Edit'}
                           </button>
                         )}
-                        {readingPhilosophy.category !== 'philosophy_static' && (
+                        {isUserAuthorized && readingPhilosophy.category !== 'philosophy_static' && (
                           <button
-                            onClick={() => handleWriteClick('philosophy')}
+                            onClick={() => handleWriteClick(readingPhilosophy.category || 'philosophy')}
                             className="px-5 py-2.5 bg-black hover:bg-neutral-800 text-white rounded-xl font-serif text-sm font-bold flex items-center gap-1.5 transition-all shadow-sm"
                           >
                             <PenTool size={14} />
@@ -2080,7 +2257,7 @@ export default function App() {
 
           {/* ART / AESTHETICS PAGE (물파공간) */}
           {page === 'art' && (
-            <motion.div 
+            <motion.div
               key="art"
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
@@ -2096,9 +2273,9 @@ export default function App() {
 
               {/* Elegant Atmospheric Art Cover Banner */}
               <div className="w-full h-48 md:h-64 rounded-xl overflow-hidden mb-12 relative border border-[#1C1A17]/10 shadow-lg group select-none">
-                <img 
-                  src="https://images.unsplash.com/photo-1541701494587-cb58502866ab?auto=format&fit=crop&q=80&w=1200" 
-                  alt="Art Banner" 
+                <img
+                  src="https://images.unsplash.com/photo-1541701494587-cb58502866ab?auto=format&fit=crop&q=80&w=1200"
+                  alt="Art Banner"
                   className="w-full h-full object-cover brightness-[0.85] contrast-[1.05] transition-transform duration-[4000ms] group-hover:scale-103"
                   referrerPolicy="no-referrer"
                 />
@@ -2112,23 +2289,23 @@ export default function App() {
               </div>
 
               {/* Sub-navigation tabs */}
-              <div className="flex flex-wrap gap-2 md:gap-3 justify-center mb-12 bg-[#FAF9F6] p-3 rounded-2xl border border-[#1C1A17]/10 shadow-inner">
-                <button 
+              <div className="flex flex-wrap gap-2 md:gap-3 justify-center mb-12 bg-[#FAF6EE]/60 p-3 rounded-full border border-[#1C1A17]/10 shadow-inner backdrop-blur-sm">
+                <button
                   onClick={() => setArtSubTab('doctrine')}
-                  className={`text-sm sm:text-base md:text-lg font-serif font-bold py-2 px-4 md:px-5 rounded-xl transition-all duration-300 shadow-sm border ${
-                    artSubTab === 'doctrine' 
-                      ? 'bg-[#1C1A17] text-[#FAF9F6] border-[#1C1A17]' 
-                      : 'bg-white text-black/70 border-[#1C1A17]/15 hover:border-[#1C1A17]/40 hover:bg-[#FAF9F6]'
+                  className={`text-sm sm:text-base md:text-lg font-serif font-bold py-2.5 px-6 rounded-full transition-all duration-300 shadow-sm border ${
+                    artSubTab === 'doctrine'
+                      ? 'bg-[#1C1A17] text-[#FAF6EE] border-[#1C1A17]'
+                      : 'bg-white text-black/70 border-[#1C1A17]/15 hover:border-[#1C1A17]/40 hover:bg-[#FAF6EE]'
                   }`}
                 >
                   {lang === 'KR' ? '물파주의' : lang === 'SC' ? '物波主义' : 'Mulpaism'}
                 </button>
-                <button 
+                <button
                   onClick={() => setArtSubTab('artists')}
-                  className={`text-sm sm:text-base md:text-lg font-serif font-bold py-2 px-4 md:px-5 rounded-xl transition-all duration-300 shadow-sm border ${
-                    artSubTab === 'artists' 
-                      ? 'bg-[#1C1A17] text-[#FAF9F6] border-[#1C1A17]' 
-                      : 'bg-white text-black/70 border-[#1C1A17]/15 hover:border-[#1C1A17]/40 hover:bg-[#FAF9F6]'
+                  className={`text-sm sm:text-base md:text-lg font-serif font-bold py-2.5 px-6 rounded-full transition-all duration-300 shadow-sm border ${
+                    artSubTab === 'artists'
+                      ? 'bg-[#1C1A17] text-[#FAF6EE] border-[#1C1A17]'
+                      : 'bg-white text-black/70 border-[#1C1A17]/15 hover:border-[#1C1A17]/40 hover:bg-[#FAF6EE]'
                   }`}
                 >
                   {lang === 'KR' ? '물파작가' : lang === 'SC' ? '物波艺术家' : 'Mulpa Artists'}
@@ -2229,8 +2406,8 @@ export default function App() {
                                 const paginatedMulpaArticles = filteredMulpaArticles.slice((mulpaPage - 1) * 10, mulpaPage * 10);
 
                                 return paginatedMulpaArticles.map((article) => (
-                                  <div 
-                                    key={article.id} 
+                                  <div
+                                    key={article.id}
                                     onClick={() => setReadingMulpa(article)}
                                     className="group bg-white border border-[#1C1A17]/10 p-6 md:p-8 rounded hover:border-[#1C1A17]/40 transition-all duration-300 shadow-sm cursor-pointer hover:shadow-md flex flex-col justify-between"
                                   >
@@ -2262,11 +2439,11 @@ export default function App() {
                               );
                               const totalMulpaPages = Math.ceil(filteredMulpaArticles.length / 10);
                               return (
-                                <Pagination 
-                                  currentPage={mulpaPage} 
-                                  totalPages={totalMulpaPages} 
-                                  onPageChange={setMulpaPage} 
-                                  lang={lang} 
+                                <Pagination
+                                  currentPage={mulpaPage}
+                                  totalPages={totalMulpaPages}
+                                  onPageChange={setMulpaPage}
+                                  lang={lang}
                                 />
                               );
                             })()}
@@ -2274,7 +2451,7 @@ export default function App() {
                         )
                       ) : (
                         // Mulpa Detail View (본문)
-                        <motion.div 
+                        <motion.div
                           key="mulpa-detail"
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
@@ -2297,16 +2474,14 @@ export default function App() {
                           <div className="prose prose-stone max-w-none text-xs md:text-sm leading-[1.8] text-[#1C1A17]/90 font-sans break-words whitespace-pre-line bg-[#FAF9F6] border border-[#1C1A17]/5 p-6 rounded">
                             {readingMulpa.image_url && (
                               <div className="mb-8 flex justify-center w-full">
-                                <img 
-                                  src={readingMulpa.image_url} 
-                                  alt={readingMulpa.title} 
+                                <img
+                                  src={readingMulpa.image_url}
+                                  alt={readingMulpa.title}
                                   referrerPolicy="no-referrer"
                                   className="max-w-full max-h-[350px] md:max-h-[480px] h-auto object-contain rounded border border-[#1C1A17]/10 p-1.5 bg-white shadow-sm"
                                   onError={(e) => {
-                                    e.currentTarget.style.display = 'none';
-                                    const parent = e.currentTarget.parentElement;
-                                    if (parent) parent.style.display = 'none';
-                                  }}
+                                      e.currentTarget.src = 'https://images.unsplash.com/photo-1518640467707-6811f4a6ab73?auto=format&fit=crop&q=80&w=1200';
+                                    }}
                                 />
                               </div>
                             )}
@@ -2338,11 +2513,11 @@ export default function App() {
                                   mulpaSortOrder
                                 );
                                 const currentIdx = sortedMulpaPosts.findIndex(p => p.id === readingMulpa.id);
-                                const nextMulpa = currentIdx !== -1 && currentIdx + 1 < sortedMulpaPosts.length 
-                                  ? sortedMulpaPosts[currentIdx + 1] 
+                                const nextMulpa = currentIdx !== -1 && currentIdx + 1 < sortedMulpaPosts.length
+                                  ? sortedMulpaPosts[currentIdx + 1]
                                   : null;
-                                const prevMulpa = currentIdx > 0 
-                                  ? sortedMulpaPosts[currentIdx - 1] 
+                                const prevMulpa = currentIdx > 0
+                                  ? sortedMulpaPosts[currentIdx - 1]
                                   : null;
 
                                 return (
@@ -2397,13 +2572,15 @@ export default function App() {
                                   {lang === 'KR' ? '수정' : 'Edit'}
                                 </button>
                               )}
-                              <button
-                                onClick={() => handleWriteClick('mulpa')}
-                                className="px-5 py-2.5 bg-black hover:bg-neutral-800 text-white rounded-xl font-serif text-sm font-bold flex items-center gap-1.5 transition-all shadow-sm"
-                              >
-                                <PenTool size={14} />
-                                {lang === 'KR' ? '글쓰기' : 'Write'}
-                              </button>
+                              {isUserAuthorized && (
+                                <button
+                                  onClick={() => handleWriteClick('mulpa')}
+                                  className="px-5 py-2.5 bg-black hover:bg-neutral-800 text-white rounded-xl font-serif text-sm font-bold flex items-center gap-1.5 transition-all shadow-sm"
+                                >
+                                  <PenTool size={14} />
+                                  {lang === 'KR' ? '글쓰기' : 'Write'}
+                                </button>
+                              )}
                             </div>
                           </div>
                         </motion.div>
@@ -2454,7 +2631,7 @@ export default function App() {
                               {lang === 'KR' ? `총 ${artists.filter(a => a.language === lang || !a.language).length}명` : `Total: ${artists.filter(a => a.language === lang || !a.language).length}`}
                             </span>
                           </div>
-                          
+
                           {/* Adaptive wrap designed for 100+ items. Wraps naturally with a maximum height scroll box. */}
                           <div className="flex flex-wrap gap-2 md:gap-2.5 justify-start max-h-[160px] overflow-y-auto pr-2 py-1 scrollbar-thin scrollbar-thumb-neutral-200 scrollbar-track-transparent">
                             {artists
@@ -2467,12 +2644,12 @@ export default function App() {
                                     const filteredList = artists
                                       .filter(a => a.language === lang || !a.language)
                                       .sort((a, b) => a.name.localeCompare(b.name, lang === 'KR' ? 'ko' : lang === 'SC' ? 'zh' : 'en'));
-                                    
+
                                     const artistIndex = filteredList.findIndex(a => (a.id || a.name) === (artist.id || artist.name));
                                     if (artistIndex !== -1) {
                                       const targetPage = Math.floor(artistIndex / 5) + 1;
                                       setArtistsPage(targetPage);
-                                      
+
                                       setTimeout(() => {
                                         const element = document.getElementById(`artist-profile-${artist.id || artist.name}`);
                                         if (element) {
@@ -2481,7 +2658,7 @@ export default function App() {
                                       }, 100);
                                     }
                                   }}
-                                  className="text-xs font-serif font-medium bg-[#FAF9F6] border border-[#1C1A17]/10 hover:border-[#1C1A17]/40 hover:bg-[#E5DFD3] text-[#1C1A17] py-1.5 px-3 md:px-4 rounded transition-all duration-300 shadow-sm hover:scale-[1.02] active:scale-95 whitespace-nowrap flex items-center gap-1.5"
+                                  className="text-xs font-serif font-medium bg-[#FAF6EE] border border-[#1C1A17]/10 hover:border-[#1C1A17]/40 hover:bg-[#E5DFD3] text-[#1C1A17] py-1.5 px-4 rounded-full transition-all duration-300 shadow-sm hover:scale-[1.02] active:scale-95 whitespace-nowrap flex items-center gap-1.5"
                                 >
                                   <span className="w-1 h-1 rounded-full bg-black/30" />
                                   {artist.name}
@@ -2489,7 +2666,7 @@ export default function App() {
                               ))
                             }
                           </div>
-                          
+
                           <p className="text-[10px] text-black/45 font-sans italic">
                             {lang === 'KR' ? '* 작가 이름을 선택하면 상세 프로필과 소장 작품 도록 공간으로 즉시 이동합니다.' : '* Click an artist to scroll directly to their detailed profile and masterpiece gallery.'}
                           </p>
@@ -2509,23 +2686,23 @@ export default function App() {
                             return (
                               <>
                                 {paginatedArtists.map((artist, idx) => (
-                              <div 
-                                key={idx} 
+                              <div
+                                key={idx}
                                 id={`artist-profile-${artist.id || artist.name}`}
                                 className="bg-white border border-[#1C1A17]/10 p-8 md:p-12 shadow-xl rounded space-y-12 scroll-mt-28"
                               >
-                              
+
                               {/* Artist Profile Row */}
                               <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
-                                
+
                                 {/* Photo column */}
                                 <div className="lg:col-span-4 flex justify-center">
                                   <div className="aspect-[3/4] w-full max-w-[280px] border border-[#1C1A17]/15 p-2 bg-[#FAF9F6] shadow-md rounded relative group overflow-hidden">
-                                    <img 
-                                      src={artist.image || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=600&auto=format&fit=crop'} 
+                                    <img
+                                      src={artist.image || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=600&auto=format&fit=crop'}
                                       alt={artist.name}
                                       referrerPolicy="no-referrer"
-                                      className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700" 
+                                      className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700"
                                     />
                                     <div className="absolute inset-0 border border-black/10 pointer-events-none" />
                                   </div>
@@ -2540,9 +2717,9 @@ export default function App() {
                                     </h3>
                                     <p className="font-serif text-sm italic text-[#1C1A17]/65 mt-1">{artist.title}</p>
                                   </div>
-                                  
+
                                   <div className="w-16 h-px bg-[#1C1A17]/20" />
-                                  
+
                                   <p className="text-xs md:text-sm text-[#1C1A17]/80 leading-relaxed font-sans whitespace-pre-line antialiased font-normal">
                                     {artist.bio}
                                   </p>
@@ -2562,9 +2739,9 @@ export default function App() {
                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                     {artist.works.map((work, wIdx) => (
                                       <div key={wIdx} className="bg-[#FAF9F6] border border-[#1C1A17]/10 p-6 rounded space-y-4 shadow-sm hover:shadow-md transition-shadow">
-                                        
+
                                         {/* Painting Frame */}
-                                        <div 
+                                        <div
                                           onClick={() => {
                                             setLightboxWorks(artist.works || []);
                                             setLightboxIndex(wIdx);
@@ -2574,9 +2751,9 @@ export default function App() {
                                           className="aspect-[4/3] w-full border border-black/10 bg-white p-1.5 shadow-sm overflow-hidden relative cursor-pointer group"
                                           title={lang === 'KR' ? '클릭하여 원본 이미지 연속 보기' : 'Click to view full image gallery'}
                                         >
-                                          <img 
-                                            src={work.image || 'https://images.unsplash.com/photo-1518640467707-6811f4a6ab73?auto=format&fit=crop&q=80&w=1200'} 
-                                            alt={work.title} 
+                                          <img
+                                            src={work.image || 'https://images.unsplash.com/photo-1518640467707-6811f4a6ab73?auto=format&fit=crop&q=80&w=1200'}
+                                            alt={work.title}
                                             referrerPolicy="no-referrer"
                                             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
                                           />
@@ -2599,14 +2776,14 @@ export default function App() {
                                               </span>
                                             )}
                                           </div>
-                                          
+
                                           {work.introduction && (
                                             <div className="space-y-1">
                                               <span className="font-mono text-[8px] opacity-45 col-span-2 uppercase font-bold text-black tracking-wide">INTRODUCTION</span>
                                               <p className="text-[10px] text-black/75 font-sans leading-relaxed">{work.introduction}</p>
                                             </div>
                                           )}
-                                          
+
                                           {work.criticism && (
                                             <div className="space-y-1 pt-1 border-t border-[#1C1A17]/5">
                                               <span className="font-mono text-[8px] opacity-45 col-span-2 uppercase font-bold text-black tracking-wide">ART CRITICISM</span>
@@ -2623,11 +2800,11 @@ export default function App() {
 
                             </div>
                           ))}
-                          <Pagination 
-                            currentPage={artistsPage} 
-                            totalPages={totalArtistsPages} 
-                            onPageChange={setArtistsPage} 
-                            lang={lang} 
+                          <Pagination
+                            currentPage={artistsPage}
+                            totalPages={totalArtistsPages}
+                            onPageChange={setArtistsPage}
+                            lang={lang}
                           />
                           </>
                         );
@@ -2643,7 +2820,7 @@ export default function App() {
 
           {/* POETRY / STONE LIBRARY PAGE */}
           {page === 'poetryCollection' && (
-            <motion.div 
+            <motion.div
               key="poetry"
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
@@ -2658,7 +2835,7 @@ export default function App() {
               </div>
 
               {/* Sub-categories/Book Tabs at the top */}
-              <div className="flex flex-wrap gap-2 md:gap-3 justify-center mb-12 bg-[#FAF9F6] p-3 rounded-2xl border border-[#1C1A17]/10 shadow-inner">
+              <div className="flex flex-wrap gap-2 md:gap-3 justify-center mb-12 bg-[#FAF6EE]/60 p-3 rounded-full border border-[#1C1A17]/10 shadow-inner backdrop-blur-sm">
                 {t.poetryCollection.allCollections.map((name, i) => {
                   const isSelected = selectedBook === name;
                   return (
@@ -2668,10 +2845,10 @@ export default function App() {
                         setSelectedBook(name);
                         setReadingPoem(null); // return to lists when tab changed
                       }}
-                      className={`text-sm sm:text-base md:text-lg font-serif font-bold py-2 px-4 md:px-5 rounded-xl transition-all duration-300 shadow-sm border ${
-                        isSelected 
-                          ? 'bg-[#1C1A17] text-[#FAF9F6] border-[#1C1A17]' 
-                          : 'bg-white text-black/70 border-[#1C1A17]/15 hover:border-[#1C1A17]/40 hover:bg-[#FAF9F6]'
+                      className={`text-sm sm:text-base md:text-lg font-serif font-bold py-2.5 px-6 rounded-full transition-all duration-300 shadow-sm border ${
+                        isSelected
+                          ? 'bg-[#1C1A17] text-[#FAF6EE] border-[#1C1A17]'
+                          : 'bg-white text-black/70 border-[#1C1A17]/15 hover:border-[#1C1A17]/40 hover:bg-[#FAF6EE]'
                       }`}
                     >
                       {name}
@@ -2700,13 +2877,15 @@ export default function App() {
                         <span className="font-mono text-xs font-bold px-2.5 py-1 bg-[#1C1A17]/5 rounded-md border border-[#1C1A17]/10">
                           {archiveItems.filter(p => p.category === 'poetry' && p.poetry_collection_name === selectedBook && p.language === lang).length} Items
                         </span>
-                        <button
-                          onClick={() => handleWriteClick('poetry', selectedBook || undefined)}
-                          className="px-3 py-1 bg-[#1C1A17] hover:bg-black text-white text-[11px] font-bold rounded-lg flex items-center gap-1 transition-all"
-                        >
-                          <PenTool size={11} />
-                          {lang === 'KR' ? '글쓰기' : 'Write'}
-                        </button>
+                        {isUserAuthorized && (
+                          <button
+                            onClick={() => handleWriteClick('poetry', selectedBook || undefined)}
+                            className="px-3 py-1 bg-[#1C1A17] hover:bg-black text-white text-[11px] font-bold rounded-lg flex items-center gap-1 transition-all"
+                          >
+                            <PenTool size={11} />
+                            {lang === 'KR' ? '글쓰기' : 'Write'}
+                          </button>
+                        )}
                       </div>
                     </div>
 
@@ -2777,16 +2956,14 @@ export default function App() {
                                 <div className="space-y-4">
                                   {/* Top auto-scaled image (fixed size) */}
                                   <div className="aspect-[16/10] w-full overflow-hidden rounded-xl bg-gray-50 border border-[#1C1A17]/5 shadow-inner relative">
-                                    <img 
-                                      src={item.image_url || 'https://images.unsplash.com/photo-1518640467707-6811f4a6ab73?auto=format&fit=crop&q=80&w=1200'} 
-                                      alt={item.title} 
+                                    <img
+                                      src={item.image_url || 'https://images.unsplash.com/photo-1518640467707-6811f4a6ab73?auto=format&fit=crop&q=80&w=1200'}
+                                      alt={item.title}
                                       referrerPolicy="no-referrer"
                                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                                       onError={(e) => {
-                                        e.currentTarget.style.display = 'none';
-                                        const parent = e.currentTarget.parentElement;
-                                        if (parent) parent.style.display = 'none';
-                                      }}
+                                      e.currentTarget.src = 'https://images.unsplash.com/photo-1518640467707-6811f4a6ab73?auto=format&fit=crop&q=80&w=1200';
+                                    }}
                                     />
                                   </div>
 
@@ -2818,11 +2995,11 @@ export default function App() {
                         );
                         const totalPoetryPages = Math.ceil(filteredPoetry.length / 15);
                         return (
-                          <Pagination 
-                            currentPage={poetryPage} 
-                            totalPages={totalPoetryPages} 
-                            onPageChange={setPoetryPage} 
-                            lang={lang} 
+                          <Pagination
+                            currentPage={poetryPage}
+                            totalPages={totalPoetryPages}
+                            onPageChange={setPoetryPage}
+                            lang={lang}
                           />
                         );
                       })()}
@@ -2840,13 +3017,13 @@ export default function App() {
                     const sortedBookPoems = archiveItems
                       .filter(p => p.category === 'poetry' && p.poetry_collection_name === selectedBook && p.language === lang)
                       .sort((a, b) => getTimestampMs(b) - getTimestampMs(a));
-                    
+
                     const currentIdx = sortedBookPoems.findIndex(p => p.id === readingPoem.id);
-                    const nextPoem = currentIdx !== -1 && currentIdx + 1 < sortedBookPoems.length 
-                      ? sortedBookPoems[currentIdx + 1] 
+                    const nextPoem = currentIdx !== -1 && currentIdx + 1 < sortedBookPoems.length
+                      ? sortedBookPoems[currentIdx + 1]
                       : null;
-                    const prevPoem = currentIdx > 0 
-                      ? sortedBookPoems[currentIdx - 1] 
+                    const prevPoem = currentIdx > 0
+                      ? sortedBookPoems[currentIdx - 1]
                       : null;
 
                     return (
@@ -2862,16 +3039,14 @@ export default function App() {
                           {/* Image placed prominently at the top */}
                           {readingPoem.image_url && (
                             <div className="w-full max-h-[450px] overflow-hidden rounded-2xl border border-[#1C1A17]/10 shadow-md mb-8">
-                              <img 
-                                src={readingPoem.image_url} 
-                                alt={readingPoem.title} 
+                              <img
+                                src={readingPoem.image_url}
+                                alt={readingPoem.title}
                                 referrerPolicy="no-referrer"
                                 className="w-full h-full object-cover"
                                 onError={(e) => {
-                                  e.currentTarget.style.display = 'none';
-                                  const parent = e.currentTarget.parentElement;
-                                  if (parent) parent.style.display = 'none';
-                                }}
+                                      e.currentTarget.src = 'https://images.unsplash.com/photo-1518640467707-6811f4a6ab73?auto=format&fit=crop&q=80&w=1200';
+                                    }}
                               />
                             </div>
                           )}
@@ -2893,8 +3068,8 @@ export default function App() {
                               <button
                                 onClick={() => setBreathingMode(!breathingMode)}
                                 className={`px-5 py-2.5 rounded-full border text-xs tracking-widest uppercase font-mono font-bold transition-all flex items-center gap-2 ${
-                                  breathingMode 
-                                    ? 'bg-black border-black text-white shadow-md' 
+                                  breathingMode
+                                    ? 'bg-black border-black text-white shadow-md'
                                     : 'bg-transparent border-[#1C1A17]/10 text-black hover:border-[#1C1A17]'
                                 }`}
                               >
@@ -2906,7 +3081,7 @@ export default function App() {
                             {/* Meditative progress line */}
                             {breathingMode && (
                               <div className="w-full h-1 bg-gray-100 rounded-full overflow-hidden">
-                                <motion.div 
+                                <motion.div
                                   className="h-full bg-black"
                                   animate={{ width: `${breathingProgress}%` }}
                                   transition={{ duration: 2.2 }}
@@ -2928,7 +3103,7 @@ export default function App() {
 
                         {/* Navigation & Actions Footer Bar */}
                         <div className="grid grid-cols-1 md:grid-cols-3 items-center gap-6 pt-4">
-                          
+
                           {/* Bottom-Left: 목록 (Back to List) */}
                           <div className="flex justify-start">
                             <button
@@ -2990,13 +3165,15 @@ export default function App() {
                                 {lang === 'KR' ? '수정' : 'Edit'}
                               </button>
                             )}
-                            <button
-                              onClick={() => handleWriteClick('poetry', selectedBook || undefined)}
-                              className="px-6 py-3 border-2 border-[#1C1A17] text-neutral-950 hover:bg-white transition-all rounded-xl font-serif text-base font-bold flex items-center gap-2 shadow-sm"
-                            >
-                              <PenTool size={18} />
-                              {lang === 'KR' ? '글쓰기' : 'Write'}
-                            </button>
+                            {isUserAuthorized && (
+                              <button
+                                onClick={() => handleWriteClick('poetry', selectedBook || undefined)}
+                                className="px-6 py-3 border-2 border-[#1C1A17] text-neutral-950 hover:bg-white transition-all rounded-xl font-serif text-base font-bold flex items-center gap-2 shadow-sm"
+                              >
+                                <PenTool size={18} />
+                                {lang === 'KR' ? '글쓰기' : 'Write'}
+                              </button>
+                            )}
                           </div>
 
                         </div>
@@ -3010,7 +3187,7 @@ export default function App() {
 
           {/* TEA meditatiora / ZEN TEA */}
           {page === 'tea' && (
-            <motion.div 
+            <motion.div
               key="tea"
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
@@ -3025,9 +3202,9 @@ export default function App() {
 
               {/* Elegant Atmospheric Tea Cover Banner */}
               <div className="w-full h-48 md:h-64 rounded-xl overflow-hidden mb-16 relative border border-[#1C1A17]/10 shadow-lg group select-none">
-                <img 
-                  src="/assets/chafrontback.jpg" 
-                  alt="Tea Banner" 
+                <img
+                  src="/assets/chafrontback.jpg"
+                  alt="Tea Banner"
                   className="w-full h-full object-cover brightness-[0.85] contrast-[1.05] transition-transform duration-[4000ms] group-hover:scale-103"
                   referrerPolicy="no-referrer"
                 />
@@ -3050,16 +3227,16 @@ export default function App() {
 
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
                   {/* Category 서 */}
-                  <div 
+                  <div
                     onClick={() => {
                       setSunchaFilter(sunchaFilter === 'suncha_seo' ? 'all' : 'suncha_seo');
                       setReadingSuncha(null);
                     }}
                     className={`group cursor-pointer flex flex-col items-center space-y-2 transition-all duration-300 ${
-                      sunchaFilter === 'suncha_seo' 
-                        ? 'scale-[1.06] z-10' 
-                        : sunchaFilter !== 'all' 
-                          ? 'opacity-40 scale-[0.95] grayscale hover:opacity-80 hover:grayscale-0' 
+                      sunchaFilter === 'suncha_seo'
+                        ? 'scale-[1.06] z-10'
+                        : sunchaFilter !== 'all'
+                          ? 'opacity-40 scale-[0.95] grayscale hover:opacity-80 hover:grayscale-0'
                           : 'hover:scale-[1.02]'
                     }`}
                   >
@@ -3072,13 +3249,13 @@ export default function App() {
                       )}
                     </span>
                     <div className={`aspect-square w-full rounded-xl overflow-hidden border transition-all duration-300 relative ${
-                      sunchaFilter === 'suncha_seo' 
-                        ? 'border-amber-800 ring-4 ring-amber-800/40 shadow-xl' 
+                      sunchaFilter === 'suncha_seo'
+                        ? 'border-amber-800 ring-4 ring-amber-800/40 shadow-xl'
                         : 'border-[#1C1A17]/10 group-hover:border-[#1C1A17]/30 shadow-sm'
                     }`}>
-                      <img 
-                        src="/assets/suntea01.jpg" 
-                        alt="Calligraphy" 
+                      <img
+                        src="/assets/suntea01.jpg"
+                        alt="Calligraphy"
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                         referrerPolicy="no-referrer"
                       />
@@ -3095,16 +3272,16 @@ export default function App() {
                   </div>
 
                   {/* Category 화 */}
-                  <div 
+                  <div
                     onClick={() => {
                       setSunchaFilter(sunchaFilter === 'suncha_hwa' ? 'all' : 'suncha_hwa');
                       setReadingSuncha(null);
                     }}
                     className={`group cursor-pointer flex flex-col items-center space-y-2 transition-all duration-300 ${
-                      sunchaFilter === 'suncha_hwa' 
-                        ? 'scale-[1.06] z-10' 
-                        : sunchaFilter !== 'all' 
-                          ? 'opacity-40 scale-[0.95] grayscale hover:opacity-80 hover:grayscale-0' 
+                      sunchaFilter === 'suncha_hwa'
+                        ? 'scale-[1.06] z-10'
+                        : sunchaFilter !== 'all'
+                          ? 'opacity-40 scale-[0.95] grayscale hover:opacity-80 hover:grayscale-0'
                           : 'hover:scale-[1.02]'
                     }`}
                   >
@@ -3117,13 +3294,13 @@ export default function App() {
                       )}
                     </span>
                     <div className={`aspect-square w-full rounded-xl overflow-hidden border transition-all duration-300 relative ${
-                      sunchaFilter === 'suncha_hwa' 
-                        ? 'border-amber-800 ring-4 ring-amber-800/40 shadow-xl' 
+                      sunchaFilter === 'suncha_hwa'
+                        ? 'border-amber-800 ring-4 ring-amber-800/40 shadow-xl'
                         : 'border-[#1C1A17]/10 group-hover:border-[#1C1A17]/30 shadow-sm'
                     }`}>
-                      <img 
-                        src="/assets/suntea02.jpg" 
-                        alt="Painting" 
+                      <img
+                        src="/assets/suntea02.jpg"
+                        alt="Painting"
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                         referrerPolicy="no-referrer"
                       />
@@ -3140,16 +3317,16 @@ export default function App() {
                   </div>
 
                   {/* Category 차 */}
-                  <div 
+                  <div
                     onClick={() => {
                       setSunchaFilter(sunchaFilter === 'suncha_cha' ? 'all' : 'suncha_cha');
                       setReadingSuncha(null);
                     }}
                     className={`group cursor-pointer flex flex-col items-center space-y-2 transition-all duration-300 ${
-                      sunchaFilter === 'suncha_cha' 
-                        ? 'scale-[1.06] z-10' 
-                        : sunchaFilter !== 'all' 
-                          ? 'opacity-40 scale-[0.95] grayscale hover:opacity-80 hover:grayscale-0' 
+                      sunchaFilter === 'suncha_cha'
+                        ? 'scale-[1.06] z-10'
+                        : sunchaFilter !== 'all'
+                          ? 'opacity-40 scale-[0.95] grayscale hover:opacity-80 hover:grayscale-0'
                           : 'hover:scale-[1.02]'
                     }`}
                   >
@@ -3162,13 +3339,13 @@ export default function App() {
                       )}
                     </span>
                     <div className={`aspect-square w-full rounded-xl overflow-hidden border transition-all duration-300 relative ${
-                      sunchaFilter === 'suncha_cha' 
-                        ? 'border-amber-800 ring-4 ring-amber-800/40 shadow-xl' 
+                      sunchaFilter === 'suncha_cha'
+                        ? 'border-amber-800 ring-4 ring-amber-800/40 shadow-xl'
                         : 'border-[#1C1A17]/10 group-hover:border-[#1C1A17]/30 shadow-sm'
                     }`}>
-                      <img 
-                        src="/assets/suntea03.jpg" 
-                        alt="Tea" 
+                      <img
+                        src="/assets/suntea03.jpg"
+                        alt="Tea"
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                         referrerPolicy="no-referrer"
                       />
@@ -3185,16 +3362,16 @@ export default function App() {
                   </div>
 
                   {/* Category 향 */}
-                  <div 
+                  <div
                     onClick={() => {
                       setSunchaFilter(sunchaFilter === 'suncha_hyang' ? 'all' : 'suncha_hyang');
                       setReadingSuncha(null);
                     }}
                     className={`group cursor-pointer flex flex-col items-center space-y-2 transition-all duration-300 ${
-                      sunchaFilter === 'suncha_hyang' 
-                        ? 'scale-[1.06] z-10' 
-                        : sunchaFilter !== 'all' 
-                          ? 'opacity-40 scale-[0.95] grayscale hover:opacity-80 hover:grayscale-0' 
+                      sunchaFilter === 'suncha_hyang'
+                        ? 'scale-[1.06] z-10'
+                        : sunchaFilter !== 'all'
+                          ? 'opacity-40 scale-[0.95] grayscale hover:opacity-80 hover:grayscale-0'
                           : 'hover:scale-[1.02]'
                     }`}
                   >
@@ -3207,13 +3384,13 @@ export default function App() {
                       )}
                     </span>
                     <div className={`aspect-square w-full rounded-xl overflow-hidden border transition-all duration-300 relative ${
-                      sunchaFilter === 'suncha_hyang' 
-                        ? 'border-amber-800 ring-4 ring-amber-800/40 shadow-xl' 
+                      sunchaFilter === 'suncha_hyang'
+                        ? 'border-amber-800 ring-4 ring-amber-800/40 shadow-xl'
                         : 'border-[#1C1A17]/10 group-hover:border-[#1C1A17]/30 shadow-sm'
                     }`}>
-                      <img 
-                        src="/assets/suntea04.jpg" 
-                        alt="Incense" 
+                      <img
+                        src="/assets/suntea04.jpg"
+                        alt="Incense"
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                         referrerPolicy="no-referrer"
                       />
@@ -3284,13 +3461,15 @@ export default function App() {
                         </button>
                       </div>
 
-                      <button
-                        onClick={() => handleWriteClick(sunchaFilter === 'all' ? 'suncha_cha' : sunchaFilter)}
-                        className="px-3.5 py-1.5 bg-[#1C1A17] hover:bg-black text-white text-[10px] tracking-widest font-bold uppercase rounded flex items-center gap-1 transition-colors"
-                      >
-                        <Plus size={12} />
-                        {lang === 'KR' ? '글쓰기' : 'Write'}
-                      </button>
+                      {isUserAuthorized && (
+                        <button
+                          onClick={() => handleWriteClick(sunchaFilter === 'all' ? 'suncha_cha' : sunchaFilter)}
+                          className="px-3.5 py-1.5 bg-[#1C1A17] hover:bg-black text-white text-[10px] tracking-widest font-bold uppercase rounded flex items-center gap-1 transition-colors"
+                        >
+                          <Plus size={12} />
+                          {lang === 'KR' ? '글쓰기' : 'Write'}
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -3307,7 +3486,7 @@ export default function App() {
                           const paginatedSunchaItems = sortedSunchaItems.slice((sunchaPage - 1) * 15, sunchaPage * 15);
                           return paginatedSunchaItems.map((item) => {
                             const displaySummary = getDisplaySummary(item, 150);
-                            const categoryLabel = 
+                            const categoryLabel =
                               item.category === 'suncha_seo' ? '서(書)' :
                               item.category === 'suncha_hwa' ? '화(畵)' :
                               item.category === 'suncha_cha' || item.category === 'suncha_intro' || item.category === 'suncha_review' ? '차(茶)' :
@@ -3322,16 +3501,14 @@ export default function App() {
                                 <div className="space-y-4">
                                   {/* Top image */}
                                   <div className="aspect-[16/10] w-full overflow-hidden rounded-xl bg-gray-50 border border-[#1C1A17]/5 shadow-inner relative">
-                                    <img 
-                                      src={item.image_url || 'https://images.unsplash.com/photo-1518640467707-6811f4a6ab73?auto=format&fit=crop&q=80&w=1200'} 
-                                      alt={item.title} 
+                                    <img
+                                      src={item.image_url || 'https://images.unsplash.com/photo-1518640467707-6811f4a6ab73?auto=format&fit=crop&q=80&w=1200'}
+                                      alt={item.title}
                                       referrerPolicy="no-referrer"
                                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                                       onError={(e) => {
-                                        e.currentTarget.style.display = 'none';
-                                        const parent = e.currentTarget.parentElement;
-                                        if (parent) parent.style.display = 'none';
-                                      }}
+                                      e.currentTarget.src = 'https://images.unsplash.com/photo-1518640467707-6811f4a6ab73?auto=format&fit=crop&q=80&w=1200';
+                                    }}
                                     />
                                     <div className="absolute top-3 left-3 bg-[#1C1A17] text-white text-[9px] font-serif px-2.5 py-0.5 rounded font-bold uppercase tracking-widest">
                                       {categoryLabel}
@@ -3365,11 +3542,11 @@ export default function App() {
                       {(() => {
                         const totalSunchaPages = Math.ceil(sortedSunchaItems.length / 15);
                         return (
-                          <Pagination 
-                            currentPage={sunchaPage} 
-                            totalPages={totalSunchaPages} 
-                            onPageChange={setSunchaPage} 
-                            lang={lang} 
+                          <Pagination
+                            currentPage={sunchaPage}
+                            totalPages={totalSunchaPages}
+                            onPageChange={setSunchaPage}
+                            lang={lang}
                           />
                         );
                       })()}
@@ -3378,7 +3555,7 @@ export default function App() {
                 </div>
               ) : (
                 /* Suncha Detail View */
-                <motion.div 
+                <motion.div
                   key="suncha-detail"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -3414,24 +3591,22 @@ export default function App() {
                     {/* 상(Top) Image */}
                     {readingSuncha.image_url && (
                       <div className="mb-6 flex justify-center w-full">
-                        <img 
-                          src={readingSuncha.image_url} 
-                          alt="Top decoration" 
+                        <img
+                          src={readingSuncha.image_url}
+                          alt="Top decoration"
                           referrerPolicy="no-referrer"
                           className="max-w-full max-h-[350px] md:max-h-[480px] h-auto object-contain rounded border border-[#1C1A17]/10 p-1.5 bg-white shadow-sm"
                           onError={(e) => {
-                            e.currentTarget.style.display = 'none';
-                            const parent = e.currentTarget.parentElement;
-                            if (parent) parent.style.display = 'none';
-                          }}
+                                      e.currentTarget.src = 'https://images.unsplash.com/photo-1518640467707-6811f4a6ab73?auto=format&fit=crop&q=80&w=1200';
+                                    }}
                         />
                       </div>
                     )}
 
                     {renderContentWithImages(
-                      readingSuncha.content || '', 
-                      readingSuncha.image_mid_url, 
-                      readingSuncha.image_bot_url, 
+                      readingSuncha.content || '',
+                      readingSuncha.image_mid_url,
+                      readingSuncha.image_bot_url,
                       false
                     )}
                   </div>
@@ -3455,7 +3630,7 @@ export default function App() {
                             if (!isSunchaCategory) return false;
                             const matchesLang = item.language === lang || (!item.language && lang === 'KR');
                             if (!matchesLang) return false;
-                            
+
                             // Match the current filter group
                             if (sunchaFilter === 'all') {
                               return true;
@@ -3468,11 +3643,11 @@ export default function App() {
                           teaSortOrder
                         );
                         const currentIdx = relatedItems.findIndex(p => p.id === readingSuncha.id);
-                        const nextSuncha = currentIdx !== -1 && currentIdx + 1 < relatedItems.length 
-                          ? relatedItems[currentIdx + 1] 
+                        const nextSuncha = currentIdx !== -1 && currentIdx + 1 < relatedItems.length
+                          ? relatedItems[currentIdx + 1]
                           : null;
-                        const prevSuncha = currentIdx > 0 
-                          ? relatedItems[currentIdx - 1] 
+                        const prevSuncha = currentIdx > 0
+                          ? relatedItems[currentIdx - 1]
                           : null;
 
                         return (
@@ -3527,13 +3702,15 @@ export default function App() {
                           {lang === 'KR' ? '수정' : 'Edit'}
                         </button>
                       )}
-                      <button
-                        onClick={() => handleWriteClick(readingSuncha.category)}
-                        className="px-5 py-2.5 bg-black hover:bg-neutral-800 text-white rounded-xl font-serif text-sm font-bold flex items-center gap-1.5 transition-all shadow-sm"
-                      >
-                        <PenTool size={14} />
-                        {lang === 'KR' ? '글쓰기' : 'Write'}
-                      </button>
+                      {isUserAuthorized && (
+                        <button
+                          onClick={() => handleWriteClick(readingSuncha.category)}
+                          className="px-5 py-2.5 bg-black hover:bg-neutral-800 text-white rounded-xl font-serif text-sm font-bold flex items-center gap-1.5 transition-all shadow-sm"
+                        >
+                          <PenTool size={14} />
+                          {lang === 'KR' ? '글쓰기' : 'Write'}
+                        </button>
+                      )}
                     </div>
                   </div>
                 </motion.div>
@@ -3543,7 +3720,7 @@ export default function App() {
 
           {/* JOURNEY & CHRONICLE PAGE */}
           {page === 'journey' && (
-            <motion.div 
+            <motion.div
               key="journey"
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
@@ -3561,9 +3738,9 @@ export default function App() {
                 <div className="space-y-12 animate-fadeIn">
                   {/* Elegant Atmospheric Journey Cover Banner */}
                   <div className="w-full h-48 md:h-64 rounded-xl overflow-hidden mb-12 relative border border-[#1C1A17]/10 shadow-lg group select-none">
-                    <img 
-                      src="https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?auto=format&fit=crop&q=80&w=1200" 
-                      alt="Journey Banner" 
+                    <img
+                      src="https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?auto=format&fit=crop&q=80&w=1200"
+                      alt="Journey Banner"
                       className="w-full h-full object-cover brightness-[0.85] contrast-[1.05] transition-transform duration-[4000ms] group-hover:scale-103"
                       referrerPolicy="no-referrer"
                     />
@@ -3639,22 +3816,20 @@ export default function App() {
                           const paginatedJourney = filteredJourney.slice((journeyPage - 1) * 10, journeyPage * 10);
 
                           return paginatedJourney.map((item) => (
-                            <div 
+                            <div
                               key={item.id}
                               onClick={() => setSelectedJourneyItem(item)}
                               className="group bg-white border border-[#1C1A17]/10 p-6 rounded hover:shadow-2xl hover:border-[#1C1A17]/35 transition-all duration-300 flex flex-col justify-between cursor-pointer hover:scale-[1.01]"
                             >
                               <div className="space-y-4 text-left">
                                 <div className="aspect-[16/10] overflow-hidden rounded bg-gray-50 border border-[#1C1A17]/5 relative">
-                                  <img 
-                                    src={item.image_url} 
-                                    alt={item.title} 
+                                  <img
+                                    src={item.image_url}
+                                    alt={item.title}
                                     className="w-full h-full object-cover opacity-90 transition-transform duration-500 group-hover:scale-105"
                                     referrerPolicy="no-referrer"
                                     onError={(e) => {
-                                      e.currentTarget.style.display = 'none';
-                                      const parent = e.currentTarget.parentElement;
-                                      if (parent) parent.style.display = 'none';
+                                      e.currentTarget.src = 'https://images.unsplash.com/photo-1518640467707-6811f4a6ab73?auto=format&fit=crop&q=80&w=1200';
                                     }}
                                   />
                                   {/* Hover Overlay indicator */}
@@ -3664,7 +3839,7 @@ export default function App() {
                                     </span>
                                   </div>
                                 </div>
-                                
+
                                 <div className="space-y-2">
                                   <div className="flex gap-2 items-center">
                                     <span className="font-mono text-[9px] tracking-widest text-[#1C1A17]/40 font-bold uppercase">
@@ -3716,11 +3891,11 @@ export default function App() {
                         );
                         const totalJourneyPages = Math.ceil(filteredJourney.length / 10);
                         return (
-                          <Pagination 
-                            currentPage={journeyPage} 
-                            totalPages={totalJourneyPages} 
-                            onPageChange={setJourneyPage} 
-                            lang={lang} 
+                          <Pagination
+                            currentPage={journeyPage}
+                            totalPages={totalJourneyPages}
+                            onPageChange={setJourneyPage}
+                            lang={lang}
                           />
                         );
                       })()}
@@ -3729,7 +3904,7 @@ export default function App() {
                 </div>
               ) : (
                 // Journey Detail View (본문)
-                <motion.div 
+                <motion.div
                   key="journey-detail"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -3761,24 +3936,22 @@ export default function App() {
                   <div className="prose prose-stone max-w-none text-sm md:text-base leading-[1.8] text-[#1C1A17]/90 font-sans break-words bg-[#FAF9F6] border border-[#1C1A17]/5 p-6 rounded [&_p]:my-0 [&_p]:mb-5 last:[&_p]:mb-0">
                     {selectedJourneyItem.image_url && (
                       <div className="mb-8 flex justify-center w-full">
-                        <img 
-                          src={selectedJourneyItem.image_url} 
-                          alt={selectedJourneyItem.title} 
+                        <img
+                          src={selectedJourneyItem.image_url}
+                          alt={selectedJourneyItem.title}
                           referrerPolicy="no-referrer"
                           className="max-w-full max-h-[350px] md:max-h-[480px] h-auto object-contain rounded border border-[#1C1A17]/10 p-1.5 bg-white shadow-sm"
                           onError={(e) => {
-                            e.currentTarget.style.display = 'none';
-                            const parent = e.currentTarget.parentElement;
-                            if (parent) parent.style.display = 'none';
-                          }}
+                                      e.currentTarget.src = 'https://images.unsplash.com/photo-1518640467707-6811f4a6ab73?auto=format&fit=crop&q=80&w=1200';
+                                    }}
                         />
                       </div>
                     )}
 
                     {renderContentWithImages(
-                      selectedJourneyItem.content || '', 
-                      selectedJourneyItem.image_mid_url, 
-                      selectedJourneyItem.image_bot_url, 
+                      selectedJourneyItem.content || '',
+                      selectedJourneyItem.image_mid_url,
+                      selectedJourneyItem.image_bot_url,
                       false
                     )}
                   </div>
@@ -3803,13 +3976,15 @@ export default function App() {
                           {lang === 'KR' ? '수정' : 'Edit'}
                         </button>
                       )}
-                      <button
-                        onClick={() => handleWriteClick(selectedJourneyItem.category || 'journey')}
-                        className="px-5 py-2.5 bg-black hover:bg-neutral-800 text-white rounded-xl font-serif text-sm font-bold flex items-center gap-1.5 transition-all shadow-sm"
-                      >
-                        <PenTool size={14} />
-                        {lang === 'KR' ? '글쓰기' : 'Write'}
-                      </button>
+                      {isUserAuthorized && (
+                        <button
+                          onClick={() => handleWriteClick(selectedJourneyItem.category || 'journey')}
+                          className="px-5 py-2.5 bg-black hover:bg-neutral-800 text-white rounded-xl font-serif text-sm font-bold flex items-center gap-1.5 transition-all shadow-sm"
+                        >
+                          <PenTool size={14} />
+                          {lang === 'KR' ? '글쓰기' : 'Write'}
+                        </button>
+                      )}
                     </div>
                   </div>
                 </motion.div>
@@ -3820,7 +3995,7 @@ export default function App() {
 
           {/* ADMIN LOGIN & SYSTEM CABINET PAGE */}
           {page === 'admin' && (
-            <motion.div 
+            <motion.div
               key="admin"
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
@@ -3834,7 +4009,7 @@ export default function App() {
               </div>
 
               {!isAuthAdmin ? (
-                
+
                 // Secure Admin Gate Layout
                 <div className="max-w-md mx-auto bg-white border border-[#1C1A17]/10 p-8 shadow-2xl rounded space-y-8 text-left">
                   <div className="space-y-1 text-center">
@@ -3846,8 +4021,8 @@ export default function App() {
                   <form onSubmit={handlePasscodeLogin} className="space-y-4">
                     <div>
                       <label className="font-mono text-[9px] tracking-widest uppercase font-bold block mb-2">{t.admin.passLogin}</label>
-                      <input 
-                        type="password" 
+                      <input
+                        type="password"
                         required
                         placeholder="4자리 숫자 입력."
                         value={passcode}
@@ -3883,10 +4058,10 @@ export default function App() {
 
                 // REBUILT: Highly Organized, Systematic and Professional admin board!
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 text-left">
-                  
+
                   {/* Left Controls/Overview Sidebar */}
                   <div className="lg:col-span-3 space-y-6">
-                    
+
                     {/* Admin Status Header */}
                     <div className="bg-[#1C1A17] text-white p-6 rounded space-y-4 shadow-lg text-left">
                       <div>
@@ -3894,7 +4069,7 @@ export default function App() {
                         <h3 className="font-serif text-lg font-bold text-white">Administrator</h3>
                         <p className="text-[10px] font-mono text-green-400 font-semibold mt-1">● Master Terminal Connected</p>
                       </div>
-                      <button 
+                      <button
                         onClick={handleSignOut}
                         className="w-full py-2 bg-white/15 hover:bg-white/20 text-white text-[9px] tracking-widest uppercase rounded font-mono transition-colors"
                       >
@@ -3926,7 +4101,7 @@ export default function App() {
 
                   {/* Right Systematic Grid panel workspace */}
                   <div className="lg:col-span-9 space-y-8">
-                    
+
                     {/* SQL Blueprint Copy & One-Click System restore */}
                     <div className="bg-white border border-[#1C1A17]/10 p-8 rounded shadow-sm space-y-6">
                       <div className="border-b border-[#1C1A17]/10 pb-4">
@@ -3963,7 +4138,7 @@ export default function App() {
                               title: '',
                               content: '### 대명칭\n\n내용작성',
                               summary: '',
-                              image_url: 'https://images.unsplash.com/photo-1518640467707-6811f4a6ab73?auto=format&fit=crop&q=80&w=1200',
+                              image_url: siteSettings?.tea_detail_url || 'https://images.unsplash.com/photo-1518640467707-6811f4a6ab73?auto=format&fit=crop&q=80&w=1200',
                               category: 'poetry',
                               poetry_collection_name: t.poetryCollection.allCollections[0],
                               language: lang,
@@ -3990,6 +4165,7 @@ export default function App() {
                               <option value="all">전체 카테고리</option>
                               <option value="poetry">라석시집</option>
                               <option value="philosophy">심물 에세이</option>
+                              <option value="philosophy_lecture">심물철학 강론</option>
                               <option value="journey">라석여정</option>
                               <option value="mulpa">물파공간</option>
                               <option value="suncha_seo">서화차향 - 서(書)</option>
@@ -4053,6 +4229,7 @@ export default function App() {
                                 <td className="p-3 text-[#1C1A17]/70 font-semibold text-[11px] uppercase tracking-wider">
                                   {item.category === 'poetry' ? '라석시집' :
                                    item.category === 'philosophy' ? '심물 에세이' :
+                                   item.category === 'philosophy_lecture' ? '심물철학 강론' :
                                    item.category === 'journey' ? '라석여정' :
                                    item.category === 'press' ? '라석여정' :
                                    item.category === 'mulpa' ? '물파공간' :
@@ -4140,7 +4317,7 @@ export default function App() {
                       <div className="bg-[#FAF9F6] border border-[#1C1A17]/10 p-4 rounded text-xs leading-relaxed text-[#1C1A17]/80">
                         <strong>💡 호스팅 이미지 서버 최적화 지침 (Cafe24 Server Image Storage Rules):</strong>
                         <p className="mt-1">
-                          호스팅 서버의 DB 용량을 초과하지 않도록 이미지는 수묵화 업로드 등 Cafe24 호스팅의 <code>/images/</code> 폴더로 FTP 직접 업로드한 뒤, 
+                          호스팅 서버의 DB 용량을 초과하지 않도록 이미지는 수묵화 업로드 등 Cafe24 호스팅의 <code>/images/</code> 폴더로 FTP 직접 업로드한 뒤,
                           텍스트 경로에 <code>/images/파일명.jpg</code> 형태로 안전하게 지정하는 방식을 아주 강력히 지향하고 권장합니다.
                         </p>
                       </div>
@@ -4168,11 +4345,11 @@ export default function App() {
                                 </td>
                                 <td className="p-3">
                                   <div className="w-8 h-8 rounded border border-black/10 overflow-hidden bg-gray-100">
-                                    <img 
-                                      src={artist.image || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=100'} 
+                                    <img
+                                      src={artist.image || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=100'}
                                       alt={artist.name}
                                       referrerPolicy="no-referrer"
-                                      className="w-full h-full object-cover" 
+                                      className="w-full h-full object-cover"
                                     />
                                   </div>
                                 </td>
@@ -4225,11 +4402,11 @@ export default function App() {
                         <h3 className="font-serif text-lg font-bold text-black flex items-center gap-2">
                           <Settings size={18} /> 글로벌 웹 호스팅 자산 커스텀 매니저
                         </h3>
-                        <p className="text-xs text-[#1C1A17]/60 font-sans mt-0.5">서버의 주요 디자인 자산(로고, 배경, 대표 다도 이미지)을 PC 내부 파일에서 직접 선택하여 교체 저장합니다.</p>
+                        <p className="text-xs text-[#1C1A17]/60 font-sans mt-0.5">서버의 주요 디자인 자산(로고, 배경, 글쓰기 기본 이미지)을 PC 내부 파일에서 직접 선택하여 교체 저장합니다.</p>
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                        
+
                         {/* 1. Global Logo */}
                         <div className="space-y-2">
                           <label className="font-mono text-[9px] tracking-widest font-bold uppercase block text-[#1C1A17]/70">
@@ -4246,8 +4423,8 @@ export default function App() {
                               </div>
                             )}
                             <div className="relative w-full text-center">
-                              <input 
-                                type="file" 
+                              <input
+                                type="file"
                                 accept="image/*"
                                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                                 onChange={async (e) => {
@@ -4257,9 +4434,16 @@ export default function App() {
                                     const container = e.target.closest('.rounded') as HTMLDivElement;
                                     if (container) container.style.opacity = '0.5';
                                     const url = await uploadImageFile(file);
-                                    const updated = { ...siteSettings, logo_url: url } as SiteSettings;
-                                    setSiteSettings(updated);
-                                    await setDoc(doc(db, 'site_settings', 'global'), updated);
+                                    setSiteSettings(prev => {
+                                      const base = prev || {
+                                        id: 'global',
+                                        logo_url: '',
+                                        hero_bg_url: '/assets/mountains_v2.jpg',
+                                        tea_detail_url: '/assets/bulhansuncha_v2.jpg'
+                                      };
+                                      return { ...base, logo_url: url };
+                                    });
+                                    await setDoc(doc(db, 'site_settings', 'global'), { logo_url: url }, { merge: true });
                                     if (container) container.style.opacity = '1';
                                   } catch (err: any) {
                                     alert('로고 이미지 업로드에 실패했습니다: ' + (err?.message || err));
@@ -4292,8 +4476,8 @@ export default function App() {
                               </div>
                             )}
                             <div className="relative w-full text-center">
-                              <input 
-                                type="file" 
+                              <input
+                                type="file"
                                 accept="image/*,image/heic,image/heif,.heic,.heif"
                                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                                 onChange={async (e) => {
@@ -4303,9 +4487,16 @@ export default function App() {
                                     const container = e.target.closest('.rounded') as HTMLDivElement;
                                     if (container) container.style.opacity = '0.5';
                                     const url = await uploadImageFile(file);
-                                    const updated = { ...siteSettings, hero_bg_url: url } as SiteSettings;
-                                    setSiteSettings(updated);
-                                    await setDoc(doc(db, 'site_settings', 'global'), updated);
+                                    setSiteSettings(prev => {
+                                      const base = prev || {
+                                        id: 'global',
+                                        logo_url: '/assets/logo_v2.svg',
+                                        hero_bg_url: '',
+                                        tea_detail_url: '/assets/bulhansuncha_v2.jpg'
+                                      };
+                                      return { ...base, hero_bg_url: url };
+                                    });
+                                    await setDoc(doc(db, 'site_settings', 'global'), { hero_bg_url: url }, { merge: true });
                                     if (container) container.style.opacity = '1';
                                   } catch (err: any) {
                                     alert('메인 히어로 이미지 업로드에 실패했습니다: ' + (err?.message || err));
@@ -4322,15 +4513,15 @@ export default function App() {
                           </div>
                         </div>
 
-                        {/* 3. Zen Tea Cover */}
+                        {/* 3. Default Post Image */}
                         <div className="space-y-2">
                           <label className="font-mono text-[9px] tracking-widest font-bold uppercase block text-[#1C1A17]/70">
-                            ZEN TEA COVER IMAGE (대표 다도 다기 이미지)
+                            DEFAULT POST IMAGE (글쓰기 기본 이미지)
                           </label>
                           <div className="border border-[#1C1A17]/15 rounded p-4 bg-[#FAF9F6] flex flex-col items-center justify-center space-y-3 relative overflow-hidden group">
                             {siteSettings?.tea_detail_url ? (
                               <div className="w-full h-16 border border-black/10 rounded overflow-hidden bg-white shadow-sm">
-                                <img src={siteSettings.tea_detail_url} alt="Tea Preview" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
+                                <img src={siteSettings.tea_detail_url} alt="Default Post Image Preview" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                               </div>
                             ) : (
                               <div className="w-full h-16 border border-dashed border-black/20 rounded flex items-center justify-center text-black/30 text-xs">
@@ -4338,8 +4529,8 @@ export default function App() {
                               </div>
                             )}
                             <div className="relative w-full text-center">
-                              <input 
-                                type="file" 
+                              <input
+                                type="file"
                                 accept="image/*,image/heic,image/heif,.heic,.heif"
                                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                                 onChange={async (e) => {
@@ -4349,12 +4540,19 @@ export default function App() {
                                     const container = e.target.closest('.rounded') as HTMLDivElement;
                                     if (container) container.style.opacity = '0.5';
                                     const url = await uploadImageFile(file);
-                                    const updated = { ...siteSettings, tea_detail_url: url } as SiteSettings;
-                                    setSiteSettings(updated);
-                                    await setDoc(doc(db, 'site_settings', 'global'), updated);
+                                    setSiteSettings(prev => {
+                                      const base = prev || {
+                                        id: 'global',
+                                        logo_url: '/assets/logo_v2.svg',
+                                        hero_bg_url: '/assets/mountains_v2.jpg',
+                                        tea_detail_url: ''
+                                      };
+                                      return { ...base, tea_detail_url: url };
+                                    });
+                                    await setDoc(doc(db, 'site_settings', 'global'), { tea_detail_url: url }, { merge: true });
                                     if (container) container.style.opacity = '1';
                                   } catch (err: any) {
-                                    alert('다기 이미지 업로드에 실패했습니다: ' + (err?.message || err));
+                                    alert('글쓰기 기본 이미지 업로드에 실패했습니다: ' + (err?.message || err));
                                   }
                                 }}
                               />
@@ -4407,9 +4605,9 @@ export default function App() {
               <p>EMAIL: cocogame@kakao.com</p>
               <p>PHONE: +82-2-588-4670</p>
               <p>SEOUL, MAIN HEADQUARTERS</p>
-              
-              <button 
-                onClick={() => setIsContactModalOpen(true)} 
+
+              <button
+                onClick={() => setIsContactModalOpen(true)}
                 className="mt-4 text-[#1C1A17] hover:text-black font-extrabold uppercase tracking-widest text-left block group"
               >
                 <span className="text-[#1C1A17] hover:text-black transition-colors">[ SEND MESSAGE : 메시지 보내기 ]</span>
@@ -4431,7 +4629,7 @@ export default function App() {
       <AnimatePresence>
         {isEditModalOpen && editingItem && (
           <div className="fixed inset-0 bg-[#1C1A17]/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
@@ -4444,7 +4642,7 @@ export default function App() {
                   </h3>
                   <p className="text-[10px] text-black/50 font-sans tracking-wide uppercase mt-0.5">Firestore container write action</p>
                 </div>
-                <button 
+                <button
                   onClick={() => {
                     setIsEditModalOpen(false);
                     setEditingItem(null);
@@ -4479,6 +4677,7 @@ export default function App() {
                     >
                       <option value="poetry">라석시집</option>
                       <option value="philosophy">심물 에세이</option>
+                      <option value="philosophy_lecture">심물철학 강론</option>
                       <option value="journey">라석여정</option>
                       <option value="mulpa">물파공간</option>
                       <option value="suncha_seo">서화차향 - 서(書)</option>
@@ -4505,8 +4704,8 @@ export default function App() {
 
                   <div className="md:col-span-2">
                     <label className="font-mono text-[9px] tracking-widest font-bold uppercase block mb-1">RECORD TITLE (제목)</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       required
                       value={editingItem.title || ''}
                       onChange={e => setEditingItem({ ...editingItem, title: e.target.value })}
@@ -4516,8 +4715,8 @@ export default function App() {
 
                   <div className="md:col-span-2">
                     <label className="font-mono text-[9px] tracking-widest font-bold uppercase block mb-1">SUMMARY OVERVIEW (요약 / 설명)</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       value={editingItem.summary || ''}
                       onChange={e => setEditingItem({ ...editingItem, summary: e.target.value })}
                       className="w-full bg-white border border-[#1C1A17]/15 rounded p-3 text-xs text-[#1C1A17] focus:outline-none"
@@ -4526,12 +4725,12 @@ export default function App() {
 
                   <div className="md:col-span-2 space-y-3">
                     <label className="font-mono text-[9px] tracking-widest font-bold uppercase block mb-1">IMAGE ASSET (대표 이미지파일 업로드 또는 직접 경로 입력)</label>
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
                       {/* Left: upload box */}
                       <div className="md:col-span-2 border border-dashed border-[#1C1A17]/25 hover:border-[#1C1A17]/50 rounded p-4 text-center bg-white cursor-pointer relative transition-colors">
-                        <input 
-                          type="file" 
+                        <input
+                          type="file"
                           accept="image/*,image/heic,image/heif,.heic,.heif"
                           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                           onChange={async (e) => {
@@ -4557,10 +4756,10 @@ export default function App() {
                       {/* Right: preview if exists */}
                       <div className="border border-[#1C1A17]/10 aspect-[16/10] bg-[#FAF9F6] rounded flex items-center justify-center p-2 relative overflow-hidden">
                         {editingItem.image_url ? (
-                          <img 
-                            src={editingItem.image_url} 
-                            alt="Preview" 
-                            className="w-full h-full object-cover rounded" 
+                          <img
+                            src={editingItem.image_url}
+                            alt="Preview"
+                            className="w-full h-full object-cover rounded"
                             referrerPolicy="no-referrer"
                           />
                         ) : (
@@ -4570,8 +4769,8 @@ export default function App() {
                     </div>
 
                     {/* Manual path editor overlay */}
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       placeholder="FTP 직접 업로드한 이미지인 경우 /images/ 또는 /이미지저장/ 경로명을 직접 입력해도 됩니다."
                       value={editingItem.image_url || ''}
                       onChange={e => setEditingItem({ ...editingItem, image_url: e.target.value })}
@@ -4582,12 +4781,12 @@ export default function App() {
                   {/* Middle image */}
                   <div className="md:col-span-2 space-y-3">
                     <label className="font-mono text-[9px] tracking-widest font-bold uppercase block mb-1">IMAGE MID ASSET (본문 중간 배치 이미지 - 선택사항)</label>
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
                       {/* Left: upload box */}
                       <div className="md:col-span-2 border border-dashed border-[#1C1A17]/25 hover:border-[#1C1A17]/50 rounded p-4 text-center bg-white cursor-pointer relative transition-colors">
-                        <input 
-                          type="file" 
+                        <input
+                          type="file"
                           accept="image/*,image/heic,image/heif,.heic,.heif"
                           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                           onChange={async (e) => {
@@ -4613,10 +4812,10 @@ export default function App() {
                       {/* Right: preview if exists */}
                       <div className="border border-[#1C1A17]/10 aspect-[16/10] bg-[#FAF9F6] rounded flex items-center justify-center p-2 relative overflow-hidden">
                         {editingItem.image_mid_url ? (
-                          <img 
-                            src={editingItem.image_mid_url} 
-                            alt="Middle Preview" 
-                            className="w-full h-full object-cover rounded" 
+                          <img
+                            src={editingItem.image_mid_url}
+                            alt="Middle Preview"
+                            className="w-full h-full object-cover rounded"
                             referrerPolicy="no-referrer"
                           />
                         ) : (
@@ -4626,8 +4825,8 @@ export default function App() {
                     </div>
 
                     {/* Manual path editor overlay */}
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       placeholder="FTP 직접 업로드한 이미지인 경우 /images/ 또는 /이미지저장/ 경로명을 직접 입력해도 됩니다."
                       value={editingItem.image_mid_url || ''}
                       onChange={e => setEditingItem({ ...editingItem, image_mid_url: e.target.value })}
@@ -4638,12 +4837,12 @@ export default function App() {
                   {/* Bottom image */}
                   <div className="md:col-span-2 space-y-3">
                     <label className="font-mono text-[9px] tracking-widest font-bold uppercase block mb-1">IMAGE BOT ASSET (본문 하단 배치 이미지 - 선택사항)</label>
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
                       {/* Left: upload box */}
                       <div className="md:col-span-2 border border-dashed border-[#1C1A17]/25 hover:border-[#1C1A17]/50 rounded p-4 text-center bg-white cursor-pointer relative transition-colors">
-                        <input 
-                          type="file" 
+                        <input
+                          type="file"
                           accept="image/*,image/heic,image/heif,.heic,.heif"
                           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                           onChange={async (e) => {
@@ -4669,10 +4868,10 @@ export default function App() {
                       {/* Right: preview if exists */}
                       <div className="border border-[#1C1A17]/10 aspect-[16/10] bg-[#FAF9F6] rounded flex items-center justify-center p-2 relative overflow-hidden">
                         {editingItem.image_bot_url ? (
-                          <img 
-                            src={editingItem.image_bot_url} 
-                            alt="Bottom Preview" 
-                            className="w-full h-full object-cover rounded" 
+                          <img
+                            src={editingItem.image_bot_url}
+                            alt="Bottom Preview"
+                            className="w-full h-full object-cover rounded"
                             referrerPolicy="no-referrer"
                           />
                         ) : (
@@ -4682,8 +4881,8 @@ export default function App() {
                     </div>
 
                     {/* Manual path editor overlay */}
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       placeholder="FTP 직접 업로드한 이미지인 경우 /images/ 또는 /이미지저장/ 경로명을 직접 입력해도 됩니다."
                       value={editingItem.image_bot_url || ''}
                       onChange={e => setEditingItem({ ...editingItem, image_bot_url: e.target.value })}
@@ -4693,7 +4892,7 @@ export default function App() {
 
                   <div className="md:col-span-2">
                     <label className="font-mono text-[9px] tracking-widest font-bold uppercase block mb-1">MARKDOWN MAIN STORY / CONTENT (시구 / 상세 내용)</label>
-                    <RichTextEditor 
+                    <RichTextEditor
                       value={editingItem.content || ''}
                       onChange={val => setEditingItem({ ...editingItem, content: val })}
                       onPaste={(e) => handleTextAreaPaste(e, (val) => setEditingItem({ ...editingItem, content: val }), editingItem.content || '')}
@@ -4705,7 +4904,7 @@ export default function App() {
                 </div>
 
                 <div className="border-t border-[#1C1A17]/5 pt-6 flex justify-end gap-3 font-mono">
-                  <button 
+                  <button
                     type="button"
                     onClick={() => {
                       setIsEditModalOpen(false);
@@ -4715,7 +4914,7 @@ export default function App() {
                   >
                     Cancel
                   </button>
-                  <button 
+                  <button
                     type="submit"
                     className="px-6 py-2 bg-black text-white hover:bg-gray-950 text-[10px] tracking-widest uppercase transition-colors rounded font-bold"
                   >
@@ -4729,7 +4928,7 @@ export default function App() {
 
         {isArtistModalOpen && editingArtist && (
           <div className="fixed inset-0 bg-[#1C1A17]/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
@@ -4743,7 +4942,7 @@ export default function App() {
                   </h3>
                   <p className="text-[10px] text-black/50 font-sans tracking-wide uppercase mt-0.5">Firestore Artists Collection editor</p>
                 </div>
-                <button 
+                <button
                   onClick={() => {
                     setIsArtistModalOpen(false);
                     setEditingArtist(null);
@@ -4777,8 +4976,8 @@ export default function App() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
                       {/* Left: upload box */}
                       <div className="md:col-span-2 border border-dashed border-[#1C1A17]/25 hover:border-[#1C1A17]/50 rounded p-4 text-center bg-white cursor-pointer relative transition-colors">
-                        <input 
-                          type="file" 
+                        <input
+                          type="file"
                           accept="image/*,image/heic,image/heif,.heic,.heif"
                           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                           onChange={async (e) => {
@@ -4804,10 +5003,10 @@ export default function App() {
                       {/* Right: preview if exists */}
                       <div className="border border-[#1C1A17]/10 aspect-[3/4] max-h-[120px] bg-[#FAF9F6] rounded flex items-center justify-center p-1.5 relative overflow-hidden mx-auto">
                         {editingArtist.image ? (
-                          <img 
-                            src={editingArtist.image} 
-                            alt="Preview" 
-                            className="w-full h-full object-cover rounded grayscale" 
+                          <img
+                            src={editingArtist.image}
+                            alt="Preview"
+                            className="w-full h-full object-cover rounded grayscale"
                             referrerPolicy="no-referrer"
                           />
                         ) : (
@@ -4816,8 +5015,8 @@ export default function App() {
                       </div>
                     </div>
 
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       required
                       placeholder="e.g. /images/lasok_profile.jpg 또는 업로드된 /이미지저장/ 이미지 경로"
                       value={editingArtist.image || ''}
@@ -4829,8 +5028,8 @@ export default function App() {
                   {/* Name field */}
                   <div className="md:col-span-2">
                     <label className="font-mono text-[9px] tracking-widest font-bold uppercase block mb-1">ARTIST NAME (작가명)</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       required
                       placeholder="e.g. 라석 선사 (羅石)"
                       value={editingArtist.name || ''}
@@ -4842,8 +5041,8 @@ export default function App() {
                   {/* Title field */}
                   <div className="md:col-span-2">
                     <label className="font-mono text-[9px] tracking-widest font-bold uppercase block mb-1">REPRESENTATIVE PROFESSIONAL TITLE (대표 직함)</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       placeholder="e.g. 물파공간 창시자 및 심물서화가"
                       value={editingArtist.title || ''}
                       onChange={e => setEditingArtist({ ...editingArtist, title: e.target.value })}
@@ -4854,7 +5053,7 @@ export default function App() {
                   {/* Biography field */}
                   <div className="md:col-span-2">
                     <label className="font-mono text-[9px] tracking-widest font-bold uppercase block mb-1">BIOGRAPHY (상세 예술가 평론 및 일대기 소개)</label>
-                    <textarea 
+                    <textarea
                       rows={4}
                       value={editingArtist.bio || ''}
                       onChange={e => setEditingArtist({ ...editingArtist, bio: e.target.value })}
@@ -4882,13 +5081,13 @@ export default function App() {
                         : `선택한 작품 정보 수정 (Editing Selected Masterpiece #${editingWorkIdx + 1})`}
                     </span>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <input 
+                      <input
                         type="text"
                         id="new-work-title"
                         placeholder="작품명 (Title) e.g. 심물지파 (心物之波)"
                         className="bg-white border border-[#1C1A17]/15 rounded p-2 focus:outline-none"
                       />
-                      <input 
+                      <input
                         type="text"
                         id="new-work-size"
                         placeholder="작품 규격 (Size) e.g. 70 x 120 cm"
@@ -4896,7 +5095,7 @@ export default function App() {
                       />
                       <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-2 items-center">
                         <div className="md:col-span-2">
-                          <input 
+                          <input
                             type="text"
                             id="new-work-image"
                             placeholder="작품 이미지 경로 (Image) e.g. /images/work1.jpg"
@@ -4904,8 +5103,8 @@ export default function App() {
                           />
                         </div>
                         <div className="relative border border-dashed border-[#1C1A17]/30 hover:border-[#1C1A17]/60 rounded py-1.5 px-2 text-center bg-white cursor-pointer transition-colors text-[11px] font-sans">
-                          <input 
-                            type="file" 
+                          <input
+                            type="file"
                             accept="image/*,image/heic,image/heif,.heic,.heif"
                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                             onChange={async (e) => {
@@ -4928,13 +5127,13 @@ export default function App() {
                           <span className="text-[#1C1A17] font-semibold">📁 작품 파일 업로드 (Upload)</span>
                         </div>
                       </div>
-                      <textarea 
+                      <textarea
                         rows={2}
                         id="new-work-intro"
                         placeholder="작품 해설 및 소개 (Introduction)"
                         className="bg-white border border-[#1C1A17]/15 rounded p-2 focus:outline-none md:col-span-2"
                       />
-                      <textarea 
+                      <textarea
                         rows={2}
                         id="new-work-critic"
                         placeholder="예술작 비평 (Art Criticism)"
@@ -4988,7 +5187,7 @@ export default function App() {
                         }}
                         className="flex-1 py-2 bg-neutral-800 hover:bg-neutral-900 text-white font-bold text-[9px] uppercase tracking-widest rounded"
                       >
-                        {editingWorkIdx === null 
+                        {editingWorkIdx === null
                           ? '+ 목록에 이 작품 도록 삽입 (Insert Masterpiece to Active List)'
                           : '✓ 선택한 도록 작품정보 수정 적용 (Apply Changes to Masterpiece)'}
                       </button>
@@ -5021,11 +5220,11 @@ export default function App() {
                   {/* List of current added works with delete action */}
                   <div className="space-y-2 max-h-[180px] overflow-y-auto pr-2">
                     {editingArtist.works && editingArtist.works.map((work, wIdx) => (
-                      <div 
-                        key={wIdx} 
+                      <div
+                        key={wIdx}
                         className={`p-3 rounded flex items-center justify-between text-xs gap-4 transition-colors ${
-                          editingWorkIdx === wIdx 
-                            ? 'bg-amber-50/75 border border-amber-300' 
+                          editingWorkIdx === wIdx
+                            ? 'bg-amber-50/75 border border-amber-300'
                             : 'bg-white border border-[#1C1A17]/10'
                         }`}
                       >
@@ -5106,7 +5305,7 @@ export default function App() {
 
                 {/* Submit actions */}
                 <div className="border-t border-[#1C1A17]/10 pt-6 flex justify-end gap-3 font-mono">
-                  <button 
+                  <button
                     type="button"
                     onClick={() => {
                       setIsArtistModalOpen(false);
@@ -5116,7 +5315,7 @@ export default function App() {
                   >
                     Cancel
                   </button>
-                  <button 
+                  <button
                     type="submit"
                     className="px-6 py-2 bg-black text-white hover:bg-gray-950 text-[10px] tracking-widest uppercase transition-colors rounded font-bold"
                   >
@@ -5130,7 +5329,7 @@ export default function App() {
 
         {isContactModalOpen && (
           <div className="fixed inset-0 bg-[#1C1A17]/60 backdrop-blur-md z-[255] flex items-center justify-center p-4">
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
@@ -5144,7 +5343,7 @@ export default function App() {
                     {t.contact?.title || "메시지 보내기"}
                   </h3>
                 </div>
-                <button 
+                <button
                   onClick={() => setIsContactModalOpen(false)}
                   className="p-1.5 rounded-full hover:bg-neutral-100 transition-colors cursor-pointer"
                 >
@@ -5160,7 +5359,7 @@ export default function App() {
 
                 <AnimatePresence mode="wait">
                   {formSuccess ? (
-                    <motion.div 
+                    <motion.div
                       key="success"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
@@ -5172,7 +5371,7 @@ export default function App() {
                       <p className="font-bold">{t.contact?.success || "메시지가 성공적으로 전송되었습니다!"}</p>
                     </motion.div>
                   ) : (
-                    <motion.form 
+                    <motion.form
                       key="form"
                       onSubmit={(e) => {
                         handleContactSubmit(e);
@@ -5185,8 +5384,8 @@ export default function App() {
                     >
                       <div>
                         <label className="font-mono text-[9px] tracking-widest text-[#1C1A17]/65 uppercase font-bold block mb-1.5">{t.contact?.name || "NAME"}</label>
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           required
                           value={formData.name}
                           onChange={e => setFormData(p => ({ ...p, name: e.target.value }))}
@@ -5197,8 +5396,8 @@ export default function App() {
 
                       <div>
                         <label className="font-mono text-[9px] tracking-widest text-[#1C1A17]/65 uppercase font-bold block mb-1.5">{t.contact?.email || "EMAIL"}</label>
-                        <input 
-                          type="email" 
+                        <input
+                          type="email"
                           required
                           value={formData.email}
                           onChange={e => setFormData(p => ({ ...p, email: e.target.value }))}
@@ -5209,7 +5408,7 @@ export default function App() {
 
                       <div>
                         <label className="font-mono text-[9px] tracking-widest text-[#1C1A17]/65 uppercase font-bold block mb-1.5">{t.contact?.message || "MESSAGE"}</label>
-                        <textarea 
+                        <textarea
                           rows={4}
                           required
                           value={formData.message}
@@ -5251,7 +5450,7 @@ export default function App() {
                 <span className="font-mono text-xs text-white/60 bg-white/5 border border-white/10 px-3 py-1 rounded">
                   {lightboxIndex + 1} / {lightboxWorks.length}
                 </span>
-                <button 
+                <button
                   onClick={() => setLightboxActive(false)}
                   className="p-2.5 rounded-full bg-white/5 border border-white/10 text-white hover:bg-white/10 active:scale-95 transition-all"
                   title="Close light box (Esc)"
@@ -5264,7 +5463,7 @@ export default function App() {
             {/* Main Visual Centerpiece Area */}
             <div className="flex-grow w-full max-w-6xl mx-auto flex items-center justify-center relative my-4">
               {/* Prev Button */}
-              <button 
+              <button
                 onClick={() => setLightboxIndex((prev) => (lightboxWorks.length > 0 ? (prev - 1 + lightboxWorks.length) % lightboxWorks.length : 0))}
                 className="absolute left-0 md:left-4 p-3 rounded-full bg-black/60 border border-white/10 text-white hover:bg-neutral-800 active:scale-95 transition-all z-[320] shadow-2xl"
                 title="Previous image"
@@ -5273,7 +5472,7 @@ export default function App() {
               </button>
 
               {/* Artwork Image Frame */}
-              <motion.div 
+              <motion.div
                 key={lightboxIndex}
                 initial={{ opacity: 0, scale: 0.97 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -5281,8 +5480,8 @@ export default function App() {
                 transition={{ duration: 0.3 }}
                 className="max-h-[60vh] max-w-[85%] md:max-w-[70%] border border-white/15 bg-neutral-900 p-2 md:p-3 shadow-2xl flex items-center justify-center relative rounded overflow-hidden select-none"
               >
-                <img 
-                  src={lightboxWorks[lightboxIndex]?.image || 'https://images.unsplash.com/photo-1518640467707-6811f4a6ab73?auto=format&fit=crop&q=80&w=1200'} 
+                <img
+                  src={lightboxWorks[lightboxIndex]?.image || 'https://images.unsplash.com/photo-1518640467707-6811f4a6ab73?auto=format&fit=crop&q=80&w=1200'}
                   alt={lightboxWorks[lightboxIndex]?.title}
                   referrerPolicy="no-referrer"
                   className="max-h-[56vh] w-auto object-contain select-none shadow-inner"
@@ -5290,7 +5489,7 @@ export default function App() {
               </motion.div>
 
               {/* Next Button */}
-              <button 
+              <button
                 onClick={() => setLightboxIndex((prev) => (lightboxWorks.length > 0 ? (prev + 1) % lightboxWorks.length : 0))}
                 className="absolute right-0 md:right-4 p-3 rounded-full bg-black/60 border border-white/10 text-white hover:bg-neutral-800 active:scale-95 transition-all z-[320] shadow-2xl"
                 title="Next image"
@@ -5342,7 +5541,7 @@ export default function App() {
         {/* 2. Suncha promo & reviews edit modal */}
         {isTeaPromoModalOpen && tempTeaPromo && (
           <div className="fixed inset-0 bg-[#1C1A17]/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
@@ -5355,7 +5554,7 @@ export default function App() {
                   </h3>
                   <p className="text-[10px] text-black/50 font-sans tracking-wide uppercase mt-0.5">Edit Seoncha Promotion & Reviews</p>
                 </div>
-                <button 
+                <button
                   onClick={() => {
                     setIsTeaPromoModalOpen(false);
                     setTempTeaPromo(null);
@@ -5380,8 +5579,8 @@ export default function App() {
                     </label>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="md:col-span-2 border border-dashed border-[#1C1A17]/25 hover:border-[#1C1A17]/50 rounded p-4 text-center bg-white cursor-pointer relative transition-colors">
-                        <input 
-                          type="file" 
+                        <input
+                          type="file"
                           accept="image/*,image/heic,image/heif,.heic,.heif"
                           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                           onChange={async (e) => {
@@ -5412,8 +5611,8 @@ export default function App() {
                       </div>
                     </div>
                     {/* Manual input URL */}
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       placeholder="직접 이미지 URL 입력"
                       value={tempTeaPromo.suncha_intro_image || ''}
                       onChange={e => setTempTeaPromo(p => p ? { ...p, suncha_intro_image: e.target.value } : null)}
@@ -5425,7 +5624,7 @@ export default function App() {
                   <div className="grid grid-cols-1 gap-4">
                     <div>
                       <label className="font-mono text-[9px] tracking-widest font-bold uppercase block mb-1">PROMOTIONAL TEXT - KOREAN (한국어 소개 문구)</label>
-                      <textarea 
+                      <textarea
                         rows={3}
                         value={tempTeaPromo.suncha_intro_text_kr || ''}
                         onChange={e => setTempTeaPromo(p => p ? { ...p, suncha_intro_text_kr: e.target.value } : null)}
@@ -5435,7 +5634,7 @@ export default function App() {
                     </div>
                     <div>
                       <label className="font-mono text-[9px] tracking-widest font-bold uppercase block mb-1">PROMOTIONAL TEXT - CHINESE (중국어 소개 문구)</label>
-                      <textarea 
+                      <textarea
                         rows={3}
                         value={tempTeaPromo.suncha_intro_text_sc || ''}
                         onChange={e => setTempTeaPromo(p => p ? { ...p, suncha_intro_text_sc: e.target.value } : null)}
@@ -5445,7 +5644,7 @@ export default function App() {
                     </div>
                     <div>
                       <label className="font-mono text-[9px] tracking-widest font-bold uppercase block mb-1">PROMOTIONAL TEXT - ENGLISH (영어 소개 문구)</label>
-                      <textarea 
+                      <textarea
                         rows={3}
                         value={tempTeaPromo.suncha_intro_text_en || ''}
                         onChange={e => setTempTeaPromo(p => p ? { ...p, suncha_intro_text_en: e.target.value } : null)}
@@ -5469,8 +5668,8 @@ export default function App() {
                     </label>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="md:col-span-2 border border-dashed border-[#1C1A17]/25 hover:border-[#1C1A17]/50 rounded p-4 text-center bg-white cursor-pointer relative transition-colors">
-                        <input 
-                          type="file" 
+                        <input
+                          type="file"
                           accept="image/*,image/heic,image/heif,.heic,.heif"
                           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                           onChange={async (e) => {
@@ -5501,8 +5700,8 @@ export default function App() {
                       </div>
                     </div>
                     {/* Manual input URL */}
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       placeholder="직접 이미지 URL 입력"
                       value={tempTeaPromo.suncha_review_image || ''}
                       onChange={e => setTempTeaPromo(p => p ? { ...p, suncha_review_image: e.target.value } : null)}
@@ -5514,7 +5713,7 @@ export default function App() {
                   <div className="grid grid-cols-1 gap-4">
                     <div>
                       <label className="font-mono text-[9px] tracking-widest font-bold uppercase block mb-1">REVIEW TEXT - KOREAN (한국어 음용후기 글)</label>
-                      <textarea 
+                      <textarea
                         rows={3}
                         value={tempTeaPromo.suncha_review_text_kr || ''}
                         onChange={e => setTempTeaPromo(p => p ? { ...p, suncha_review_text_kr: e.target.value } : null)}
@@ -5524,7 +5723,7 @@ export default function App() {
                     </div>
                     <div>
                       <label className="font-mono text-[9px] tracking-widest font-bold uppercase block mb-1">REVIEW TEXT - CHINESE (중국어 음용후기 글)</label>
-                      <textarea 
+                      <textarea
                         rows={3}
                         value={tempTeaPromo.suncha_review_text_sc || ''}
                         onChange={e => setTempTeaPromo(p => p ? { ...p, suncha_review_text_sc: e.target.value } : null)}
@@ -5534,7 +5733,7 @@ export default function App() {
                     </div>
                     <div>
                       <label className="font-mono text-[9px] tracking-widest font-bold uppercase block mb-1">REVIEW TEXT - ENGLISH (영어 음용후기 글)</label>
-                      <textarea 
+                      <textarea
                         rows={3}
                         value={tempTeaPromo.suncha_review_text_en || ''}
                         onChange={e => setTempTeaPromo(p => p ? { ...p, suncha_review_text_en: e.target.value } : null)}
@@ -5547,7 +5746,7 @@ export default function App() {
               </div>
 
               <div className="p-6 bg-white border-t border-[#1C1A17]/10 flex justify-end gap-3 font-mono">
-                <button 
+                <button
                   onClick={() => {
                     setIsTeaPromoModalOpen(false);
                     setTempTeaPromo(null);
@@ -5556,7 +5755,7 @@ export default function App() {
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   onClick={async () => {
                     if (!tempTeaPromo) return;
                     try {
@@ -5592,10 +5791,10 @@ export default function App() {
                   {lang === 'KR' ? '작성자 인증' : lang === 'SC' ? '作者认证' : 'Author Verification'}
                 </h3>
                 <p className="text-xs text-neutral-500 font-sans">
-                  {lang === 'KR' 
-                    ? '시연 및 원활한 업로드를 위해 지정된 비밀번호를 입력해 주세요.' 
-                    : lang === 'SC' 
-                    ? '请输入指定的密码以进行文章上传。' 
+                  {lang === 'KR'
+                    ? '시연 및 원활한 업로드를 위해 지정된 비밀번호를 입력해 주세요.'
+                    : lang === 'SC'
+                    ? '请输入指定的密码以进行文章上传。'
                     : 'Please enter the writer password to upload.'}
                 </p>
               </div>
@@ -5612,12 +5811,12 @@ export default function App() {
                   className="w-full text-center tracking-widest text-lg font-bold border-2 border-neutral-300 focus:border-black rounded-lg p-3 bg-neutral-50 focus:outline-none"
                   autoFocus
                 />
-                
+
                 <p className="text-[11px] text-amber-800 font-mono bg-amber-50 p-2.5 rounded border border-amber-200">
-                  💡 {lang === 'KR' 
-                    ? '최초 1회 인증 완료 시 이 기기에서 계속 글쓰기가 가능합니다.' 
-                    : lang === 'SC' 
-                    ? '首次认证成功后，此设备将自动保持授权状态。' 
+                  💡 {lang === 'KR'
+                    ? '최초 1회 인증 완료 시 이 기기에서 계속 글쓰기가 가능합니다.'
+                    : lang === 'SC'
+                    ? '首次认证成功后，此设备将自动保持授权状态。'
                     : 'Once verified, this device will remain authorized.'}
                 </p>
               </div>
@@ -5695,6 +5894,7 @@ export default function App() {
                     >
                       <option value="poetry">라석시집</option>
                       <option value="philosophy">심물 에세이</option>
+                      <option value="philosophy_lecture">심물철학 강론</option>
                       <option value="journey">라석여정</option>
                       <option value="mulpa">물파공간</option>
                       <option value="suncha_seo">서화차향 - 서(書)</option>
@@ -5787,11 +5987,11 @@ export default function App() {
                   />
                 </div>
 
-                {/* Multi-Image Insertion (Top, Bottom) */}
+                {/* Multi-Image Insertion (Top, Middle, Bottom) */}
                 <div className="space-y-4 border-t border-neutral-200 pt-4">
                   <h4 className="font-serif text-base font-bold text-black flex items-center gap-1.5">
                     <ImageIcon size={18} />
-                    반응형 이미지 삽입 (최대 2개 배치: 상단, 하단)
+                    반응형 이미지 삽입 (최대 3개 배치: 상단, 중간, 하단)
                   </h4>
 
                   <div className="grid grid-cols-1 gap-4 text-left">
@@ -5833,12 +6033,92 @@ export default function App() {
                           </button>
                         </div>
                       </div>
+
+                      {/* Real-time top image preview */}
+                      {writeFormTopImg && (
+                        <div className="mt-2 border border-neutral-200 rounded p-1 max-w-[200px] aspect-[16/10] bg-neutral-50 overflow-hidden relative group">
+                          <img
+                            src={writeFormTopImg}
+                            alt="Top Preview"
+                            className="w-full h-full object-cover rounded shadow-inner"
+                            referrerPolicy="no-referrer"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setWriteFormTopImg('')}
+                            className="absolute top-1 right-1 p-1 rounded-full bg-black/70 text-white hover:bg-black transition-colors"
+                            title="Remove image"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Middle image */}
+                    <div className="bg-white p-4 rounded-xl border border-neutral-200 space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="font-serif text-sm font-bold text-neutral-800">2. 중간 이미지 (본문 중간 배치 - 선택사항)</span>
+                        {writeFormUploading.mid && <span className="text-xs text-amber-600 font-bold animate-pulse">업로드 중...</span>}
+                      </div>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          placeholder="이미지 URL 주소"
+                          value={writeFormMidImg}
+                          onChange={(e) => setWriteFormMidImg(e.target.value)}
+                          className="flex-1 bg-neutral-50 border border-neutral-300 rounded-lg p-2 text-xs font-mono focus:outline-none"
+                        />
+                        <div className="relative">
+                          <input
+                            type="file"
+                            accept="image/*,image/heic,image/heif,.heic,.heif"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              setWriteFormUploading(p => ({ ...p, mid: true }));
+                              try {
+                                const url = await uploadImageFile(file);
+                                setWriteFormMidImg(url);
+                              } catch (err) {
+                                alert('이미지 업로드 실패: ' + err);
+                              } finally {
+                                setWriteFormUploading(p => ({ ...p, mid: false }));
+                              }
+                            }}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                          />
+                          <button type="button" className="px-4 py-2 bg-neutral-800 hover:bg-black text-white text-xs font-bold rounded-lg whitespace-nowrap">
+                            파일 찾기
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Real-time middle image preview */}
+                      {writeFormMidImg && (
+                        <div className="mt-2 border border-neutral-200 rounded p-1 max-w-[200px] aspect-[16/10] bg-neutral-50 overflow-hidden relative group">
+                          <img
+                            src={writeFormMidImg}
+                            alt="Middle Preview"
+                            className="w-full h-full object-cover rounded shadow-inner"
+                            referrerPolicy="no-referrer"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setWriteFormMidImg('')}
+                            className="absolute top-1 right-1 p-1 rounded-full bg-black/70 text-white hover:bg-black transition-colors"
+                            title="Remove image"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                      )}
                     </div>
 
                     {/* Bottom image */}
                     <div className="bg-white p-4 rounded-xl border border-neutral-200 space-y-2">
                       <div className="flex justify-between items-center">
-                        <span className="font-serif text-sm font-bold text-neutral-800">2. 하단 이미지 (본문 맨 아래 배치)</span>
+                        <span className="font-serif text-sm font-bold text-neutral-800">3. 하단 이미지 (본문 맨 아래 배치 - 선택사항)</span>
                         {writeFormUploading.bot && <span className="text-xs text-amber-600 font-bold animate-pulse">업로드 중...</span>}
                       </div>
                       <div className="flex gap-2">
@@ -5873,6 +6153,26 @@ export default function App() {
                           </button>
                         </div>
                       </div>
+
+                      {/* Real-time bottom image preview */}
+                      {writeFormBotImg && (
+                        <div className="mt-2 border border-neutral-200 rounded p-1 max-w-[200px] aspect-[16/10] bg-neutral-50 overflow-hidden relative group">
+                          <img
+                            src={writeFormBotImg}
+                            alt="Bottom Preview"
+                            className="w-full h-full object-cover rounded shadow-inner"
+                            referrerPolicy="no-referrer"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setWriteFormBotImg('')}
+                            className="absolute top-1 right-1 p-1 rounded-full bg-black/70 text-white hover:bg-black transition-colors"
+                            title="Remove image"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -5898,12 +6198,12 @@ export default function App() {
           </div>
         )}
         {/* End of Direct Writing Modals */}
-        
+
         {/* End of original promo settings modal */}
-        
+
         {isTeaPromoModalOpen && tempTeaPromo && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
@@ -5915,15 +6215,15 @@ export default function App() {
                   <Settings size={18} /> Manage Suncha Meditative Steeping Setup
                 </h3>
               </div>
-              
+
               <div className="p-6 overflow-y-auto space-y-6 text-left">
                 {/* Promo item controls */}
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="font-mono text-[9px] tracking-widest font-bold uppercase block mb-1">PROMOTION TEXT (메인 프로모션 문구)</label>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         value={tempTeaPromo.suncha_promo_title || ''}
                         onChange={e => setTempTeaPromo(p => p ? { ...p, suncha_promo_title: e.target.value } : null)}
                         className="w-full bg-white border border-[#1C1A17]/15 rounded p-2 text-xs text-[#1C1A17] focus:outline-none"
@@ -5932,8 +6232,8 @@ export default function App() {
                     </div>
                     <div>
                       <label className="font-mono text-[9px] tracking-widest font-bold uppercase block mb-1">PROMOTION PRICE (판매 가격 표시)</label>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         value={tempTeaPromo.suncha_promo_price || ''}
                         onChange={e => setTempTeaPromo(p => p ? { ...p, suncha_promo_price: e.target.value } : null)}
                         className="w-full bg-white border border-[#1C1A17]/15 rounded p-2 text-xs text-[#1C1A17] focus:outline-none"
@@ -5956,8 +6256,8 @@ export default function App() {
                       </div>
                     </div>
                     {/* Manual input URL */}
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       placeholder="직접 이미지 URL 입력"
                       value={tempTeaPromo.suncha_review_image || ''}
                       onChange={e => setTempTeaPromo(p => p ? { ...p, suncha_review_image: e.target.value } : null)}
@@ -5969,7 +6269,7 @@ export default function App() {
                   <div className="grid grid-cols-1 gap-4">
                     <div>
                       <label className="font-mono text-[9px] tracking-widest font-bold uppercase block mb-1">REVIEW TEXT - KOREAN (한국어 음용후기 글)</label>
-                      <textarea 
+                      <textarea
                         rows={3}
                         value={tempTeaPromo.suncha_review_text_kr || ''}
                         onChange={e => setTempTeaPromo(p => p ? { ...p, suncha_review_text_kr: e.target.value } : null)}
@@ -5979,7 +6279,7 @@ export default function App() {
                     </div>
                     <div>
                       <label className="font-mono text-[9px] tracking-widest font-bold uppercase block mb-1">REVIEW TEXT - CHINESE (중국어 음용후기 글)</label>
-                      <textarea 
+                      <textarea
                         rows={3}
                         value={tempTeaPromo.suncha_review_text_sc || ''}
                         onChange={e => setTempTeaPromo(p => p ? { ...p, suncha_review_text_sc: e.target.value } : null)}
@@ -5989,7 +6289,7 @@ export default function App() {
                     </div>
                     <div>
                       <label className="font-mono text-[9px] tracking-widest font-bold uppercase block mb-1">REVIEW TEXT - ENGLISH (영어 음용후기 글)</label>
-                      <textarea 
+                      <textarea
                         rows={3}
                         value={tempTeaPromo.suncha_review_text_en || ''}
                         onChange={e => setTempTeaPromo(p => p ? { ...p, suncha_review_text_en: e.target.value } : null)}
@@ -6002,7 +6302,7 @@ export default function App() {
               </div>
 
               <div className="p-6 bg-white border-t border-[#1C1A17]/10 flex justify-end gap-3 font-mono">
-                <button 
+                <button
                   onClick={() => {
                     setIsTeaPromoModalOpen(false);
                     setTempTeaPromo(null);
@@ -6011,7 +6311,7 @@ export default function App() {
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   onClick={async () => {
                     if (!tempTeaPromo) return;
                     try {
