@@ -634,9 +634,39 @@ export default function App() {
       ? `markdown-body font-serif ${sizeClass} leading-relaxed text-[#1C1A17]/90 text-justify`
       : `markdown-body font-sans ${sizeClass} leading-relaxed text-[#1C1A17]/90 text-justify`;
 
+    const parseStyleString = (styleStr: any): React.CSSProperties | undefined => {
+      if (!styleStr) return undefined;
+      if (typeof styleStr === 'object') return styleStr;
+      const styles: Record<string, string> = {};
+      styleStr.split(';').forEach((style: string) => {
+        const parts = style.split(':');
+        if (parts.length >= 2) {
+          const key = parts[0].trim().replace(/-([a-z])/g, (g) => g[1].toUpperCase());
+          const value = parts.slice(1).join(':').trim();
+          styles[key] = value;
+        }
+      });
+      return styles as React.CSSProperties;
+    };
+
     const renderMarkdown = (text: string) => (
       <div className={fontClass}>
-        <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeRaw]}>
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm, remarkBreaks]}
+          rehypePlugins={[rehypeRaw]}
+          components={{
+            span: ({ node, style, ...props }: any) => <span style={parseStyleString(style)} {...props} />,
+            img: ({ node, style, ...props }: any) => <img style={parseStyleString(style)} {...props} />,
+            p: ({ node, style, ...props }: any) => <p style={parseStyleString(style)} {...props} />,
+            div: ({ node, style, ...props }: any) => <div style={parseStyleString(style)} {...props} />,
+            strong: ({ node, style, ...props }: any) => <strong style={parseStyleString(style)} {...props} />,
+            em: ({ node, style, ...props }: any) => <em style={parseStyleString(style)} {...props} />,
+            a: ({ node, style, ...props }: any) => <a style={parseStyleString(style)} {...props} />,
+            h1: ({ node, style, ...props }: any) => <h1 style={parseStyleString(style)} {...props} />,
+            h2: ({ node, style, ...props }: any) => <h2 style={parseStyleString(style)} {...props} />,
+            h3: ({ node, style, ...props }: any) => <h3 style={parseStyleString(style)} {...props} />
+          }}
+        >
           {text}
         </ReactMarkdown>
       </div>

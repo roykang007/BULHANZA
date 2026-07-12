@@ -136,6 +136,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
               <option value="Gungsuh, cursive">궁서체 (Brush)</option>
               <option value="'JetBrains Mono', monospace">코드체 (Mono)</option>
               <option value="'Playfair Display', serif">우아함 (Playfair)</option>
+              <option value="'S-Core Dream', sans-serif">에스코어드림 (S-Core Dream)</option>
             </select>
           </div>
 
