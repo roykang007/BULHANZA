@@ -103,12 +103,17 @@
   }
 
   /* Poetry-friendly spacing and paragraph gaps in markdown */
-  .markdown-body p {
+  .markdown-body.poetry-body p {
     margin-top: 0 !important;
     margin-bottom: 1.5rem !important; /* Elegant empty line gap between stanzas */
-    line-height: 1.15 !important; /* Extremely compact elegant line height for Korean poetry lines */
+    line-height: 1.4 !important; /* Elegant compact line height for Korean poetry lines */
   }
-  .markdown-body p:last-child {
+  .markdown-body p {
+    margin-top: 0 !important;
+    margin-bottom: 1.75rem !important;
+    line-height: 1.95 !important; /* Highly readable line height for prose / 70+ elderly */
+  }
+  .markdown-body.poetry-body p:last-child, .markdown-body p:last-child {
     margin-bottom: 0 !important;
   }
 }

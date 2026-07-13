@@ -629,10 +629,12 @@ export default function App() {
     isSerif: boolean = true,
     customSizeClass?: string
   ) => {
-    const sizeClass = customSizeClass || (isSerif ? "text-lg md:text-xl" : "text-sm md:text-base");
-    const fontClass = isSerif
-      ? `markdown-body font-serif ${sizeClass} leading-relaxed text-[#1C1A17]/90 text-justify`
-      : `markdown-body font-sans ${sizeClass} leading-relaxed text-[#1C1A17]/90 text-justify`;
+    // Both poetry and prose now use the elegant serif (우아함) font by default.
+    // Font size is significantly increased for 70+ years old readers (text-xl to text-[25px]/text-[27px])
+    const sizeClass = "text-xl sm:text-2xl md:text-[25px] lg:text-[27px]";
+    const isPoem = isSerif && customSizeClass !== "text-xs md:text-sm"; // Heuristic to keep poetry spacing
+    const bodyClass = isPoem ? "markdown-body poetry-body" : "markdown-body";
+    const fontClass = `${bodyClass} font-serif ${sizeClass} text-[#1C1A17] text-justify`;
 
     const parseStyleString = (styleStr: any): React.CSSProperties | undefined => {
       if (!styleStr) return undefined;
@@ -733,9 +735,7 @@ export default function App() {
       </div>
     );
   };
-  const [breathingMode, setBreathingMode] = useState(false);
-  const [breathingText, setBreathingText] = useState('Inhale');
-  const [breathingProgress, setBreathingProgress] = useState(0);
+
 
   // Tea Timer states
   const [steepingActive, setSteepingActive] = useState(false);
@@ -904,24 +904,7 @@ export default function App() {
     return () => clearInterval(interval);
   }, [steepingActive, steepingTimeLeft]);
 
-  // Infinite Meditative Inhale/Exhale Breathing loop simulation
-  useEffect(() => {
-    let t: any;
-    if (breathingMode) {
-      let count = 0;
-      t = setInterval(() => {
-        count = (count + 1) % 4;
-        if (count === 0) setBreathingText('Inhale');
-        if (count === 1) setBreathingText('Hold');
-        if (count === 2) setBreathingText('Exhale');
-        if (count === 3) setBreathingText('Relax');
-        setBreathingProgress((count + 1) * 25);
-      }, 2500);
-    } else {
-      setBreathingProgress(0);
-    }
-    return () => clearInterval(t);
-  }, [breathingMode]);
+
 
   // Form submit handler
   const handleContactSubmit = (e: React.FormEvent) => {
@@ -1078,6 +1061,92 @@ export default function App() {
 
   // Language Dropdown open state for both desktop and mobile
   const [isLangDropdownOpen, setIsLangDropdownOpen] = useState(false);
+
+  // 뒤로가기 브라우저 히스토리 연동을 위한 Ref와 state 감지 Effects
+  const isPopStateRef = useRef(false);
+
+  useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      if (event.state && typeof event.state === 'object') {
+        isPopStateRef.current = true;
+        
+        const { 
+          page, 
+          selectedBook, 
+          readingPoem, 
+          readingMulpa, 
+          readingSuncha, 
+          readingPhilosophy, 
+          selectedJourneyItem 
+        } = event.state;
+        
+        if (page) setPage(page);
+        if (selectedBook !== undefined) setSelectedBook(selectedBook);
+        if (readingPoem !== undefined) setReadingPoem(readingPoem);
+        if (readingMulpa !== undefined) setReadingMulpa(readingMulpa);
+        if (readingSuncha !== undefined) setReadingSuncha(readingSuncha);
+        if (readingPhilosophy !== undefined) setReadingPhilosophy(readingPhilosophy);
+        if (selectedJourneyItem !== undefined) setSelectedJourneyItem(selectedJourneyItem);
+        
+        setTimeout(() => {
+          isPopStateRef.current = false;
+        }, 50);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
+    // 최초 로드 시 현재 상태를 replaceState로 기록해 둠
+    window.history.replaceState({
+      page: 'home',
+      selectedBook: null,
+      readingPoem: null,
+      readingMulpa: null,
+      readingSuncha: null,
+      readingPhilosophy: null,
+      selectedJourneyItem: null,
+    }, '', '');
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isPopStateRef.current) return;
+
+    const currentState = {
+      page,
+      selectedBook,
+      readingPoem,
+      readingMulpa,
+      readingSuncha,
+      readingPhilosophy,
+      selectedJourneyItem,
+    };
+
+    const historyState = window.history.state;
+    const isDifferent = !historyState || 
+      historyState.page !== currentState.page ||
+      historyState.selectedBook !== currentState.selectedBook ||
+      (historyState.readingPoem?.id || null) !== (currentState.readingPoem?.id || null) ||
+      (historyState.readingMulpa?.id || null) !== (currentState.readingMulpa?.id || null) ||
+      (historyState.readingSuncha?.id || null) !== (currentState.readingSuncha?.id || null) ||
+      (historyState.readingPhilosophy?.id || null) !== (currentState.readingPhilosophy?.id || null) ||
+      (historyState.selectedJourneyItem?.id || null) !== (currentState.selectedJourneyItem?.id || null);
+
+    if (isDifferent) {
+      window.history.pushState(currentState, '', '');
+    }
+  }, [
+    page, 
+    selectedBook, 
+    readingPoem, 
+    readingMulpa, 
+    readingSuncha, 
+    readingPhilosophy, 
+    selectedJourneyItem
+  ]);
 
   // Reset pagination when filter/sort/language changes
   useEffect(() => {
@@ -1389,15 +1458,15 @@ export default function App() {
           ? 'bg-[#FAF6EE]/85 backdrop-blur-md py-4 border-[#1C1A17]/10'
           : 'bg-transparent lg:bg-transparent bg-[#FAF6EE]/85 backdrop-blur-md py-4 lg:py-6 border-[#1C1A17]/10 lg:border-transparent'
       }`}>
-        <div className="max-w-7xl mx-auto px-6 md:px-12 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-2.5 sm:px-6 md:px-12 flex items-center justify-between">
 
           {/* Logo Name */}
           <button
             id="nav-logo"
             onClick={() => setPage('home')}
-            className="group flex items-center gap-2 md:gap-3.5 text-left select-none shrink-0"
+            className="group flex items-center gap-1.5 sm:gap-2 md:gap-3.5 text-left select-none shrink-0"
           >
-            <div className="h-9 md:h-11 px-1.5 py-0.5 md:px-2 md:py-1 border border-[#1C1A17]/15 bg-white rounded flex items-center justify-center transition-transform hover:scale-[1.03] duration-300 shadow-sm shrink-0">
+            <div className="h-8 sm:h-9 md:h-11 px-1 sm:px-1.5 py-0.5 md:px-2 md:py-1 border border-[#1C1A17]/15 bg-white rounded flex items-center justify-center transition-transform hover:scale-[1.03] duration-300 shadow-sm shrink-0">
               <img
                 src={finalLogo}
                 alt="BULHANZA"
@@ -1406,10 +1475,10 @@ export default function App() {
               />
             </div>
             <div className="flex flex-col justify-center">
-              <span className={`font-serif text-xs md:text-sm tracking-[0.15em] md:tracking-[0.25em] uppercase font-bold block leading-none mb-1 transition-colors duration-300 ${
+              <span className={`font-serif text-[10px] sm:text-xs md:text-sm tracking-[0.1em] sm:tracking-[0.15em] md:tracking-[0.25em] uppercase font-bold block leading-none mb-0.5 sm:mb-1 transition-colors duration-300 ${
                 isHomeDarkHeader ? 'text-white' : 'text-[#1C1A17]'
               }`}>BULHANZA</span>
-              <p className={`text-[7.5px] md:text-[8px] tracking-[0.2em] md:tracking-[0.3em] uppercase font-mono leading-none transition-colors duration-300 ${
+              <p className={`text-[6.5px] sm:text-[7.5px] md:text-[8px] tracking-[0.15em] sm:tracking-[0.2em] md:tracking-[0.3em] uppercase font-mono leading-none transition-colors duration-300 ${
                 isHomeDarkHeader ? 'text-white/60' : 'opacity-45 text-[#1C1A17]'
               }`}>Mind-Matter Art</p>
             </div>
@@ -1448,7 +1517,7 @@ export default function App() {
           </nav>
 
           {/* Language Toggle & Burger */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1.5 sm:gap-4">
 
             {/* Lang Dropdown Select */}
             <div
@@ -1456,14 +1525,15 @@ export default function App() {
                 e.stopPropagation();
                 setIsLangDropdownOpen(!isLangDropdownOpen);
               }}
-              className={`relative group/lang font-bold text-[10px] tracking-widest border rounded-full px-3 py-1 flex items-center gap-1 transition-[colors,border,background-color] cursor-pointer select-none ${
+              className={`relative group/lang font-bold text-[9px] sm:text-[10px] tracking-widest border rounded-full px-2 sm:px-3 py-1 flex items-center gap-1 transition-[colors,border,background-color] cursor-pointer select-none whitespace-nowrap ${
                 isHomeDarkHeader
                   ? 'bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/40'
                   : 'bg-white border-[#1C1A17]/15 text-[#1C1A17] hover:border-[#1C1A17]/40'
               }`}
             >
-              <span>Language</span>
-              <ChevronDown size={11} className={isHomeDarkHeader ? 'opacity-75 text-white' : 'opacity-40 text-[#1C1A17]'} />
+              <span className="hidden xs:inline">Language</span>
+              <span className="xs:hidden">{lang === 'KR' ? 'KO' : lang === 'SC' ? 'ZH' : 'EN'}</span>
+              <ChevronDown size={10} className={isHomeDarkHeader ? 'opacity-75 text-white' : 'opacity-40 text-[#1C1A17]'} />
 
               <div className={`absolute right-0 top-full pt-1 min-w-[70px] z-[100] ${isLangDropdownOpen ? 'block' : 'hidden group-hover/lang:block'}`}>
                 <div className="bg-[#FAF9F6] border border-[#1C1A17]/10 shadow-lg rounded-lg overflow-hidden flex flex-col font-mono text-black">
@@ -1502,7 +1572,7 @@ export default function App() {
                   setIsAuthModalOpen(true);
                 }
               }}
-              className={`font-bold text-[10px] tracking-widest border rounded-full px-3 py-1 flex items-center gap-1.5 transition-all cursor-pointer select-none ${
+              className={`font-bold text-[9px] sm:text-[10px] tracking-widest border rounded-full px-2 sm:px-3 py-1 flex items-center gap-1 sm:gap-1.5 transition-all cursor-pointer select-none whitespace-nowrap ${
                 isHomeDarkHeader
                   ? isUserAuthorized
                     ? 'bg-amber-500/10 border-amber-500/30 text-amber-300 hover:bg-amber-500/20 hover:border-amber-500/50'
@@ -1514,13 +1584,13 @@ export default function App() {
             >
               {isUserAuthorized ? (
                 <>
-                  <LogOut size={11} />
-                  <span>{lang === 'KR' ? '로그아웃' : lang === 'SC' ? '登出' : 'LOGOUT'}</span>
+                  <LogOut size={10} />
+                  <span>LOGOUT</span>
                 </>
               ) : (
                 <>
-                  <LogIn size={11} />
-                  <span>{lang === 'KR' ? '로그인' : lang === 'SC' ? '登录' : 'LOGIN'}</span>
+                  <LogIn size={10} />
+                  <span>LOGIN</span>
                 </>
               )}
             </button>
@@ -2067,7 +2137,7 @@ export default function App() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
-                    className="bg-white border border-[#1C1A17]/10 p-8 md:p-12 rounded-2xl shadow-lg space-y-8 text-left max-w-3xl mx-auto"
+                    className="bg-white border border-[#1C1A17]/10 p-4 sm:p-8 md:p-10 rounded-2xl shadow-lg space-y-8 text-left max-w-5xl mx-auto"
                   >
                     <div className="border-b border-[#1C1A17]/10 pb-6">
                       <span className="font-mono text-[8px] tracking-[0.2em] uppercase text-black/40 block mb-1">
@@ -2089,7 +2159,7 @@ export default function App() {
                       </p>
                     )}
 
-                    <div className="prose prose-stone max-w-none text-sm md:text-base leading-[1.8] text-[#1C1A17]/90 font-sans break-words bg-[#FAF9F6] border border-[#1C1A17]/5 p-6 rounded [&_p]:my-0 [&_p]:mb-5 last:[&_p]:mb-0">
+                    <div className="prose prose-stone max-w-none text-sm md:text-base leading-[1.8] text-[#1C1A17]/90 font-sans break-words bg-[#FAF9F6] border border-[#1C1A17]/5 p-3.5 sm:p-6 rounded [&_p]:my-0 [&_p]:mb-5 last:[&_p]:mb-0">
                       {readingPhilosophy.image_url && (
                         <div className="mb-8 flex justify-center w-full">
                           <img
@@ -2426,12 +2496,12 @@ export default function App() {
                           </div>
                         ) : (
                           <div className="space-y-8">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                               {(() => {
                                 const filteredMulpaArticles = sortItems(
                                   archiveItems.filter(item => item.category === 'mulpa' && (item.language === lang || !item.language)),
                                   mulpaSortOrder
-                                );
+                               );
                                 const totalMulpaPages = Math.ceil(filteredMulpaArticles.length / 10);
                                 const paginatedMulpaArticles = filteredMulpaArticles.slice((mulpaPage - 1) * 10, mulpaPage * 10);
 
@@ -2439,19 +2509,35 @@ export default function App() {
                                   <div
                                     key={article.id}
                                     onClick={() => setReadingMulpa(article)}
-                                    className="group bg-white border border-[#1C1A17]/10 p-6 md:p-8 rounded hover:border-[#1C1A17]/40 transition-all duration-300 shadow-sm cursor-pointer hover:shadow-md flex flex-col justify-between"
+                                    className="group bg-white border border-[#1C1A17]/10 p-6 rounded-2xl hover:shadow-2xl hover:border-[#1C1A17]/45 transition-all duration-300 flex flex-col justify-between cursor-pointer hover:scale-[1.01]"
                                   >
                                     <div className="space-y-4">
-                                      <div className="flex justify-between items-start md:items-center gap-4 mb-2 border-b border-[#1C1A17]/5 pb-3">
-                                        <span className="font-mono text-[8px] tracking-[0.2em] uppercase text-black/40 block">ARTICLE & CONSCIOUSNESS</span>
-                                        <span className="font-mono text-[9px] text-[#1C1A17]/60">
-                                          {formatFullDate(article.created_at)}
-                                        </span>
+                                      {/* Top auto-scaled image (fixed size) */}
+                                      <div className="aspect-[16/10] w-full overflow-hidden rounded-xl bg-gray-50 border border-[#1C1A17]/5 shadow-inner relative">
+                                        <img
+                                          src={article.image_url || 'https://images.unsplash.com/photo-1518640467707-6811f4a6ab73?auto=format&fit=crop&q=80&w=1200'}
+                                          alt={article.title}
+                                          referrerPolicy="no-referrer"
+                                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                          onError={(e) => {
+                                            e.currentTarget.src = 'https://images.unsplash.com/photo-1518640467707-6811f4a6ab73?auto=format&fit=crop&q=80&w=1200';
+                                          }}
+                                        />
                                       </div>
-                                      <h4 className="font-serif text-lg md:text-xl font-bold text-black group-hover:text-amber-800 transition-colors">{article.title}</h4>
-                                      <p className="text-xs md:text-sm text-[#1C1A17]/75 font-sans leading-relaxed line-clamp-3 font-normal antialiased">
-                                        {getDisplaySummary(article, 150)}
-                                      </p>
+
+                                      <div className="space-y-2">
+                                        <div className="flex justify-between items-center gap-2">
+                                          <span className="font-mono text-[9px] tracking-widest text-[#1C1A17]/40 block uppercase font-bold">
+                                            {formatFullDate(article.created_at)}
+                                          </span>
+                                        </div>
+                                        <h4 className="font-serif text-lg sm:text-xl font-bold text-black group-hover:text-amber-800 transition-colors truncate">
+                                          {article.title}
+                                        </h4>
+                                        <p className="text-xs sm:text-sm text-[#1C1A17]/70 leading-relaxed font-sans line-clamp-3 h-14 overflow-hidden text-justify">
+                                          {getDisplaySummary(article, 150)}
+                                        </p>
+                                      </div>
                                     </div>
                                     <div className="mt-6 border-t border-[#1C1A17]/5 pt-4 flex justify-end items-center text-[10px] tracking-widest uppercase font-mono font-bold text-neutral-400 group-hover:text-black transition-colors">
                                       <span className="flex items-center gap-1 group-hover:translate-x-1 transition-transform">
@@ -2485,7 +2571,7 @@ export default function App() {
                           key="mulpa-detail"
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
-                          className="bg-white border border-[#1C1A17]/10 p-8 md:p-12 rounded-2xl shadow-lg space-y-8 text-left"
+                          className="bg-white border border-[#1C1A17]/10 p-4 sm:p-8 md:p-10 rounded-2xl shadow-lg space-y-8 text-left max-w-5xl mx-auto"
                         >
                           <div className="border-b border-[#1C1A17]/10 pb-6">
                             <span className="font-mono text-[8px] tracking-[0.2em] uppercase text-black/40 block mb-1">ARTICLE & CONSCIOUSNESS</span>
@@ -2501,7 +2587,7 @@ export default function App() {
                             </p>
                           )}
 
-                          <div className="prose prose-stone max-w-none text-xs md:text-sm leading-[1.8] text-[#1C1A17]/90 font-sans break-words whitespace-pre-line bg-[#FAF9F6] border border-[#1C1A17]/5 p-6 rounded">
+                          <div className="prose prose-stone max-w-none text-xs md:text-sm leading-[1.8] text-[#1C1A17]/90 font-sans break-words whitespace-pre-line bg-[#FAF9F6] border border-[#1C1A17]/5 p-3.5 sm:p-6 rounded">
                             {readingMulpa.image_url && (
                               <div className="mb-8 flex justify-center w-full">
                                 <img
@@ -2624,9 +2710,9 @@ export default function App() {
                         {t.art.principles.map((pr, idx) => (
                           <div key={idx} className="bg-[#FAF9F6] p-8 border border-[#1C1A17]/10 rounded flex flex-col justify-between group hover:shadow-md transition-shadow">
                             <div className="space-y-4">
-                              <span className="font-mono text-[10px] tracking-widest text-[#1C1A17]/45 block font-bold">{pr.title}</span>
-                              <h4 className="font-serif text-base font-semibold text-black">{pr.subtitle}</h4>
-                              <p className="text-[11px] leading-[1.7] text-[#1C1A17]/70 font-sans">{pr.description}</p>
+                              <span className="font-mono text-[11px] sm:text-xs tracking-widest text-[#1C1A17]/50 block font-bold uppercase">{pr.title}</span>
+                              <h4 className="font-serif text-lg sm:text-xl font-bold text-black">{pr.subtitle}</h4>
+                              <p className="text-sm sm:text-base leading-[1.8] text-[#1C1A17]/85 font-sans">{pr.description}</p>
                             </div>
                           </div>
                         ))}
@@ -3065,7 +3151,7 @@ export default function App() {
                         className="space-y-10 text-left"
                       >
                         {/* Detail Card */}
-                        <div className="bg-white border border-[#1C1A17]/10 p-8 md:p-14 rounded-3xl shadow-xl relative overflow-hidden">
+                        <div className="bg-[#FAF9F6] border border-[#1C1A17]/10 p-4 sm:p-8 md:p-10 rounded-3xl shadow-xl relative overflow-hidden">
                           {/* Image placed prominently at the top */}
                           {readingPoem.image_url && (
                             <div className="w-full max-h-[450px] overflow-hidden rounded-2xl border border-[#1C1A17]/10 shadow-md mb-8">
@@ -3093,34 +3179,10 @@ export default function App() {
                                   </h3>
                                 </div>
                               </div>
-
-                              {/* Meditative Breath Aid */}
-                              <button
-                                onClick={() => setBreathingMode(!breathingMode)}
-                                className={`px-5 py-2.5 rounded-full border text-xs tracking-widest uppercase font-mono font-bold transition-all flex items-center gap-2 ${
-                                  breathingMode
-                                    ? 'bg-black border-black text-white shadow-md'
-                                    : 'bg-transparent border-[#1C1A17]/10 text-black hover:border-[#1C1A17]'
-                                }`}
-                              >
-                                <Activity size={12} className={breathingMode ? 'animate-pulse' : ''} />
-                                {breathingMode ? `Breathing: ${breathingText}` : 'Meditative Breath Help'}
-                              </button>
                             </div>
 
-                            {/* Meditative progress line */}
-                            {breathingMode && (
-                              <div className="w-full h-1 bg-gray-100 rounded-full overflow-hidden">
-                                <motion.div
-                                  className="h-full bg-black"
-                                  animate={{ width: `${breathingProgress}%` }}
-                                  transition={{ duration: 2.2 }}
-                                />
-                              </div>
-                            )}
-
                             {/* Core poem content rendered beautifully */}
-                            <div className="py-6 max-w-3xl mx-auto">
+                            <div className="py-6 max-w-5xl mx-auto">
                               {renderContentWithImages(readingPoem.content, readingPoem.image_mid_url, readingPoem.image_bot_url)}
                             </div>
                           </div>
@@ -3589,7 +3651,7 @@ export default function App() {
                   key="suncha-detail"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="bg-white border border-[#1C1A17]/10 p-8 md:p-12 rounded-2xl shadow-lg space-y-8 text-left max-w-3xl mx-auto mt-6"
+                  className="bg-white border border-[#1C1A17]/10 p-4 sm:p-8 md:p-10 rounded-2xl shadow-lg space-y-8 text-left max-w-5xl mx-auto mt-6"
                 >
                   <div className="border-b border-[#1C1A17]/10 pb-6">
                     <span className="font-mono text-[8px] tracking-[0.2em] uppercase text-black/40 block mb-1">
@@ -3617,7 +3679,7 @@ export default function App() {
                     </p>
                   )}
 
-                  <div className="prose prose-stone max-w-none text-sm md:text-base leading-[1.8] text-[#1C1A17]/90 font-sans break-words bg-[#FAF9F6] border border-[#1C1A17]/5 p-6 rounded [&_p]:my-0 [&_p]:mb-5 last:[&_p]:mb-0">
+                  <div className="prose prose-stone max-w-none text-sm md:text-base leading-[1.8] text-[#1C1A17]/90 font-sans break-words bg-[#FAF9F6] border border-[#1C1A17]/5 p-3.5 sm:p-6 rounded [&_p]:my-0 [&_p]:mb-5 last:[&_p]:mb-0">
                     {/* 상(Top) Image */}
                     {readingSuncha.image_url && (
                       <div className="mb-6 flex justify-center w-full">
@@ -3938,7 +4000,7 @@ export default function App() {
                   key="journey-detail"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="bg-white border border-[#1C1A17]/10 p-8 md:p-12 rounded-2xl shadow-lg space-y-8 text-left max-w-3xl mx-auto"
+                  className="bg-white border border-[#1C1A17]/10 p-4 sm:p-8 md:p-10 rounded-2xl shadow-lg space-y-8 text-left max-w-5xl mx-auto"
                 >
                   <div className="border-b border-[#1C1A17]/10 pb-6">
                     <span className="font-mono text-[8px] tracking-[0.2em] uppercase text-black/40 block mb-1">
@@ -3963,7 +4025,7 @@ export default function App() {
                     </p>
                   )}
 
-                  <div className="prose prose-stone max-w-none text-sm md:text-base leading-[1.8] text-[#1C1A17]/90 font-sans break-words bg-[#FAF9F6] border border-[#1C1A17]/5 p-6 rounded [&_p]:my-0 [&_p]:mb-5 last:[&_p]:mb-0">
+                  <div className="prose prose-stone max-w-none text-sm md:text-base leading-[1.8] text-[#1C1A17]/90 font-sans break-words bg-[#FAF9F6] border border-[#1C1A17]/5 p-3.5 sm:p-6 rounded [&_p]:my-0 [&_p]:mb-5 last:[&_p]:mb-0">
                     {selectedJourneyItem.image_url && (
                       <div className="mb-8 flex justify-center w-full">
                         <img

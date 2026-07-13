@@ -1,13 +1,14 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { 
   Type, CaseSensitive, Bold, Palette, Image as ImageIcon, 
-  Upload, Link2, HelpCircle, Loader2 
+  Upload, Link2, HelpCircle, Loader2,
+  AlignLeft, AlignCenter, AlignRight, AlignJustify
 } from 'lucide-react';
 
 interface RichTextEditorProps {
   value: string;
   onChange: (val: string) => void;
-  onPaste?: (e: React.ClipboardEvent<HTMLTextAreaElement>) => void;
+  onPaste?: (e: any) => void;
   placeholder?: string;
   rows?: number;
   className?: string;
@@ -23,59 +24,291 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   className = '',
   onUploadImage
 }) => {
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const editorRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const lastValueRef = useRef<string>(value);
+  const isInitialMount = useRef(true);
   
   const [isUploading, setIsUploading] = useState(false);
   const [showImagePopover, setShowImagePopover] = useState(false);
   const [imageUrlInput, setImageUrlInput] = useState('');
   const [showHelp, setShowHelp] = useState(false);
+  
+  // Selection active style states
+  const [selectionStyle, setSelectionStyle] = useState<{
+    fontFamily: string;
+    fontSize: string;
+    color: string;
+    bold: boolean;
+    textAlign: string;
+    text: string;
+  } | null>(null);
 
-  const handleApplyStyle = (before: string, after: string) => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
+  // Sync value from prop to editor HTML safely without resetting cursor
+  useEffect(() => {
+    if (editorRef.current) {
+      const currentHTML = editorRef.current.innerHTML;
+      const shouldUpdate = 
+        isInitialMount.current || 
+        (value !== currentHTML && value !== lastValueRef.current);
 
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const text = textarea.value;
-    const selectedText = text.substring(start, end);
+      if (shouldUpdate) {
+        editorRef.current.innerHTML = value;
+        isInitialMount.current = false;
+      }
+    }
+    lastValueRef.current = value;
+  }, [value]);
 
-    // If nothing is selected, provide a placeholder
-    const innerText = selectedText || '텍스트';
-    const replacement = before + innerText + after;
-    const newValue = text.substring(0, start) + replacement + text.substring(end);
+  const updateSelectionStyle = () => {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) {
+      setSelectionStyle(null);
+      return;
+    }
     
-    onChange(newValue);
+    const range = selection.getRangeAt(0);
+    if (range.collapsed) {
+      setSelectionStyle(null);
+      return;
+    }
+    
+    const text = selection.toString();
+    if (!text.trim()) {
+      setSelectionStyle(null);
+      return;
+    }
+    
+    let parentElement = range.commonAncestorContainer as HTMLElement;
+    if (parentElement.nodeType === Node.TEXT_NODE) {
+      parentElement = parentElement.parentElement as HTMLElement;
+    }
+    
+    if (!parentElement || !editorRef.current || !editorRef.current.contains(parentElement)) {
+      setSelectionStyle(null);
+      return;
+    }
+    
+    let fontFamily = 'Georgia, Batang, serif';
+    let fontSize = '20px';
+    let color = '#1C1A17';
+    let bold = false;
+    let textAlign = 'justify';
+    
+    let current: HTMLElement | null = parentElement;
+    while (current && current !== editorRef.current) {
+      if (current.style.fontFamily) {
+        fontFamily = current.style.fontFamily;
+      }
+      if (current.style.fontSize) {
+        fontSize = current.style.fontSize;
+      }
+      if (current.style.color) {
+        color = current.style.color;
+      }
+      if (current.style.textAlign) {
+        textAlign = current.style.textAlign;
+      }
+      if (current.tagName === 'STRONG' || current.tagName === 'B' || current.style.fontWeight === 'bold') {
+        bold = true;
+      }
+      current = current.parentElement;
+    }
+    
+    setSelectionStyle({
+      fontFamily,
+      fontSize,
+      color,
+      bold,
+      textAlign,
+      text
+    });
+  };
 
-    // Set cursor position back inside the tags
-    setTimeout(() => {
-      textarea.focus();
-      const newCursorStart = start + before.length;
-      const newCursorEnd = newCursorStart + innerText.length;
-      textarea.setSelectionRange(newCursorStart, newCursorEnd);
-    }, 50);
+  const getFontLabel = (font: string) => {
+    const f = font.toLowerCase();
+    if (f.includes('georgia') || f.includes('batang') || (f.includes('serif') && !f.includes('sans') && !f.includes('playfair'))) return '바탕체 (Serif)';
+    if (f.includes('inter') || f.includes('dotum') || (f.includes('sans-serif') && !f.includes('s-core'))) return '고딕체 (Sans)';
+    if (f.includes('gungsuh')) return '궁서체 (Brush)';
+    if (f.includes('jetbrains') || f.includes('mono')) return '코드체 (Mono)';
+    if (f.includes('playfair')) return '우아함 (Playfair)';
+    if (f.includes('s-core')) return '에스코어드림 (S-Core Dream)';
+    return '바탕체 (Serif)';
+  };
+
+  const getSizeLabel = (size: string) => {
+    if (size === '12px') return '아주 작게 (12px)';
+    if (size === '14px') return '작게 (14px)';
+    if (size === '16px') return '보통 (16px)';
+    if (size === '18px') return '약간 크게 (18px)';
+    if (size === '20px') return '크게 (20px)';
+    if (size === '24px') return '매우 크게 (24px)';
+    if (size === '32px') return '헤드라인 (32px)';
+    return size || '크게 (20px)';
+  };
+
+  const getAlignLabel = (align: string) => {
+    const a = align.toLowerCase();
+    if (a.includes('left')) return '왼쪽 정렬 (Left)';
+    if (a.includes('center')) return '가운데 정렬 (Center)';
+    if (a.includes('right')) return '오른쪽 정렬 (Right)';
+    if (a.includes('justify')) return '양끝 정렬 (Justify)';
+    return '양끝 정렬 (Justify)';
+  };
+
+  const getColorLabel = (color: string) => {
+    const c = color.toUpperCase();
+    if (c.includes('#1C1A17') || c.includes('1C1A17')) return '기본 먹색 (Black)';
+    if (c.includes('#6B7280') || c.includes('6B7280')) return '회색 (Gray)';
+    if (c.includes('#DC2626') || c.includes('DC2626')) return '연홍/적색 (Red)';
+    if (c.includes('#2563EB') || c.includes('2563EB')) return '푸른색 (Blue)';
+    if (c.includes('#D97706') || c.includes('D97706')) return '황금/갈색 (Amber)';
+    if (c.includes('#16A34A') || c.includes('16A34A')) return '풀잎색 (Green)';
+    if (c.includes('#78350F') || c.includes('78350F')) return '짙은 갈색 (Brown)';
+    if (c.includes('#FFFFFF') || c.includes('FFFFFF')) return '흰색 (White)';
+    return color || '기본 먹색 (Black)';
+  };
+
+  const getFontValue = (font: string) => {
+    const f = font.toLowerCase();
+    if (f.includes('georgia') || f.includes('batang') || (f.includes('serif') && !f.includes('sans') && !f.includes('playfair'))) return 'Georgia, Batang, serif';
+    if (f.includes('inter') || f.includes('dotum') || (f.includes('sans-serif') && !f.includes('s-core'))) return "'Inter', 'Dotum', sans-serif";
+    if (f.includes('gungsuh')) return 'Gungsuh, cursive';
+    if (f.includes('jetbrains') || f.includes('mono')) return "'JetBrains Mono', monospace";
+    if (f.includes('playfair')) return "'Playfair Display', serif";
+    if (f.includes('s-core')) return "'S-Core Dream', sans-serif";
+    return '';
+  };
+
+  const getSizeValue = (size: string) => {
+    const s = size.toLowerCase();
+    if (s.includes('12px')) return '12px';
+    if (s.includes('14px')) return '14px';
+    if (s.includes('16px')) return '16px';
+    if (s.includes('18px')) return '18px';
+    if (s.includes('20px')) return '20px';
+    if (s.includes('24px')) return '24px';
+    if (s.includes('32px')) return '32px';
+    return '';
+  };
+
+  const getColorValue = (color: string) => {
+    const c = color.toUpperCase();
+    if (c.includes('#1C1A17') || c.includes('1C1A17')) return '#1C1A17';
+    if (c.includes('#6B7280') || c.includes('6B7280')) return '#6B7280';
+    if (c.includes('#DC2626') || c.includes('DC2626')) return '#DC2626';
+    if (c.includes('#2563EB') || c.includes('2563EB')) return '#2563EB';
+    if (c.includes('#D97706') || c.includes('D97706')) return '#D97706';
+    if (c.includes('#16A34A') || c.includes('16A34A')) return '#16A34A';
+    if (c.includes('#78350F') || c.includes('78350F')) return '#78350F';
+    if (c.includes('#FFFFFF') || c.includes('FFFFFF')) return '#FFFFFF';
+    return '';
+  };
+
+  const applyInlineStyle = (styleProperty: 'fontFamily' | 'fontSize' | 'color', value: string) => {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return;
+    
+    const range = selection.getRangeAt(0);
+    
+    if (range.collapsed) {
+      // Insert placeholder
+      const span = document.createElement('span');
+      span.style[styleProperty] = value;
+      span.textContent = '글자';
+      range.insertNode(span);
+      
+      const newRange = document.createRange();
+      newRange.selectNodeContents(span);
+      selection.removeAllRanges();
+      selection.addRange(newRange);
+    } else {
+      const span = document.createElement('span');
+      span.style[styleProperty] = value;
+      
+      try {
+        span.appendChild(range.extractContents());
+        range.insertNode(span);
+        
+        const newRange = document.createRange();
+        newRange.selectNode(span);
+        selection.removeAllRanges();
+        selection.addRange(newRange);
+      } catch (e) {
+        // Fallback using document.execCommand
+        document.execCommand('styleWithCSS', false, 'true');
+        if (styleProperty === 'color') {
+          document.execCommand('foreColor', false, value);
+        } else if (styleProperty === 'fontFamily') {
+          document.execCommand('fontName', false, value);
+        }
+      }
+    }
+    
+    if (editorRef.current) {
+      const html = editorRef.current.innerHTML;
+      lastValueRef.current = html;
+      onChange(html);
+      updateSelectionStyle();
+    }
+  };
+
+  const toggleBold = () => {
+    document.execCommand('bold', false);
+    if (editorRef.current) {
+      const html = editorRef.current.innerHTML;
+      lastValueRef.current = html;
+      onChange(html);
+      updateSelectionStyle();
+    }
+  };
+
+  const applyBlockStyle = (styleProperty: 'textAlign', value: string) => {
+    let command = 'justifyLeft';
+    if (value === 'center') command = 'justifyCenter';
+    if (value === 'right') command = 'justifyRight';
+    if (value === 'justify') command = 'justifyFull';
+    
+    document.execCommand(command, false);
+    
+    if (editorRef.current) {
+      const html = editorRef.current.innerHTML;
+      lastValueRef.current = html;
+      onChange(html);
+      updateSelectionStyle();
+    }
   };
 
   const insertImage = (url: string) => {
-    const imgHtml = `\n<img src="${url}" style="max-width: 100%; border-radius: 8px; display: block; margin: 16px auto; shadow: 0 4px 6px -1px rgba(0,0,0,0.1);" alt="삽입된 이미지" />\n`;
-    const textarea = textareaRef.current;
-    if (!textarea) {
-      onChange(value + imgHtml);
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0 || !editorRef.current) {
+      const imgHtml = `<img src="${url}" style="max-width: 100%; border-radius: 8px; display: block; margin: 16px auto;" alt="삽입된 이미지" />`;
+      const finalHtml = value + imgHtml;
+      lastValueRef.current = finalHtml;
+      onChange(finalHtml);
       return;
     }
-
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const text = textarea.value;
-
-    const newValue = text.substring(0, start) + imgHtml + text.substring(end);
-    onChange(newValue);
-
-    setTimeout(() => {
-      textarea.focus();
-      const newPos = start + imgHtml.length;
-      textarea.setSelectionRange(newPos, newPos);
-    }, 50);
+    
+    const range = selection.getRangeAt(0);
+    const img = document.createElement('img');
+    img.src = url;
+    img.style.maxWidth = '100%';
+    img.style.borderRadius = '8px';
+    img.style.display = 'block';
+    img.style.margin = '16px auto';
+    img.alt = '삽입된 이미지';
+    
+    range.insertNode(img);
+    
+    const newRange = document.createRange();
+    newRange.setStartAfter(img);
+    newRange.collapse(true);
+    selection.removeAllRanges();
+    selection.addRange(newRange);
+    
+    const html = editorRef.current.innerHTML;
+    lastValueRef.current = html;
+    onChange(html);
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -96,7 +329,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
       alert('이미지 업로드 중 오류가 발생했습니다: ' + (err.message || err));
     } finally {
       setIsUploading(false);
-      if (e.target) e.target.value = ''; // Reset file input
+      if (e.target) e.target.value = ''; 
     }
   };
 
@@ -110,8 +343,35 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
     setShowImagePopover(false);
   };
 
+  const handleInput = () => {
+    if (editorRef.current) {
+      const html = editorRef.current.innerHTML;
+      lastValueRef.current = html;
+      onChange(html);
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+    if (onPaste) {
+      onPaste(e);
+    }
+    setTimeout(() => {
+      handleInput();
+    }, 50);
+  };
+
   return (
     <div className={`flex flex-col border border-neutral-300 rounded-xl overflow-hidden bg-white ${className}`}>
+      {/* Editor CSS for Placeholders */}
+      <style>{`
+        .wysiwyg-editor:empty::before {
+          content: attr(data-placeholder);
+          color: #a3a3a3;
+          font-style: italic;
+          cursor: text;
+        }
+      `}</style>
+
       {/* Editor Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-2 p-2 bg-neutral-50 border-b border-neutral-200">
         <div className="flex flex-wrap items-center gap-1.5">
@@ -123,14 +383,13 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
               onChange={(e) => {
                 const val = e.target.value;
                 if (val) {
-                  handleApplyStyle(`<span style="font-family: ${val};">`, '</span>');
-                  e.target.value = ''; // Reset select
+                  applyInlineStyle('fontFamily', val);
                 }
               }}
-              defaultValue=""
+              value={selectionStyle ? getFontValue(selectionStyle.fontFamily) : ""}
               className="text-xs bg-transparent border-none outline-none cursor-pointer text-neutral-700 max-w-[85px] font-sans"
             >
-              <option value="" disabled>글꼴 (Font)</option>
+              <option value="" disabled={!!selectionStyle}>글꼴 (Font)</option>
               <option value="Georgia, Batang, serif">바탕체 (Serif)</option>
               <option value="'Inter', 'Dotum', sans-serif">고딕체 (Sans)</option>
               <option value="Gungsuh, cursive">궁서체 (Brush)</option>
@@ -147,14 +406,13 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
               onChange={(e) => {
                 const val = e.target.value;
                 if (val) {
-                  handleApplyStyle(`<span style="font-size: ${val};">`, '</span>');
-                  e.target.value = ''; // Reset select
+                  applyInlineStyle('fontSize', val);
                 }
               }}
-              defaultValue=""
+              value={selectionStyle ? getSizeValue(selectionStyle.fontSize) : ""}
               className="text-xs bg-transparent border-none outline-none cursor-pointer text-neutral-700 max-w-[85px] font-sans"
             >
-              <option value="" disabled>크기 (Size)</option>
+              <option value="" disabled={!!selectionStyle}>크기 (Size)</option>
               <option value="12px">아주 작게 (12px)</option>
               <option value="14px">작게 (14px)</option>
               <option value="16px">보통 (16px)</option>
@@ -172,14 +430,13 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
               onChange={(e) => {
                 const val = e.target.value;
                 if (val) {
-                  handleApplyStyle(`<span style="color: ${val};">`, '</span>');
-                  e.target.value = ''; // Reset select
+                  applyInlineStyle('color', val);
                 }
               }}
-              defaultValue=""
+              value={selectionStyle ? getColorValue(selectionStyle.color) : ""}
               className="text-xs bg-transparent border-none outline-none cursor-pointer text-neutral-700 max-w-[85px] font-sans"
             >
-              <option value="" disabled>색상 (Color)</option>
+              <option value="" disabled={!!selectionStyle}>색상 (Color)</option>
               <option value="#1C1A17">기본 먹색 (Black)</option>
               <option value="#6B7280">회색 (Gray)</option>
               <option value="#DC2626">연홍/적색 (Red)</option>
@@ -194,12 +451,68 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
           {/* Bold button */}
           <button
             type="button"
-            onClick={() => handleApplyStyle('<strong>', '</strong>')}
-            className="flex items-center justify-center p-1.5 bg-white border border-neutral-200 rounded hover:bg-neutral-100 hover:text-black text-neutral-600 transition-colors"
+            onClick={toggleBold}
+            className={`flex items-center justify-center p-1.5 border rounded transition-colors ${
+              selectionStyle?.bold
+                ? 'bg-amber-100 border-amber-300 text-amber-900 font-bold shadow-sm'
+                : 'bg-white border-neutral-200 text-neutral-600 hover:bg-neutral-100 hover:text-black'
+            }`}
             title="글자 굵게 (Bold)"
           >
             <Bold size={13} />
           </button>
+
+          {/* Alignment controls */}
+          <div className="flex items-center gap-1 border-l border-neutral-200 pl-1.5">
+            <button
+              type="button"
+              onClick={() => applyBlockStyle('textAlign', 'left')}
+              className={`flex items-center justify-center p-1.5 border rounded transition-colors ${
+                selectionStyle?.textAlign === 'left'
+                  ? 'bg-amber-100 border-amber-300 text-amber-900 font-bold shadow-sm'
+                  : 'bg-white border-neutral-200 text-neutral-600 hover:bg-neutral-100 hover:text-black'
+              }`}
+              title="왼쪽 정렬"
+            >
+              <AlignLeft size={13} />
+            </button>
+            <button
+              type="button"
+              onClick={() => applyBlockStyle('textAlign', 'center')}
+              className={`flex items-center justify-center p-1.5 border rounded transition-colors ${
+                selectionStyle?.textAlign === 'center'
+                  ? 'bg-amber-100 border-amber-300 text-amber-900 font-bold shadow-sm'
+                  : 'bg-white border-neutral-200 text-neutral-600 hover:bg-neutral-100 hover:text-black'
+              }`}
+              title="가운데 정렬"
+            >
+              <AlignCenter size={13} />
+            </button>
+            <button
+              type="button"
+              onClick={() => applyBlockStyle('textAlign', 'right')}
+              className={`flex items-center justify-center p-1.5 border rounded transition-colors ${
+                selectionStyle?.textAlign === 'right'
+                  ? 'bg-amber-100 border-amber-300 text-amber-900 font-bold shadow-sm'
+                  : 'bg-white border-neutral-200 text-neutral-600 hover:bg-neutral-100 hover:text-black'
+              }`}
+              title="오른쪽 정렬"
+            >
+              <AlignRight size={13} />
+            </button>
+            <button
+              type="button"
+              onClick={() => applyBlockStyle('textAlign', 'justify')}
+              className={`flex items-center justify-center p-1.5 border rounded transition-colors ${
+                selectionStyle?.textAlign === 'justify'
+                  ? 'bg-amber-100 border-amber-300 text-amber-900 font-bold shadow-sm'
+                  : 'bg-white border-neutral-200 text-neutral-600 hover:bg-neutral-100 hover:text-black'
+              }`}
+              title="양끝 정렬"
+            >
+              <AlignJustify size={13} />
+            </button>
+          </div>
 
           {/* Image Insertion Popover Trigger */}
           <div className="relative">
@@ -296,21 +609,86 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
       {showHelp && (
         <div className="bg-amber-50/60 p-3 border-b border-neutral-200 text-xs text-neutral-700 leading-relaxed font-sans space-y-1">
           <p className="font-bold text-neutral-800">💡 리치 텍스트 기능 안내</p>
-          <p>• 본문에서 스타일을 적용할 <strong>텍스트를 드래그 선택</strong>한 뒤 글꼴, 크기, 색상, 굵기 단추를 누르면 자동으로 태그가 감싸집니다.</p>
-          <p>• 드래그 선택하지 않고 누르면 임시로 <code>텍스트</code>가 입력되며, 텍스트가 블록 지정되므로 바로 타자를 치시면 적용됩니다.</p>
-          <p>• <strong>이미지 삽입</strong>을 누르면 글상자 내에 <strong>커서가 있던 위치</strong>에 즉시 반응형 이미지가 삽입됩니다.</p>
+          <p>• 이제 <strong>완전한 실시간 시각 에디터(WYSIWYG)</strong> 방식으로 작동합니다! 태그 코드 대신, 적용된 서식이 화면에 즉시 보여집니다.</p>
+          <p>• 서식을 적용할 <strong>텍스트를 드래그 선택</strong>한 뒤 글꼴, 크기, 색상, 정렬을 클릭하면 실시간으로 스타일이 바뀝니다.</p>
+          <p>• 드래그 선택하지 않고 누르면 해당 서식을 가진 임시 글자가 생성되며 타자를 치시면 이어서 입력됩니다.</p>
+          <p>• <strong>이미지 삽입</strong>을 누르면 글상자 내에 커서가 있던 위치에 즉시 이미지가 시각적으로 들어갑니다.</p>
         </div>
       )}
 
-      {/* Textarea container */}
-      <textarea
-        ref={textareaRef}
-        rows={rows}
-        placeholder={placeholder}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onPaste={onPaste}
-        className="w-full p-4 text-base focus:outline-none bg-transparent whitespace-pre-wrap leading-relaxed font-serif min-h-[220px] resize-y"
+      {/* Selection Style Status Bar */}
+      {selectionStyle && (
+        <div className="bg-amber-50/60 border-b border-neutral-200 px-4 py-2 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs font-sans transition-all duration-300 animate-fadeIn shadow-inner">
+          <div className="flex items-center gap-2 text-neutral-700 min-w-0 flex-1">
+            <span className="font-bold text-amber-900 bg-amber-100 border border-amber-200 px-1.5 py-0.5 rounded text-[10px] uppercase tracking-wide shrink-0">선택 영역 서식</span>
+            <span className="truncate italic text-neutral-600 max-w-[200px] font-serif">"{selectionStyle.text}"</span>
+          </div>
+          
+          <div className="flex items-center gap-4 flex-wrap text-neutral-800">
+            {/* Font family status */}
+            <div className="flex items-center gap-1">
+              <span className="text-neutral-400 font-medium">글꼴:</span>
+              <span className="font-serif font-bold text-black border border-neutral-200 bg-white px-2 py-0.5 rounded shadow-sm text-[11px]">
+                {getFontLabel(selectionStyle.fontFamily)}
+              </span>
+            </div>
+
+            {/* Font size status */}
+            <div className="flex items-center gap-1">
+              <span className="text-neutral-400 font-medium">크기:</span>
+              <span className="font-sans font-bold text-black border border-neutral-200 bg-white px-2 py-0.5 rounded shadow-sm text-[11px]">
+                {getSizeLabel(selectionStyle.fontSize)}
+              </span>
+            </div>
+
+            {/* Color status */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-neutral-400 font-medium">색상:</span>
+              <div className="flex items-center gap-1 bg-white border border-neutral-200 px-2 py-0.5 rounded shadow-sm">
+                <span 
+                  className="w-2.5 h-2.5 rounded-full border border-black/10 shrink-0" 
+                  style={{ backgroundColor: selectionStyle.color || '#1C1A17' }}
+                />
+                <span className="font-mono text-[10px] font-bold text-black">
+                  {getColorLabel(selectionStyle.color)}
+                </span>
+              </div>
+            </div>
+
+            {/* Bold status */}
+            <div className="flex items-center gap-1">
+              <span className="text-neutral-400 font-medium">굵기:</span>
+              <span className={`font-sans font-bold px-2 py-0.5 rounded border shadow-sm text-[11px] ${
+                selectionStyle.bold 
+                  ? 'text-amber-800 bg-amber-100/50 border-amber-200' 
+                  : 'text-neutral-500 bg-white border-neutral-200'
+              }`}>
+                {selectionStyle.bold ? '굵게 (Bold)' : '보통 (Regular)'}
+              </span>
+            </div>
+
+            {/* Alignment status */}
+            <div className="flex items-center gap-1">
+              <span className="text-neutral-400 font-medium">정렬:</span>
+              <span className="font-sans font-bold text-black border border-neutral-200 bg-white px-2 py-0.5 rounded shadow-sm text-[11px]">
+                {getAlignLabel(selectionStyle.textAlign)}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* WYSIWYG ContentEditable editor */}
+      <div
+        ref={editorRef}
+        contentEditable={true}
+        data-placeholder={placeholder}
+        onInput={handleInput}
+        onPaste={handlePaste}
+        onSelect={updateSelectionStyle}
+        onKeyUp={updateSelectionStyle}
+        onMouseUp={updateSelectionStyle}
+        className="wysiwyg-editor w-full p-6 text-xl sm:text-2xl focus:outline-none bg-transparent whitespace-pre-wrap leading-relaxed font-serif min-h-[280px] max-h-[600px] overflow-y-auto"
       />
     </div>
   );
