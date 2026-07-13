@@ -1941,7 +1941,7 @@ export default function App() {
                                 <div
                                   key={chap.id}
                                   onClick={() => setReadingPhilosophy(chap as any)}
-                                  className="group bg-white border border-[#1C1A17]/10 p-6 rounded-2xl hover:shadow-2xl hover:border-[#1C1A17]/45 transition-all duration-300 flex flex-col justify-between cursor-pointer hover:scale-[1.01]"
+                                  className="group bg-white border border-[#1C1A17]/10 p-6 rounded-2xl hover:shadow-2xl hover:border-[#1C1A17]/45 transition-all duration-300 flex flex-col cursor-pointer hover:scale-[1.01]"
                                 >
                                   <div className="space-y-4">
                                     <div className="aspect-[16/10] w-full overflow-hidden rounded-xl bg-gray-50 border border-[#1C1A17]/5 shadow-inner relative">
@@ -1963,19 +1963,13 @@ export default function App() {
                                       <span className="font-mono text-[9px] tracking-widest text-[#1C1A17]/40 block uppercase font-bold">
                                         {lang === 'KR' ? '물파주의 사상 강론' : 'Mulpa Philosophy Doctrine'}
                                       </span>
-                                      <h3 className="font-serif text-lg sm:text-xl font-bold text-black group-hover:text-amber-800 transition-colors truncate">
+                                      <h3 className="font-serif text-lg sm:text-xl font-bold text-black group-hover:text-amber-800 transition-colors break-words">
                                         {chap.title}
                                       </h3>
-                                      <p className="text-sm sm:text-base md:text-lg text-[#1C1A17]/85 leading-relaxed font-serif line-clamp-3 h-20 sm:h-24 overflow-hidden text-justify">
+                                      <p className="text-xs sm:text-sm text-[#1C1A17]/70 leading-relaxed font-serif line-clamp-3 h-14 overflow-hidden text-justify">
                                         {displaySummary}
                                       </p>
                                     </div>
-                                  </div>
-                                  <div className="mt-6 pt-4 border-t border-[#1C1A17]/5 flex justify-between items-center text-[9px] tracking-widest uppercase font-mono font-bold text-[#1C1A17]/40 group-hover:text-[#1C1A17] transition-colors">
-                                    <span>VIEW CHAPTER</span>
-                                    <span className="flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                                      {lang === 'KR' ? '강론 읽기' : 'Read Chapter'} <ChevronRight size={12} />
-                                    </span>
                                   </div>
                                 </div>
                               );
@@ -2064,7 +2058,6 @@ export default function App() {
                                     .sort((a, b) => getTimestampMs(b) - getTimestampMs(a)),
                                   philosophySortOrder
                                 );
-                                const totalPhilosophyPages = Math.ceil(filteredPhilosophyEssays.length / 15);
                                 const paginatedPhilosophyEssays = filteredPhilosophyEssays.slice((philosophyPage - 1) * 15, philosophyPage * 15);
 
                                 return paginatedPhilosophyEssays.map((post) => {
@@ -2073,7 +2066,7 @@ export default function App() {
                                     <div
                                       key={post.id}
                                       onClick={() => setReadingPhilosophy(post)}
-                                      className="group bg-white border border-[#1C1A17]/10 p-6 rounded-2xl hover:shadow-2xl hover:border-[#1C1A17]/35 transition-all duration-300 flex flex-col justify-between cursor-pointer hover:scale-[1.01] text-left"
+                                      className="group bg-white border border-[#1C1A17]/10 p-6 rounded-2xl hover:shadow-2xl hover:border-[#1C1A17]/45 transition-all duration-300 flex flex-col cursor-pointer hover:scale-[1.01] text-left"
                                     >
                                       <div className="space-y-4">
                                         <div className="aspect-[16/10] w-full overflow-hidden rounded-xl bg-gray-50 border border-[#1C1A17]/5 shadow-inner relative">
@@ -2083,25 +2076,19 @@ export default function App() {
                                             referrerPolicy="no-referrer"
                                             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                                             onError={(e) => {
-                                      e.currentTarget.src = 'https://images.unsplash.com/photo-1518640467707-6811f4a6ab73?auto=format&fit=crop&q=80&w=1200';
-                                    }}
+                                              e.currentTarget.src = 'https://images.unsplash.com/photo-1518640467707-6811f4a6ab73?auto=format&fit=crop&q=80&w=1200';
+                                            }}
                                           />
                                         </div>
                                         <div className="space-y-2">
                                           <span className="font-mono text-[9px] tracking-widest text-[#1C1A17]/40 uppercase font-bold">
                                             {formatFullDate(post.created_at)}
                                           </span>
-                                          <h4 className="font-serif text-lg font-bold text-black group-hover:text-amber-800 transition-colors line-clamp-1">{post.title}</h4>
-                                          <p className="text-sm sm:text-base md:text-lg text-[#1C1A17]/85 leading-relaxed font-serif line-clamp-3 h-20 sm:h-24 overflow-hidden text-justify">
+                                          <h4 className="font-serif text-lg sm:text-xl font-bold text-black group-hover:text-amber-800 transition-colors break-words">{post.title}</h4>
+                                          <p className="text-xs sm:text-sm text-[#1C1A17]/70 leading-relaxed font-serif line-clamp-3 h-14 overflow-hidden text-justify">
                                             {displaySummary}
                                           </p>
                                         </div>
-                                      </div>
-                                      <div className="pt-4 border-t border-[#1C1A17]/5 mt-6 flex justify-between items-center text-[9px] tracking-widest uppercase font-mono font-bold text-neutral-400 group-hover:text-black transition-all">
-                                        <span>{lang === 'KR' ? '학술 단상' : 'Essay'}</span>
-                                        <span className="flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                                          {lang === 'KR' ? '자세히 보기' : 'Read details'} <ChevronRight size={12} />
-                                        </span>
                                       </div>
                                     </div>
                                   );
@@ -2509,7 +2496,7 @@ export default function App() {
                                   <div
                                     key={article.id}
                                     onClick={() => setReadingMulpa(article)}
-                                    className="group bg-white border border-[#1C1A17]/10 p-6 rounded-2xl hover:shadow-2xl hover:border-[#1C1A17]/45 transition-all duration-300 flex flex-col justify-between cursor-pointer hover:scale-[1.01]"
+                                    className="group bg-white border border-[#1C1A17]/10 p-6 rounded-2xl hover:shadow-2xl hover:border-[#1C1A17]/45 transition-all duration-300 flex flex-col cursor-pointer hover:scale-[1.01]"
                                   >
                                     <div className="space-y-4">
                                       {/* Top auto-scaled image (fixed size) */}
@@ -2531,18 +2518,13 @@ export default function App() {
                                             {formatFullDate(article.created_at)}
                                           </span>
                                         </div>
-                                        <h4 className="font-serif text-lg sm:text-xl font-bold text-black group-hover:text-amber-800 transition-colors truncate">
+                                        <h4 className="font-serif text-lg sm:text-xl font-bold text-black group-hover:text-amber-800 transition-colors break-words">
                                           {article.title}
                                         </h4>
                                         <p className="text-xs sm:text-sm text-[#1C1A17]/70 leading-relaxed font-sans line-clamp-3 h-14 overflow-hidden text-justify">
                                           {getDisplaySummary(article, 150)}
                                         </p>
                                       </div>
-                                    </div>
-                                    <div className="mt-6 border-t border-[#1C1A17]/5 pt-4 flex justify-end items-center text-[10px] tracking-widest uppercase font-mono font-bold text-neutral-400 group-hover:text-black transition-colors">
-                                      <span className="flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                                        {lang === 'KR' ? '읽기' : 'Read'} &rarr;
-                                      </span>
                                     </div>
                                   </div>
                                 ));
@@ -3588,7 +3570,7 @@ export default function App() {
                               <div
                                 key={item.id}
                                 onClick={() => setReadingSuncha(item)}
-                                className="group bg-white border border-[#1C1A17]/10 p-6 rounded-2xl hover:shadow-2xl hover:border-[#1C1A17]/45 transition-all duration-300 flex flex-col justify-between cursor-pointer hover:scale-[1.01]"
+                                className="group bg-white border border-[#1C1A17]/10 p-6 rounded-2xl hover:shadow-2xl hover:border-[#1C1A17]/45 transition-all duration-300 flex flex-col cursor-pointer hover:scale-[1.01]"
                               >
                                 <div className="space-y-4">
                                   {/* Top image */}
@@ -3611,20 +3593,13 @@ export default function App() {
                                     <span className="font-mono text-[9px] tracking-widest text-[#1C1A17]/40 block uppercase font-bold">
                                       {formatFullDate(item.created_at)}
                                     </span>
-                                    <h3 className="font-serif text-lg font-bold text-black group-hover:text-amber-800 transition-colors line-clamp-1">
+                                    <h3 className="font-serif text-lg sm:text-xl font-bold text-black group-hover:text-amber-800 transition-colors break-words">
                                       {item.title}
                                     </h3>
-                                    <p className="text-xs text-[#1C1A17]/70 leading-relaxed font-serif line-clamp-3 h-14 overflow-hidden text-justify">
+                                    <p className="text-xs sm:text-sm text-[#1C1A17]/70 leading-relaxed font-serif line-clamp-3 h-14 overflow-hidden text-justify">
                                       {displaySummary}
                                     </p>
                                   </div>
-                                </div>
-
-                                <div className="mt-6 pt-4 border-t border-[#1C1A17]/5 flex justify-between items-center text-[9px] tracking-widest uppercase font-mono font-bold text-[#1C1A17]/40 group-hover:text-[#1C1A17] transition-colors">
-                                  <span>VIEW WORKS</span>
-                                  <span className="flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                                    {lang === 'KR' ? '자세히 보기' : 'Read details'} <ChevronRight size={12} />
-                                  </span>
                                 </div>
                               </div>
                             );
@@ -3911,25 +3886,19 @@ export default function App() {
                             <div
                               key={item.id}
                               onClick={() => setSelectedJourneyItem(item)}
-                              className="group bg-white border border-[#1C1A17]/10 p-6 rounded hover:shadow-2xl hover:border-[#1C1A17]/35 transition-all duration-300 flex flex-col justify-between cursor-pointer hover:scale-[1.01]"
+                              className="group bg-white border border-[#1C1A17]/10 p-6 rounded-2xl hover:shadow-2xl hover:border-[#1C1A17]/45 transition-all duration-300 flex flex-col cursor-pointer hover:scale-[1.01]"
                             >
                               <div className="space-y-4 text-left">
-                                <div className="aspect-[16/10] overflow-hidden rounded bg-gray-50 border border-[#1C1A17]/5 relative">
+                                <div className="aspect-[16/10] overflow-hidden rounded-xl bg-gray-50 border border-[#1C1A17]/5 relative">
                                   <img
                                     src={item.image_url}
                                     alt={item.title}
-                                    className="w-full h-full object-cover opacity-90 transition-transform duration-500 group-hover:scale-105"
+                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                                     referrerPolicy="no-referrer"
                                     onError={(e) => {
                                       e.currentTarget.src = 'https://images.unsplash.com/photo-1518640467707-6811f4a6ab73?auto=format&fit=crop&q=80&w=1200';
                                     }}
                                   />
-                                  {/* Hover Overlay indicator */}
-                                  <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                    <span className="text-[10px] tracking-widest font-mono text-white bg-black/75 px-3 py-1.5 rounded uppercase font-bold shadow-md">
-                                      {lang === 'KR' ? '자세히 보기' : 'Read details'} &rarr;
-                                    </span>
-                                  </div>
                                 </div>
 
                                 <div className="space-y-2">
@@ -3943,19 +3912,11 @@ export default function App() {
                                       </span>
                                     )}
                                   </div>
-                                  <h4 className="font-serif text-base md:text-lg font-bold text-black group-hover:text-black/80 transition-colors leading-snug">{item.title}</h4>
-                                  <p className="text-xs text-black/60 leading-relaxed font-sans font-normal antialiased line-clamp-3">
+                                  <h4 className="font-serif text-lg sm:text-xl font-bold text-black group-hover:text-amber-800 transition-colors break-words">{item.title}</h4>
+                                  <p className="text-xs sm:text-sm text-[#1C1A17]/70 leading-relaxed font-serif line-clamp-3 h-14 overflow-hidden text-justify">
                                     {getDisplaySummary(item, 150)}
                                   </p>
                                 </div>
-                              </div>
-
-                              {/* Expandable details button at bottom */}
-                              <div className="pt-4 border-t border-[#1C1A17]/5 mt-6 flex justify-between items-center text-[9px] tracking-widest uppercase font-mono font-bold text-neutral-400 group-hover:text-black transition-all">
-                                <span>{lang === 'KR' ? '여정 아카이브' : lang === 'SC' ? '行旅档案' : 'News & Media Log'}</span>
-                                <span className="flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                                  {lang === 'KR' ? '자세히 보기' : 'View details'} &rarr;
-                                </span>
                               </div>
                             </div>
                           ));
