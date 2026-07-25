@@ -801,13 +801,17 @@ export default function App() {
       const settingsRef = doc(db, 'site_settings', 'global');
       const settingsSnap = await getDoc(settingsRef);
       if (settingsSnap.exists()) {
-        setSiteSettings(settingsSnap.data() as SiteSettings);
+        const fetchedSettings = settingsSnap.data() as SiteSettings;
+        if (!fetchedSettings.hero_bg_url || fetchedSettings.hero_bg_url.includes('hero-bg') || fetchedSettings.hero_bg_url.includes('mountains') || fetchedSettings.hero_bg_url.includes('hero_bg_custom')) {
+          fetchedSettings.hero_bg_url = '/assets/wave00.jpg';
+        }
+        setSiteSettings(fetchedSettings);
       } else {
         // Create initial placeholder if doesn't exist
         const initialSettings: SiteSettings = {
           id: 'global',
           logo_url: '/assets/logo_v2.svg',
-          hero_bg_url: '/assets/mountains_v2.jpg',
+          hero_bg_url: '/assets/wave00.jpg',
           tea_detail_url: '/assets/bulhansuncha_v2.jpg',
           tea_slider_images: [
             'https://images.unsplash.com/photo-1594631252845-29fc4cc8cde9?auto=format&fit=crop&q=80&w=1200',
@@ -1038,6 +1042,14 @@ export default function App() {
   const [editingArtist, setEditingArtist] = useState<Partial<Artist> | null>(null);
   const [editingWorkIdx, setEditingWorkIdx] = useState<number | null>(null);
 
+  // Delete confirmation modal state
+  const [deleteTarget, setDeleteTarget] = useState<{
+    type: 'item' | 'artist' | 'work';
+    id?: string;
+    title?: string;
+    wIdx?: number;
+  } | null>(null);
+
   // Activity Journey details popup modal state
   const [selectedJourneyItem, setSelectedJourneyItem] = useState<ArchiveItem | null>(null);
 
@@ -1238,8 +1250,8 @@ export default function App() {
     }
   };
 
-  const handleDeleteItem = async (id: string) => {
-    if (!window.confirm('정말로 이 보관함 데이터를 데이터베이스에서 영구 삭제하시겠습니까?')) return;
+  const handleDeleteItem = async (id: string, skipConfirm = false) => {
+    if (!skipConfirm && !window.confirm('삭제하시겠습니까?')) return;
     
     const isLocalSandbox = !!dbError;
     const isFallbackPrefix = id.startsWith('tea-') || id.startsWith('phil-') || id.startsWith('lecture-') || id.startsWith('photo-') || id.startsWith('press-') || id.startsWith('mulpa-');
@@ -1261,6 +1273,28 @@ export default function App() {
       }
       await fetchData();
       alert(`삭제 중 에러가 발생했습니다: ${err?.message || err}\n권한이 없거나 Firebase 설정을 확인하세요.`);
+    }
+  };
+
+  const handleRemoveWork = (wIdx: number) => {
+    if (!editingArtist || !editingArtist.works) return;
+    const updatedWorks = [...editingArtist.works];
+    updatedWorks.splice(wIdx, 1);
+    setEditingArtist({ ...editingArtist, works: updatedWorks });
+    if (editingWorkIdx === wIdx) {
+      setEditingWorkIdx(null);
+      const titleEl = document.getElementById('new-work-title') as HTMLInputElement;
+      const sizeEl = document.getElementById('new-work-size') as HTMLInputElement;
+      const imgEl = document.getElementById('new-work-image') as HTMLInputElement;
+      const introEl = document.getElementById('new-work-intro') as HTMLTextAreaElement;
+      const criticEl = document.getElementById('new-work-critic') as HTMLTextAreaElement;
+      if (titleEl) titleEl.value = '';
+      if (sizeEl) sizeEl.value = '';
+      if (imgEl) imgEl.value = '';
+      if (introEl) introEl.value = '';
+      if (criticEl) criticEl.value = '';
+    } else if (editingWorkIdx !== null && editingWorkIdx > wIdx) {
+      setEditingWorkIdx(editingWorkIdx - 1);
     }
   };
 
@@ -1294,8 +1328,8 @@ export default function App() {
     }
   };
 
-  const handleDeleteArtist = async (id: string) => {
-    if (!window.confirm('정말로 이 물파작가 레코드를 데이터베이스에서 영구 삭제하시겠습니까?')) return;
+  const handleDeleteArtist = async (id: string, skipConfirm = false) => {
+    if (!skipConfirm && !window.confirm('삭제하시겠습니까?')) return;
     
     const isLocalSandbox = !!dbError;
     const isFallbackPrefix = id.startsWith('artist-');
@@ -1324,7 +1358,9 @@ export default function App() {
   const finalLogo = siteSettings?.logo_url || '/assets/logo.png';
   const finalHeroBg = loading
     ? ''
-    : (siteSettings?.hero_bg_url || '/assets/hero-bg.jpeg');
+    : (siteSettings?.hero_bg_url && !siteSettings.hero_bg_url.includes('hero-bg') && !siteSettings.hero_bg_url.includes('mountains') && !siteSettings.hero_bg_url.includes('hero_bg_custom')
+        ? siteSettings.hero_bg_url
+        : '/assets/wave00.jpg');
 
   // Helper to sort dynamic content lists by title/name
   const sortItems = (items: ArchiveItem[], order: 'default' | 'titleAsc' | 'titleDesc') => {
@@ -1661,20 +1697,19 @@ export default function App() {
               {/* Gentle Snowy Falling Leaves Overlay */}
               <FallingLeaves />
 
-              <div className="relative z-10 max-w-7xl mx-auto px-6 md:px-12 pt-36 md:pt-44 pb-32 flex flex-col justify-between min-h-screen">
+              <div className="relative z-10 max-w-7xl mx-auto px-6 md:px-12 pt-36 md:pt-44 pb-32 space-y-24">
 
                 {/* Hero Headline content */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center py-8">
 
-                  {/* Left Column - Empty top space, with Sub-copies and actions aligned at the bottom */}
+                  {/* Left Column - Sub-copies and actions */}
                   <div className="lg:col-span-7 flex flex-col justify-end min-h-[360px] space-y-8 text-left">
                     <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#1C1A17]/10 bg-[#1C1A17]/5 self-start">
                       <span className="w-2 h-2 rounded-full bg-[#1C1A17] animate-pulse" />
-                      <span className="text-xs sm:text-sm tracking-[0.2em] uppercase text-[#1C1A17] font-mono font-bold">ESTABLISHED 1997</span>
+                      <span className="text-xs sm:text-sm tracking-[0.2em] uppercase text-[#1C1A17] font-mono font-bold">ESTABLISHED 1997 ㆍ 弗寒子</span>
                     </div>
 
                     <div className="space-y-6">
-                      {/* Sub-copies placed and aligned at the bottom of the Hero section */}
                       <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-serif text-[#1C1A17] leading-relaxed font-semibold max-w-2xl whitespace-pre-line">
                         {t.hero.subtitle}
                       </p>
@@ -1683,14 +1718,14 @@ export default function App() {
                         <button
                           id="hero-explore-btn"
                           onClick={() => setPage('philosophy')}
-                          className="px-10 py-5 bg-[#1C1A17] text-white hover:bg-neutral-800 hover:scale-105 active:scale-95 text-sm sm:text-base md:text-lg tracking-wider uppercase transition-all flex items-center gap-3 rounded-full font-bold shadow-lg shadow-black/10"
+                          className="px-8 py-4 bg-[#1C1A17] text-white hover:bg-neutral-800 hover:scale-105 active:scale-95 text-sm sm:text-base tracking-wider uppercase transition-all flex items-center gap-3 rounded-full font-bold shadow-lg shadow-black/10"
                         >
                           <Compass size={18} /> {t.hero.cta}
                         </button>
                         <button
                           id="hero-tea-btn"
                           onClick={() => setPage('tea')}
-                          className="px-10 py-5 border border-[#1C1A17]/35 text-[#1C1A17] bg-transparent hover:bg-[#1C1A17] hover:text-white hover:scale-105 active:scale-95 text-sm sm:text-base md:text-lg tracking-wider uppercase transition-all rounded-full font-bold"
+                          className="px-8 py-4 border border-[#1C1A17]/35 text-[#1C1A17] bg-transparent hover:bg-[#1C1A17] hover:text-white hover:scale-105 active:scale-95 text-sm sm:text-base tracking-wider uppercase transition-all rounded-full font-bold"
                         >
                           {translations[lang].nav.tea}
                         </button>
@@ -1698,100 +1733,349 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* Right Column - Premium Hanging Calligraphy Scroll Frame (세로형 액자) */}
+                  {/* Right Column - Kept exactly as requested: 여영사진 심물지철 image */}
                   <div className="lg:col-span-5 relative w-full flex justify-center lg:justify-end py-6">
-                    <div className="relative border-[10px] border-[#2C231E] bg-[#FCFAF2] p-4 md:p-6 shadow-2xl flex flex-col items-center justify-center rounded-sm max-w-xs w-64 md:w-72">
-                      {/* Hanging Scroll string detail */}
-                      <div className="absolute -top-7 left-1/2 -translate-x-1/2 flex flex-col items-center">
-                        <div className="w-2.5 h-2.5 rounded-full bg-[#2C231E]" />
-                        <div className="w-0.5 h-6 bg-[#2C231E]" />
-                      </div>
+                    <div className="relative border border-emerald-800/60 p-1.5 rounded-2xl bg-white/70 shadow-lg max-w-xs w-64 md:w-72 overflow-hidden">
+                      <img
+                        src="/assets/mainsub.jpg"
+                        alt="Calligraphy"
+                        className="w-full h-auto object-cover rounded-xl"
+                        referrerPolicy="no-referrer"
+                      />
+                    </div>
+                  </div>
+                </div>
 
-                      {/* Inner Parchment Scroll */}
-                      <div className="w-full aspect-[2/3.8] bg-white border border-[#2C231E]/10 p-4 md:p-6 flex flex-col justify-between shadow-inner relative overflow-hidden min-h-[380px]">
-                        <img
-                          src="/assets/mainsub.jpg"
-                          alt="Calligraphy Scroll"
-                          className="w-full h-full object-cover"
-                          referrerPolicy="no-referrer"
-                        />
-                      </div>
+                {/* 1. 4 Core Visual Gateways (4대 주요 공간 카드) */}
+                <div className="space-y-6 text-left border-t border-[#1C1A17]/10 pt-16">
+                  <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-mono tracking-[0.3em] text-[#1C1A17]/60 uppercase font-bold">CORE DOMAINS</span>
+                      <h2 className="text-2xl md:text-3xl font-serif font-bold text-[#1C1A17]">불한자 사유와 예술의 4대 영역</h2>
+                    </div>
+                    <p className="text-xs sm:text-sm text-[#1C1A17]/70 font-sans max-w-md">
+                      철학, 미술공간, 시작(詩作), 다도가 하나의 파동으로 이루어지는 심물주의 세계
+                    </p>
+                  </div>
 
-                      {/* Wooden rollers detail at the bottom */}
-                      <div className="absolute -bottom-3.5 left-1/2 -translate-x-1/2 w-[105%] h-7 bg-[#2C231E] rounded-full shadow-md flex justify-between px-2">
-                        <div className="w-3.5 h-full bg-[#1C1A17] rounded-full" />
-                        <div className="w-3.5 h-full bg-[#1C1A17] rounded-full" />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {/* Card 1: 심물철학 */}
+                    <div
+                      onClick={() => setPage('philosophy')}
+                      className="group relative h-80 rounded-2xl overflow-hidden border border-[#1C1A17]/15 shadow-md hover:shadow-2xl transition-all duration-500 cursor-pointer flex flex-col justify-end p-6 select-none"
+                    >
+                      <img
+                        src="/assets/mountains_v2.jpg"
+                        alt="Mind-Matter Philosophy"
+                        className="absolute inset-0 w-full h-full object-cover brightness-[0.75] group-hover:scale-108 transition-transform duration-700"
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent" />
+                      <div className="relative z-10 space-y-2 text-white">
+                        <span className="text-[10px] font-mono tracking-widest text-emerald-300 uppercase font-bold px-2 py-0.5 rounded bg-black/40 border border-emerald-400/30 inline-block">
+                          MIND & MATTER
+                        </span>
+                        <h3 className="text-xl font-serif font-bold group-hover:text-amber-200 transition-colors">
+                          {t.nav.philosophy}
+                        </h3>
+                        <p className="text-xs text-white/80 line-clamp-2 leading-relaxed">
+                          {lang === 'KR' ? '물질과 정신이 교감하는 우주적 파동과 동시적 존재의 철학' : 'Philosophy of Mind & Matter Resonance'}
+                        </p>
+                        <div className="pt-2 text-[11px] font-mono font-bold text-amber-200/90 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                          EXPLORE DOCTRINE &rarr;
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Card 2: 물파공간 */}
+                    <div
+                      onClick={() => setPage('art')}
+                      className="group relative h-80 rounded-2xl overflow-hidden border border-[#1C1A17]/15 shadow-md hover:shadow-2xl transition-all duration-500 cursor-pointer flex flex-col justify-end p-6 select-none"
+                    >
+                      <img
+                        src="/assets/mupaback.jpg"
+                        alt="Mulpa Space"
+                        className="absolute inset-0 w-full h-full object-cover brightness-[0.75] group-hover:scale-108 transition-transform duration-700"
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent" />
+                      <div className="relative z-10 space-y-2 text-white">
+                        <span className="text-[10px] font-mono tracking-widest text-amber-300 uppercase font-bold px-2 py-0.5 rounded bg-black/40 border border-amber-400/30 inline-block">
+                          ART & SPACE
+                        </span>
+                        <h3 className="text-xl font-serif font-bold group-hover:text-amber-200 transition-colors">
+                          {t.nav.art}
+                        </h3>
+                        <p className="text-xs text-white/80 line-clamp-2 leading-relaxed">
+                          {lang === 'KR' ? '시대의 필치와 예술이 숨 쉬는 서화, 미술, 도록 갤러리' : 'Calligraphy, Masterpieces & Exhibition Gallery'}
+                        </p>
+                        <div className="pt-2 text-[11px] font-mono font-bold text-amber-200/90 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                          VIEW MASTERPIECES &rarr;
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Card 3: 라석시집 */}
+                    <div
+                      onClick={() => setPage('poetryCollection')}
+                      className="group relative h-80 rounded-2xl overflow-hidden border border-[#1C1A17]/15 shadow-md hover:shadow-2xl transition-all duration-500 cursor-pointer flex flex-col justify-end p-6 select-none"
+                    >
+                      <img
+                        src="/assets/sijipback.jpg"
+                        alt="Poetry Collection"
+                        className="absolute inset-0 w-full h-full object-cover brightness-[0.75] group-hover:scale-108 transition-transform duration-700"
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent" />
+                      <div className="relative z-10 space-y-2 text-white">
+                        <span className="text-[10px] font-mono tracking-widest text-sky-300 uppercase font-bold px-2 py-0.5 rounded bg-black/40 border border-sky-400/30 inline-block">
+                          POETRY GARDEN
+                        </span>
+                        <h3 className="text-xl font-serif font-bold group-hover:text-amber-200 transition-colors">
+                          {t.nav.poetryCollection}
+                        </h3>
+                        <p className="text-xs text-white/80 line-clamp-2 leading-relaxed">
+                          {lang === 'KR' ? '천자문시집, 심물시집 등 라석 시원(詩苑)의 깊은 시적 서사' : 'Lasok Poetic Garden & Archived Verses'}
+                        </p>
+                        <div className="pt-2 text-[11px] font-mono font-bold text-amber-200/90 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                          READ POETRY &rarr;
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Card 4: 서화차향 */}
+                    <div
+                      onClick={() => setPage('tea')}
+                      className="group relative h-80 rounded-2xl overflow-hidden border border-[#1C1A17]/15 shadow-md hover:shadow-2xl transition-all duration-500 cursor-pointer flex flex-col justify-end p-6 select-none"
+                    >
+                      <img
+                        src="/assets/bulhansuncha_v2.jpg"
+                        alt="SunCha Tea Ceremony"
+                        className="absolute inset-0 w-full h-full object-cover brightness-[0.75] group-hover:scale-108 transition-transform duration-700"
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent" />
+                      <div className="relative z-10 space-y-2 text-white">
+                        <span className="text-[10px] font-mono tracking-widest text-emerald-300 uppercase font-bold px-2 py-0.5 rounded bg-black/40 border border-emerald-400/30 inline-block">
+                          TEA CEREMONY
+                        </span>
+                        <h3 className="text-xl font-serif font-bold group-hover:text-amber-200 transition-colors">
+                          {t.nav.tea}
+                        </h3>
+                        <p className="text-xs text-white/80 line-clamp-2 leading-relaxed">
+                          {lang === 'KR' ? '한 잔의 차에 담긴 비움의 향과 정적의 보이차까오 선차' : 'SunCha Tea Ritual & Scent of Emptiness'}
+                        </p>
+                        <div className="pt-2 text-[11px] font-mono font-bold text-amber-200/90 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                          SUNCHATEA RITUAL &rarr;
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Elegant Translucent Bento Blocks with Dark Borders */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 pt-16 border-t border-[#1C1A17]/10 mt-16">
+                {/* 2. Visual Feature Split - "사유와 예술이 맞닿는 자리" */}
+                <div className="bg-white/80 backdrop-blur-md border border-[#1C1A17]/10 rounded-3xl p-8 md:p-12 shadow-xl grid grid-cols-1 lg:grid-cols-12 gap-10 items-center text-left">
+                  <div className="lg:col-span-6 space-y-6">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-emerald-800/20 bg-emerald-50 text-emerald-900 font-mono text-[10px] tracking-widest font-bold uppercase">
+                      <Sparkles size={12} /> 心物一體 ㆍ ESSENCE OF BULHANZA
+                    </div>
 
-                  {/* Card 1 */}
-                  <div
-                    onClick={() => setPage('philosophy')}
-                    className="group p-8 bg-white/60 backdrop-blur-md border border-[#1C1A17]/10 rounded-2xl hover:border-[#1C1A17]/35 hover:bg-white/90 hover:shadow-xl transition-all duration-300 cursor-pointer text-left space-y-5 relative overflow-hidden"
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-br from-[#1C1A17]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                    <div className="w-12 h-12 rounded-xl bg-[#1C1A17]/5 border border-[#1C1A17]/10 flex items-center justify-center text-[#1C1A17] group-hover:scale-110 transition-transform duration-500 shadow-inner">
-                      <Activity size={18} />
+                    <h2 className="text-2xl md:text-4xl font-serif font-normal text-[#1C1A17] leading-tight">
+                      마음과 사물이 하나로 빚어내는 정적의 미학
+                    </h2>
+
+                    <p className="text-sm md:text-base text-[#1C1A17]/80 font-sans leading-relaxed">
+                      물파(水波)의 세계는 억지로 만듦이 없으며, 자연의 이치와 인간 내면의 깊은 울림이 교감하는 지점에서 시작됩니다. 서화의 힘 있는 먹빛 필선은 시문으로 피어나고, 한 잔의 보이차까오 온기로 완성됩니다.
+                    </p>
+
+                    <div className="space-y-3 pt-2">
+                      <div className="flex items-start gap-3 p-3.5 rounded-xl bg-[#FAF6EE] border border-[#1C1A17]/10">
+                        <div className="w-7 h-7 rounded-lg bg-[#1C1A17] text-white flex items-center justify-center text-xs font-mono font-bold shrink-0 mt-0.5">
+                          01
+                        </div>
+                        <div>
+                          <h4 className="font-serif font-bold text-sm text-[#1C1A17]">만남의 파동 (心物之波)</h4>
+                          <p className="text-xs text-[#1C1A17]/70">붓질 하나, 찻잎 한 장에 대자연과 영적 우주가 나누는 고요한 호흡</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-3 p-3.5 rounded-xl bg-[#FAF6EE] border border-[#1C1A17]/10">
+                        <div className="w-7 h-7 rounded-lg bg-[#1C1A17] text-white flex items-center justify-center text-xs font-mono font-bold shrink-0 mt-0.5">
+                          02
+                        </div>
+                        <div>
+                          <h4 className="font-serif font-bold text-sm text-[#1C1A17]">유무쌍즉 (有無雙則)</h4>
+                          <p className="text-xs text-[#1C1A17]/70">비어 있는 화폭과 향기 속에서 피어나는 무수한 가능성과 깊은 여운</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-3 p-3.5 rounded-xl bg-[#FAF6EE] border border-[#1C1A17]/10">
+                        <div className="w-7 h-7 rounded-lg bg-[#1C1A17] text-white flex items-center justify-center text-xs font-mono font-bold shrink-0 mt-0.5">
+                          03
+                        </div>
+                        <div>
+                          <h4 className="font-serif font-bold text-sm text-[#1C1A17]">심경정적 (心鏡靜寂)</h4>
+                          <p className="text-xs text-[#1C1A17]/70">맑게 닦은 마음의 거울로 밝은 우주의 기운을 온전히 비춰 내는 수행</p>
+                        </div>
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <h3 className="font-serif text-xl sm:text-2xl text-[#1C1A17] font-bold tracking-wide flex items-center gap-2">
-                        {t.nav.philosophy}
-                        <span className="text-xs font-mono text-[#1C1A17]/60 border border-[#1C1A17]/20 px-2 py-0.5 rounded uppercase font-bold">MIND</span>
-                      </h3>
-                      <p className="text-sm sm:text-base md:text-lg text-[#1C1A17]/85 leading-relaxed font-sans line-clamp-3">{t.philosophy.text}</p>
-                    </div>
-                    <div className="pt-2 text-xs sm:text-sm md:text-base font-mono font-bold tracking-wider text-[#1C1A17]/50 group-hover:text-black transition-colors flex items-center gap-1.5">
-                      EXPLORE DOCTRINE <span className="transform group-hover:translate-x-1 transition-transform">&rarr;</span>
+
+                    <div className="pt-2">
+                      <button
+                        onClick={() => setPage('philosophy')}
+                        className="px-6 py-3 bg-[#1C1A17] text-white hover:bg-neutral-800 rounded-xl font-serif text-xs md:text-sm font-bold transition-all shadow-md inline-flex items-center gap-2"
+                      >
+                        <Compass size={15} /> 심물철학 자세히 보기
+                      </button>
                     </div>
                   </div>
 
-                  {/* Card 2 */}
-                  <div
-                    onClick={() => setPage('art')}
-                    className="group p-8 bg-white/60 backdrop-blur-md border border-[#1C1A17]/10 rounded-2xl hover:border-[#1C1A17]/35 hover:bg-white/90 hover:shadow-xl transition-all duration-300 cursor-pointer text-left space-y-5 relative overflow-hidden"
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-br from-[#1C1A17]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                    <div className="w-12 h-12 rounded-xl bg-[#1C1A17]/5 border border-[#1C1A17]/10 flex items-center justify-center text-[#1C1A17] group-hover:scale-110 transition-transform duration-500 shadow-inner">
-                      <Sparkles size={18} />
-                    </div>
-                    <div className="space-y-2">
-                      <h3 className="font-serif text-xl sm:text-2xl text-[#1C1A17] font-bold tracking-wide flex items-center gap-2">
-                        {t.nav.art}
-                        <span className="text-xs font-mono text-[#1C1A17]/60 border border-[#1C1A17]/20 px-2 py-0.5 rounded uppercase font-bold">SPACE</span>
-                      </h3>
-                      <p className="text-sm sm:text-base md:text-lg text-[#1C1A17]/85 leading-relaxed font-sans line-clamp-3">{t.art.intro}</p>
-                    </div>
-                    <div className="pt-2 text-xs sm:text-sm md:text-base font-mono font-bold tracking-wider text-[#1C1A17]/50 group-hover:text-black transition-colors flex items-center gap-1.5">
-                      VIEW MASTERPIECES <span className="transform group-hover:translate-x-1 transition-transform">&rarr;</span>
-                    </div>
-                  </div>
-
-                  {/* Card 3 */}
-                  <div
-                    onClick={() => setPage('tea')}
-                    className="group p-8 bg-white/60 backdrop-blur-md border border-[#1C1A17]/10 rounded-2xl hover:border-[#1C1A17]/35 hover:bg-white/90 hover:shadow-xl transition-all duration-300 cursor-pointer text-left space-y-5 relative overflow-hidden"
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-br from-[#1C1A17]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                    <div className="w-12 h-12 rounded-xl bg-[#1C1A17]/5 border border-[#1C1A17]/10 flex items-center justify-center text-[#1C1A17] group-hover:scale-110 transition-transform duration-500 shadow-inner">
-                      <BookOpen size={18} />
-                    </div>
-                    <div className="space-y-2">
-                      <h3 className="font-serif text-xl sm:text-2xl text-[#1C1A17] font-bold tracking-wide flex items-center gap-2">
-                        {t.nav.tea}
-                        <span className="text-xs font-mono text-[#1C1A17]/60 border border-[#1C1A17]/20 px-2 py-0.5 rounded uppercase font-bold">TEA</span>
-                      </h3>
-                      <p className="text-sm sm:text-base md:text-lg text-[#1C1A17]/85 leading-relaxed font-sans line-clamp-3">{t.tea.storyContent}</p>
-                    </div>
-                    <div className="pt-2 text-xs sm:text-sm md:text-base font-mono font-bold tracking-wider text-[#1C1A17]/50 group-hover:text-black transition-colors flex items-center gap-1.5">
-                      SUNCHATEA CEREMONY <span className="transform group-hover:translate-x-1 transition-transform">&rarr;</span>
+                  <div className="lg:col-span-6 relative">
+                    <div className="relative rounded-2xl overflow-hidden border border-[#1C1A17]/15 shadow-2xl group">
+                      <img
+                        src="/assets/chacao01.jpg"
+                        alt="Tea and Ceramic Art"
+                        className="w-full h-80 md:h-96 object-cover brightness-[0.9] group-hover:scale-103 transition-transform duration-700"
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+                      <div className="absolute bottom-6 left-6 right-6 text-white space-y-1">
+                        <span className="text-[10px] font-mono tracking-widest text-amber-200 uppercase font-bold">
+                          불한선차 & 다기
+                        </span>
+                        <h3 className="font-serif text-lg md:text-xl font-normal">
+                          "비움의 향(香)과 흙에서 얻은 고요한 깊이"
+                        </h3>
+                      </div>
                     </div>
                   </div>
+                </div>
 
+                {/* 3. Visual Aesthetic Showcase - "서화차향 4대 다도 풍류 (書 畫 茶 香)" */}
+                <div className="space-y-6 text-left">
+                  <div className="text-center space-y-2 max-w-xl mx-auto">
+                    <span className="text-[10px] font-mono tracking-[0.4em] uppercase text-[#1C1A17]/60 font-bold">THE FOUR PILLARS</span>
+                    <h2 className="text-2xl md:text-4xl font-serif font-normal text-[#1C1A17]">서화와 차가 지어내는 4대 풍류</h2>
+                    <p className="text-xs md:text-sm text-[#1C1A17]/70 font-sans">
+                      글씨, 그림, 차, 향기가 자아내는 물파 선비의 문방(文房) 풍경
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {/* Pillar 1: 書 */}
+                    <div className="bg-white/70 backdrop-blur-sm border border-[#1C1A17]/10 rounded-2xl p-5 space-y-4 hover:bg-white/95 transition-all shadow-sm hover:shadow-md">
+                      <div className="h-44 rounded-xl overflow-hidden relative border border-[#1C1A17]/10">
+                        <img
+                          src="/assets/suntea01.jpg"
+                          alt="Calligraphy Art"
+                          className="w-full h-full object-cover"
+                          referrerPolicy="no-referrer"
+                        />
+                        <div className="absolute top-3 left-3 w-8 h-8 rounded-lg bg-black/70 text-white font-serif text-base font-bold flex items-center justify-center backdrop-blur-xs">
+                          書
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <h4 className="font-serif font-bold text-base text-[#1C1A17]">書 (서예와 필치)</h4>
+                        <p className="text-xs text-[#1C1A17]/75 font-sans leading-relaxed">
+                          시대를 사유하고 통찰하는 가람의 묵직한 먹빛 필선
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Pillar 2: 畫 */}
+                    <div className="bg-white/70 backdrop-blur-sm border border-[#1C1A17]/10 rounded-2xl p-5 space-y-4 hover:bg-white/95 transition-all shadow-sm hover:shadow-md">
+                      <div className="h-44 rounded-xl overflow-hidden relative border border-[#1C1A17]/10">
+                        <img
+                          src="/assets/suntea02.jpg"
+                          alt="Painting Art"
+                          className="w-full h-full object-cover"
+                          referrerPolicy="no-referrer"
+                        />
+                        <div className="absolute top-3 left-3 w-8 h-8 rounded-lg bg-black/70 text-white font-serif text-base font-bold flex items-center justify-center backdrop-blur-xs">
+                          畫
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <h4 className="font-serif font-bold text-base text-[#1C1A17]">畫 (서화와 형상)</h4>
+                        <p className="text-xs text-[#1C1A17]/75 font-sans leading-relaxed">
+                          여백과 형상이 대등하게 숨 쉬는 순수한 서화 예술
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Pillar 3: 茶 */}
+                    <div className="bg-white/70 backdrop-blur-sm border border-[#1C1A17]/10 rounded-2xl p-5 space-y-4 hover:bg-white/95 transition-all shadow-sm hover:shadow-md">
+                      <div className="h-44 rounded-xl overflow-hidden relative border border-[#1C1A17]/10">
+                        <img
+                          src="/assets/suntea03.jpg"
+                          alt="Tea Ritual"
+                          className="w-full h-full object-cover"
+                          referrerPolicy="no-referrer"
+                        />
+                        <div className="absolute top-3 left-3 w-8 h-8 rounded-lg bg-black/70 text-white font-serif text-base font-bold flex items-center justify-center backdrop-blur-xs">
+                          茶
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <h4 className="font-serif font-bold text-base text-[#1C1A17]">茶 (불한선차)</h4>
+                        <p className="text-xs text-[#1C1A17]/75 font-sans leading-relaxed">
+                          보이차까오 한 알로 몸과 마음의 번뇌를 정화하는 다법
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Pillar 4: 香 */}
+                    <div className="bg-white/70 backdrop-blur-sm border border-[#1C1A17]/10 rounded-2xl p-5 space-y-4 hover:bg-white/95 transition-all shadow-sm hover:shadow-md">
+                      <div className="h-44 rounded-xl overflow-hidden relative border border-[#1C1A17]/10">
+                        <img
+                          src="/assets/suntea04.jpg"
+                          alt="Scent of Emptiness"
+                          className="w-full h-full object-cover"
+                          referrerPolicy="no-referrer"
+                        />
+                        <div className="absolute top-3 left-3 w-8 h-8 rounded-lg bg-black/70 text-white font-serif text-base font-bold flex items-center justify-center backdrop-blur-xs">
+                          香
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <h4 className="font-serif font-bold text-base text-[#1C1A17]">香 (비움의 향)</h4>
+                        <p className="text-xs text-[#1C1A17]/75 font-sans leading-relaxed">
+                          야생 가을 안개처럼 은은하고 깊은 비움의 가을 우디 향
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 4. Activity Journey Banner - "라석여정 (Activity & Media Journey)" */}
+                <div className="relative rounded-3xl overflow-hidden border border-[#1C1A17]/15 shadow-2xl p-8 md:p-12 text-left text-white select-none">
+                  <img
+                    src="/assets/wave00.jpg"
+                    alt="Journey Archive Background"
+                    className="absolute inset-0 w-full h-full object-cover brightness-[0.35] contrast-[1.1]"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-transparent" />
+                  <div className="relative z-10 max-w-2xl space-y-4">
+                    <span className="text-[10px] font-mono tracking-[0.3em] text-amber-300 uppercase font-bold px-3 py-1 rounded-full bg-black/50 border border-amber-400/30 inline-block">
+                      ARCHIVE & MEDIA JOURNEY
+                    </span>
+                    <h2 className="text-2xl md:text-4xl font-serif font-normal text-white leading-tight">
+                      역사와 삶이 교차하는 라석의 발자취
+                    </h2>
+                    <p className="text-xs md:text-sm text-white/80 font-sans leading-relaxed">
+                      언론 보도, 아카이브 포토 전시, 시와 차가 어우러졌던 지난 여정의 기록들을 살펴보고 불한자의 살아있는 역사를 확인하세요.
+                    </p>
+                    <div className="pt-2">
+                      <button
+                        onClick={() => setPage('journey')}
+                        className="px-8 py-3.5 bg-white text-black hover:bg-neutral-200 rounded-xl font-serif text-xs md:text-sm font-bold transition-all shadow-lg inline-flex items-center gap-2"
+                      >
+                        <Newspaper size={16} /> 아카이브 여정 둘러보기 &rarr;
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
               </div>
@@ -2361,7 +2645,7 @@ export default function App() {
               {/* Elegant Atmospheric Art Cover Banner */}
               <div className="w-full h-48 md:h-64 rounded-xl overflow-hidden mb-12 relative border border-[#1C1A17]/10 shadow-lg group select-none">
                 <img
-                  src="https://images.unsplash.com/photo-1541701494587-cb58502866ab?auto=format&fit=crop&q=80&w=1200"
+                  src="/assets/mupaback.jpg"
                   alt="Art Banner"
                   className="w-full h-full object-cover brightness-[0.85] contrast-[1.05] transition-transform duration-[4000ms] group-hover:scale-103"
                   referrerPolicy="no-referrer"
@@ -2930,6 +3214,25 @@ export default function App() {
                 <span className="text-xs tracking-[0.3em] uppercase opacity-60 font-mono font-bold block">{t.poetryCollection.subtitle}</span>
                 <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif text-[#1C1A17] font-bold tracking-tight">{t.poetryCollection.title}</h2>
                 <div className="w-16 h-px bg-[#1C1A17]/25 mx-auto mt-4" />
+              </div>
+
+              {/* Elegant Atmospheric Poetry Cover Banner */}
+              <div className="w-full h-48 md:h-64 rounded-xl overflow-hidden mb-12 relative border border-[#1C1A17]/10 shadow-lg group select-none">
+                <img
+                  src="/assets/sijipback.jpg"
+                  alt="Poetry Collection Banner"
+                  className="w-full h-full object-cover brightness-[0.88] contrast-[1.05] transition-transform duration-[4000ms] group-hover:scale-103"
+                  referrerPolicy="no-referrer"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/20 to-transparent" />
+                <div className="absolute bottom-6 left-6 text-white text-left space-y-1">
+                  <span className="text-[9px] tracking-[0.3em] font-mono text-white/70 uppercase block font-bold">
+                    {lang === 'KR' ? '라석시원 ㆍ 영혼의 묵향' : lang === 'SC' ? '罗石诗苑 ㆍ 灵魂之墨香' : 'Lasok Poetic Garden'}
+                  </span>
+                  <h3 className="font-serif text-lg md:text-2xl font-normal text-white drop-shadow-md">
+                    {lang === 'KR' ? '라석시집 (羅石詩集) ㆍ 침묵 속에 서린 시적 감응과 파동' : lang === 'SC' ? '罗石诗集 ㆍ 寂静中凝结的诗意与共鸣' : 'Poetic Resonance in Silence & Stone'}
+                  </h3>
+                </div>
               </div>
 
               {/* Sub-categories/Book Tabs at the top */}
@@ -4315,7 +4618,7 @@ export default function App() {
                                     <Edit2 size={13} />
                                   </button>
                                   <button
-                                    onClick={() => handleDeleteItem(item.id)}
+                                    onClick={() => setDeleteTarget({ type: 'item', id: item.id, title: item.title })}
                                     className="p-1.5 hover:text-red-600 transition-colors inline-block"
                                     title="Delete record"
                                   >
@@ -4428,7 +4731,7 @@ export default function App() {
                                     <Edit2 size={13} />
                                   </button>
                                   <button
-                                    onClick={() => handleDeleteArtist(artist.id!)}
+                                    onClick={() => setDeleteTarget({ type: 'artist', id: artist.id!, title: artist.name })}
                                     className="p-1.5 hover:text-red-600 transition-colors inline-block"
                                     title="Delete artist"
                                   >
@@ -4491,7 +4794,7 @@ export default function App() {
                                       const base = prev || {
                                         id: 'global',
                                         logo_url: '',
-                                        hero_bg_url: '/assets/mountains_v2.jpg',
+                                        hero_bg_url: '/assets/wave00.jpg',
                                         tea_detail_url: '/assets/bulhansuncha_v2.jpg'
                                       };
                                       return { ...base, logo_url: url };
@@ -4597,7 +4900,7 @@ export default function App() {
                                       const base = prev || {
                                         id: 'global',
                                         logo_url: '/assets/logo_v2.svg',
-                                        hero_bg_url: '/assets/mountains_v2.jpg',
+                                        hero_bg_url: '/assets/wave00.jpg',
                                         tea_detail_url: ''
                                       };
                                       return { ...base, tea_detail_url: url };
@@ -5320,26 +5623,7 @@ export default function App() {
                           </button>
                           <button
                             type="button"
-                            onClick={() => {
-                              const updatedWorks = [...editingArtist.works!];
-                              updatedWorks.splice(wIdx, 1);
-                              setEditingArtist({ ...editingArtist, works: updatedWorks });
-                              if (editingWorkIdx === wIdx) {
-                                setEditingWorkIdx(null);
-                                const titleEl = document.getElementById('new-work-title') as HTMLInputElement;
-                                const sizeEl = document.getElementById('new-work-size') as HTMLInputElement;
-                                const imgEl = document.getElementById('new-work-image') as HTMLInputElement;
-                                const introEl = document.getElementById('new-work-intro') as HTMLTextAreaElement;
-                                const criticEl = document.getElementById('new-work-critic') as HTMLTextAreaElement;
-                                if (titleEl) titleEl.value = '';
-                                if (sizeEl) sizeEl.value = '';
-                                if (imgEl) imgEl.value = '';
-                                if (introEl) introEl.value = '';
-                                if (criticEl) criticEl.value = '';
-                              } else if (editingWorkIdx !== null && editingWorkIdx > wIdx) {
-                                setEditingWorkIdx(editingWorkIdx - 1);
-                              }
-                            }}
+                            onClick={() => setDeleteTarget({ type: 'work', wIdx, title: work.title || '무제 작품' })}
                             className="p-1 hover:text-red-600 transition-colors"
                             title="Remove item"
                           >
@@ -6379,6 +6663,73 @@ export default function App() {
                   className="px-6 py-2 bg-black text-white hover:bg-[#1C1A17] text-[10px] tracking-widest uppercase transition-colors rounded font-bold"
                 >
                   Save to Firebase
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {deleteTarget && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="bg-white border border-[#1C1A17]/20 rounded-2xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-6 text-left"
+            >
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-full bg-red-50 border border-red-200 text-red-600 flex items-center justify-center shrink-0">
+                  <Trash2 size={22} />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="font-serif text-xl font-bold text-black">
+                    삭제하시겠습니까?
+                  </h3>
+                  <p className="text-xs sm:text-sm text-[#1C1A17]/70 font-sans leading-relaxed">
+                    {deleteTarget.type === 'item' && (
+                      <>보관함 데이터 <strong className="text-black font-semibold">"{deleteTarget.title || '선택한 항목'}"</strong>을(를) 영구 삭제하시겠습니까?</>
+                    )}
+                    {deleteTarget.type === 'artist' && (
+                      <>물파작가 <strong className="text-black font-semibold">"{deleteTarget.title || '선택한 작가'}"</strong> 및 관련 도록 정보를 영구 삭제하시겠습니까?</>
+                    )}
+                    {deleteTarget.type === 'work' && (
+                      <>대표 도록 작품 <strong className="text-black font-semibold">"{deleteTarget.title || '선택한 작품'}"</strong>을(를) 목록에서 삭제하시겠습니까?</>
+                    )}
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-[#FAF9F6] border border-[#1C1A17]/10 p-3.5 rounded-xl text-[11px] text-[#1C1A17]/70 font-mono">
+                ⚠️ 이 작업은 되돌릴 수 없습니다. 삭제를 진행하시려면 아래 [삭제] 버튼을 클릭하세요.
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2 font-mono text-xs">
+                <button
+                  type="button"
+                  onClick={() => setDeleteTarget(null)}
+                  className="px-5 py-2.5 border border-[#1C1A17]/20 text-[#1C1A17] hover:bg-neutral-100 rounded-xl transition-all font-bold"
+                >
+                  취소
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const target = deleteTarget;
+                    setDeleteTarget(null);
+                    if (!target) return;
+                    if (target.type === 'item' && target.id) {
+                      await handleDeleteItem(target.id, true);
+                    } else if (target.type === 'artist' && target.id) {
+                      await handleDeleteArtist(target.id, true);
+                    } else if (target.type === 'work' && target.wIdx !== undefined) {
+                      handleRemoveWork(target.wIdx);
+                    }
+                  }}
+                  className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl transition-all font-bold shadow-md flex items-center gap-1.5"
+                >
+                  <Trash2 size={14} />
+                  삭제
                 </button>
               </div>
             </motion.div>
