@@ -1933,7 +1933,7 @@ export default function App() {
                   <div className="lg:col-span-6 relative">
                     <div className="relative rounded-2xl overflow-hidden border border-[#1C1A17]/15 shadow-2xl group">
                       <img
-                        src="/assets/chacao01.jpg"
+                        src="/assets/cha00.jpg"
                         alt="Tea and Ceramic Art"
                         className="w-full h-80 md:h-96 object-cover brightness-[0.9] group-hover:scale-103 transition-transform duration-700"
                         referrerPolicy="no-referrer"
@@ -3580,7 +3580,7 @@ export default function App() {
               {/* Elegant Atmospheric Tea Cover Banner */}
               <div className="w-full h-48 md:h-64 rounded-xl overflow-hidden mb-16 relative border border-[#1C1A17]/10 shadow-lg group select-none">
                 <img
-                  src="/assets/cha01.jpg"
+                  src="/assets/cha00.jpg"
                   alt="Tea Banner"
                   className="w-full h-full object-cover brightness-[0.85] contrast-[1.05] transition-transform duration-[4000ms] group-hover:scale-103"
                   referrerPolicy="no-referrer"
