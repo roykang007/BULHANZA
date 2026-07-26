@@ -68,13 +68,22 @@
 @layer base {
   body {
     background-color: #FAF6EE; /* Warm, rich ivory/cream matching the user's attached image */
-    background-image: url('/assets/hero-bg.jpeg');
+    color: #11100E;
+    position: relative;
+    @apply antialiased;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background-image: url('/assets/waveback.jpg');
     background-size: cover;
     background-repeat: no-repeat;
     background-position: center center;
-    background-attachment: fixed;
-    color: #11100E;
-    @apply antialiased;
+    opacity: 0.5;
+    pointer-events: none;
   }
 }
 

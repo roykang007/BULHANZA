@@ -4,7 +4,7 @@ import {
   Menu, X, Plus, Trash2, Edit2, ArrowLeft, Newspaper, Image as ImageIcon, Check,
   Upload, ChevronLeft, ChevronRight, BookOpen, Settings, ChevronDown, Database,
   Activity, Key, RefreshCw, Sparkles, MessageSquare, Compass, Send, Calendar, Monitor,
-  ArrowUpDown, List, PenTool, LogIn, LogOut
+  ArrowUpDown, List, PenTool, LogIn, LogOut, Layers, RotateCcw
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -803,7 +803,7 @@ export default function App() {
       if (settingsSnap.exists()) {
         const fetchedSettings = settingsSnap.data() as SiteSettings;
         if (!fetchedSettings.hero_bg_url || fetchedSettings.hero_bg_url.includes('hero-bg') || fetchedSettings.hero_bg_url.includes('mountains') || fetchedSettings.hero_bg_url.includes('hero_bg_custom')) {
-          fetchedSettings.hero_bg_url = '/assets/wave00.jpg';
+          fetchedSettings.hero_bg_url = '/assets/waveback.jpg';
         }
         setSiteSettings(fetchedSettings);
       } else {
@@ -811,7 +811,7 @@ export default function App() {
         const initialSettings: SiteSettings = {
           id: 'global',
           logo_url: '/assets/logo_v2.svg',
-          hero_bg_url: '/assets/wave00.jpg',
+          hero_bg_url: '/assets/waveback.jpg',
           tea_detail_url: '/assets/bulhansuncha_v2.jpg',
           tea_slider_images: [
             'https://images.unsplash.com/photo-1594631252845-29fc4cc8cde9?auto=format&fit=crop&q=80&w=1200',
@@ -1360,7 +1360,7 @@ export default function App() {
     ? ''
     : (siteSettings?.hero_bg_url && !siteSettings.hero_bg_url.includes('hero-bg') && !siteSettings.hero_bg_url.includes('mountains') && !siteSettings.hero_bg_url.includes('hero_bg_custom')
         ? siteSettings.hero_bg_url
-        : '/assets/wave00.jpg');
+        : '/assets/waveback.jpg');
 
   // Helper to sort dynamic content lists by title/name
   const sortItems = (items: ArchiveItem[], order: 'default' | 'titleAsc' | 'titleDesc') => {
@@ -1686,7 +1686,7 @@ export default function App() {
                   <img
                     src={finalHeroBg}
                     alt="Immersive Backdrop"
-                    className="w-full h-full object-cover scale-100 brightness-[0.95] contrast-[1.02] opacity-30 transition-transform duration-[4000ms] ease-out"
+                    className="w-full h-full object-cover scale-100 brightness-[0.95] contrast-[1.02] opacity-50 transition-transform duration-[4000ms] ease-out"
                     referrerPolicy="no-referrer"
                   />
                 )}
@@ -1751,10 +1751,10 @@ export default function App() {
                   <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                     <div className="space-y-1">
                       <span className="text-[10px] font-mono tracking-[0.3em] text-[#1C1A17]/60 uppercase font-bold">CORE DOMAINS</span>
-                      <h2 className="text-2xl md:text-3xl font-serif font-bold text-[#1C1A17]">불한자 사유와 예술의 4대 영역</h2>
+                      <h2 className="text-2xl md:text-3xl font-serif font-bold text-[#1C1A17]">{t.homeSections.coreDomainsTitle}</h2>
                     </div>
                     <p className="text-xs sm:text-sm text-[#1C1A17]/70 font-sans max-w-md">
-                      철학, 미술공간, 시작(詩作), 다도가 하나의 파동으로 이루어지는 심물주의 세계
+                      {t.homeSections.coreDomainsDesc}
                     </p>
                   </div>
 
@@ -1779,7 +1779,7 @@ export default function App() {
                           {t.nav.philosophy}
                         </h3>
                         <p className="text-xs text-white/80 line-clamp-2 leading-relaxed">
-                          {lang === 'KR' ? '물질과 정신이 교감하는 우주적 파동과 동시적 존재의 철학' : 'Philosophy of Mind & Matter Resonance'}
+                          {t.homeSections.cardPhilosophyDesc}
                         </p>
                         <div className="pt-2 text-[11px] font-mono font-bold text-amber-200/90 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
                           EXPLORE DOCTRINE &rarr;
@@ -1807,7 +1807,7 @@ export default function App() {
                           {t.nav.art}
                         </h3>
                         <p className="text-xs text-white/80 line-clamp-2 leading-relaxed">
-                          {lang === 'KR' ? '시대의 필치와 예술이 숨 쉬는 서화, 미술, 도록 갤러리' : 'Calligraphy, Masterpieces & Exhibition Gallery'}
+                          {t.homeSections.cardArtDesc}
                         </p>
                         <div className="pt-2 text-[11px] font-mono font-bold text-amber-200/90 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
                           VIEW MASTERPIECES &rarr;
@@ -1835,7 +1835,7 @@ export default function App() {
                           {t.nav.poetryCollection}
                         </h3>
                         <p className="text-xs text-white/80 line-clamp-2 leading-relaxed">
-                          {lang === 'KR' ? '천자문시집, 심물시집 등 라석 시원(詩苑)의 깊은 시적 서사' : 'Lasok Poetic Garden & Archived Verses'}
+                          {t.homeSections.cardPoetryDesc}
                         </p>
                         <div className="pt-2 text-[11px] font-mono font-bold text-amber-200/90 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
                           READ POETRY &rarr;
@@ -1863,7 +1863,7 @@ export default function App() {
                           {t.nav.tea}
                         </h3>
                         <p className="text-xs text-white/80 line-clamp-2 leading-relaxed">
-                          {lang === 'KR' ? '한 잔의 차에 담긴 비움의 향과 정적의 보이차까오 선차' : 'SunCha Tea Ritual & Scent of Emptiness'}
+                          {t.homeSections.cardTeaDesc}
                         </p>
                         <div className="pt-2 text-[11px] font-mono font-bold text-amber-200/90 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
                           SUNCHATEA RITUAL &rarr;
@@ -1877,15 +1877,15 @@ export default function App() {
                 <div className="bg-white/80 backdrop-blur-md border border-[#1C1A17]/10 rounded-3xl p-8 md:p-12 shadow-xl grid grid-cols-1 lg:grid-cols-12 gap-10 items-center text-left">
                   <div className="lg:col-span-6 space-y-6">
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-emerald-800/20 bg-emerald-50 text-emerald-900 font-mono text-[10px] tracking-widest font-bold uppercase">
-                      <Sparkles size={12} /> 心物一體 ㆍ ESSENCE OF BULHANZA
+                      <Sparkles size={12} /> {t.homeSections.featureTag}
                     </div>
 
                     <h2 className="text-2xl md:text-4xl font-serif font-normal text-[#1C1A17] leading-tight">
-                      마음과 사물이 하나로 빚어내는 정적의 미학
+                      {t.homeSections.featureTitle}
                     </h2>
 
                     <p className="text-sm md:text-base text-[#1C1A17]/80 font-sans leading-relaxed">
-                      물파(水波)의 세계는 억지로 만듦이 없으며, 자연의 이치와 인간 내면의 깊은 울림이 교감하는 지점에서 시작됩니다. 서화의 힘 있는 먹빛 필선은 시문으로 피어나고, 한 잔의 보이차까오 온기로 완성됩니다.
+                      {t.homeSections.featureDesc}
                     </p>
 
                     <div className="space-y-3 pt-2">
@@ -1894,8 +1894,8 @@ export default function App() {
                           01
                         </div>
                         <div>
-                          <h4 className="font-serif font-bold text-sm text-[#1C1A17]">만남의 파동 (心物之波)</h4>
-                          <p className="text-xs text-[#1C1A17]/70">붓질 하나, 찻잎 한 장에 대자연과 영적 우주가 나누는 고요한 호흡</p>
+                          <h4 className="font-serif font-bold text-sm text-[#1C1A17]">{t.homeSections.step1Title}</h4>
+                          <p className="text-xs text-[#1C1A17]/70">{t.homeSections.step1Desc}</p>
                         </div>
                       </div>
 
@@ -1904,8 +1904,8 @@ export default function App() {
                           02
                         </div>
                         <div>
-                          <h4 className="font-serif font-bold text-sm text-[#1C1A17]">유무쌍즉 (有無雙則)</h4>
-                          <p className="text-xs text-[#1C1A17]/70">비어 있는 화폭과 향기 속에서 피어나는 무수한 가능성과 깊은 여운</p>
+                          <h4 className="font-serif font-bold text-sm text-[#1C1A17]">{t.homeSections.step2Title}</h4>
+                          <p className="text-xs text-[#1C1A17]/70">{t.homeSections.step2Desc}</p>
                         </div>
                       </div>
 
@@ -1914,8 +1914,8 @@ export default function App() {
                           03
                         </div>
                         <div>
-                          <h4 className="font-serif font-bold text-sm text-[#1C1A17]">심경정적 (心鏡靜寂)</h4>
-                          <p className="text-xs text-[#1C1A17]/70">맑게 닦은 마음의 거울로 밝은 우주의 기운을 온전히 비춰 내는 수행</p>
+                          <h4 className="font-serif font-bold text-sm text-[#1C1A17]">{t.homeSections.step3Title}</h4>
+                          <p className="text-xs text-[#1C1A17]/70">{t.homeSections.step3Desc}</p>
                         </div>
                       </div>
                     </div>
@@ -1925,7 +1925,7 @@ export default function App() {
                         onClick={() => setPage('philosophy')}
                         className="px-6 py-3 bg-[#1C1A17] text-white hover:bg-neutral-800 rounded-xl font-serif text-xs md:text-sm font-bold transition-all shadow-md inline-flex items-center gap-2"
                       >
-                        <Compass size={15} /> 심물철학 자세히 보기
+                        <Compass size={15} /> {t.homeSections.viewPhilosophyBtn}
                       </button>
                     </div>
                   </div>
@@ -1941,10 +1941,10 @@ export default function App() {
                       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
                       <div className="absolute bottom-6 left-6 right-6 text-white space-y-1">
                         <span className="text-[10px] font-mono tracking-widest text-amber-200 uppercase font-bold">
-                          불한선차 & 다기
+                          {t.homeSections.bannerTag}
                         </span>
                         <h3 className="font-serif text-lg md:text-xl font-normal">
-                          "비움의 향(香)과 흙에서 얻은 고요한 깊이"
+                          {t.homeSections.bannerHeading}
                         </h3>
                       </div>
                     </div>
@@ -1955,9 +1955,9 @@ export default function App() {
                 <div className="space-y-6 text-left">
                   <div className="text-center space-y-2 max-w-xl mx-auto">
                     <span className="text-[10px] font-mono tracking-[0.4em] uppercase text-[#1C1A17]/60 font-bold">THE FOUR PILLARS</span>
-                    <h2 className="text-2xl md:text-4xl font-serif font-normal text-[#1C1A17]">서화와 차가 지어내는 4대 풍류</h2>
+                    <h2 className="text-2xl md:text-4xl font-serif font-normal text-[#1C1A17]">{t.homeSections.fourPillarsTitle}</h2>
                     <p className="text-xs md:text-sm text-[#1C1A17]/70 font-sans">
-                      글씨, 그림, 차, 향기가 자아내는 물파 선비의 문방(文房) 풍경
+                      {t.homeSections.fourPillarsDesc}
                     </p>
                   </div>
 
@@ -1976,9 +1976,9 @@ export default function App() {
                         </div>
                       </div>
                       <div className="space-y-1">
-                        <h4 className="font-serif font-bold text-base text-[#1C1A17]">書 (서예와 필치)</h4>
+                        <h4 className="font-serif font-bold text-base text-[#1C1A17]">{t.homeSections.pillar1Title}</h4>
                         <p className="text-xs text-[#1C1A17]/75 font-sans leading-relaxed">
-                          시대를 사유하고 통찰하는 가람의 묵직한 먹빛 필선
+                          {t.homeSections.pillar1Desc}
                         </p>
                       </div>
                     </div>
@@ -1997,9 +1997,9 @@ export default function App() {
                         </div>
                       </div>
                       <div className="space-y-1">
-                        <h4 className="font-serif font-bold text-base text-[#1C1A17]">畫 (서화와 형상)</h4>
+                        <h4 className="font-serif font-bold text-base text-[#1C1A17]">{t.homeSections.pillar2Title}</h4>
                         <p className="text-xs text-[#1C1A17]/75 font-sans leading-relaxed">
-                          여백과 형상이 대등하게 숨 쉬는 순수한 서화 예술
+                          {t.homeSections.pillar2Desc}
                         </p>
                       </div>
                     </div>
@@ -2018,9 +2018,9 @@ export default function App() {
                         </div>
                       </div>
                       <div className="space-y-1">
-                        <h4 className="font-serif font-bold text-base text-[#1C1A17]">茶 (불한선차)</h4>
+                        <h4 className="font-serif font-bold text-base text-[#1C1A17]">{t.homeSections.pillar3Title}</h4>
                         <p className="text-xs text-[#1C1A17]/75 font-sans leading-relaxed">
-                          보이차까오 한 알로 몸과 마음의 번뇌를 정화하는 다법
+                          {t.homeSections.pillar3Desc}
                         </p>
                       </div>
                     </div>
@@ -2039,9 +2039,9 @@ export default function App() {
                         </div>
                       </div>
                       <div className="space-y-1">
-                        <h4 className="font-serif font-bold text-base text-[#1C1A17]">香 (비움의 향)</h4>
+                        <h4 className="font-serif font-bold text-base text-[#1C1A17]">{t.homeSections.pillar4Title}</h4>
                         <p className="text-xs text-[#1C1A17]/75 font-sans leading-relaxed">
-                          야생 가을 안개처럼 은은하고 깊은 비움의 가을 우디 향
+                          {t.homeSections.pillar4Desc}
                         </p>
                       </div>
                     </div>
@@ -2059,20 +2059,20 @@ export default function App() {
                   <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-transparent" />
                   <div className="relative z-10 max-w-2xl space-y-4">
                     <span className="text-[10px] font-mono tracking-[0.3em] text-amber-300 uppercase font-bold px-3 py-1 rounded-full bg-black/50 border border-amber-400/30 inline-block">
-                      ARCHIVE & MEDIA JOURNEY
+                      {t.homeSections.journeyTag}
                     </span>
                     <h2 className="text-2xl md:text-4xl font-serif font-normal text-white leading-tight">
-                      역사와 삶이 교차하는 라석의 발자취
+                      {t.homeSections.journeyTitle}
                     </h2>
                     <p className="text-xs md:text-sm text-white/80 font-sans leading-relaxed">
-                      언론 보도, 아카이브 포토 전시, 시와 차가 어우러졌던 지난 여정의 기록들을 살펴보고 불한자의 살아있는 역사를 확인하세요.
+                      {t.homeSections.journeyDesc}
                     </p>
                     <div className="pt-2">
                       <button
                         onClick={() => setPage('journey')}
                         className="px-8 py-3.5 bg-white text-black hover:bg-neutral-200 rounded-xl font-serif text-xs md:text-sm font-bold transition-all shadow-lg inline-flex items-center gap-2"
                       >
-                        <Newspaper size={16} /> 아카이브 여정 둘러보기 &rarr;
+                        <Newspaper size={16} /> {t.homeSections.journeyBtn} &rarr;
                       </button>
                     </div>
                   </div>
@@ -3580,7 +3580,7 @@ export default function App() {
               {/* Elegant Atmospheric Tea Cover Banner */}
               <div className="w-full h-48 md:h-64 rounded-xl overflow-hidden mb-16 relative border border-[#1C1A17]/10 shadow-lg group select-none">
                 <img
-                  src="/assets/chafrontback.jpg"
+                  src="/assets/cha01.jpg"
                   alt="Tea Banner"
                   className="w-full h-full object-cover brightness-[0.85] contrast-[1.05] transition-transform duration-[4000ms] group-hover:scale-103"
                   referrerPolicy="no-referrer"
@@ -3598,7 +3598,27 @@ export default function App() {
               <div className="mb-12 mt-12">
                 <div className="text-center mb-8 space-y-3">
                   <h3 className="text-2xl md:text-3xl font-serif text-[#1C1A17] font-semibold tracking-wider">BULHAN SUNCHA</h3>
-                  <p className="text-xs md:text-sm font-serif tracking-[0.2em] uppercase opacity-60">서(書) | 화(畵) | 차(茶) | 향(香)</p>
+                  <div className="flex justify-center pt-2">
+                    <button
+                      onClick={() => {
+                        setSunchaFilter('all');
+                        setReadingSuncha(null);
+                      }}
+                      className={`px-6 py-2 rounded-full font-serif text-xs md:text-sm font-bold transition-all shadow-sm flex items-center gap-2 border cursor-pointer ${
+                        sunchaFilter === 'all'
+                          ? 'bg-[#1C1A17] text-white border-[#1C1A17] ring-2 ring-[#1C1A17]/20 shadow-md'
+                          : 'bg-white text-[#1C1A17] border-[#1C1A17]/20 hover:bg-neutral-100 hover:border-[#1C1A17]/40'
+                      }`}
+                    >
+                      <Layers size={14} />
+                      {lang === 'KR' ? '전체목록' : lang === 'SC' ? '全部列表' : 'View All'}
+                      <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${
+                        sunchaFilter === 'all' ? 'bg-white/20 text-white font-semibold' : 'bg-neutral-100 text-black/60'
+                      }`}>
+                        {sunchaItems.length}
+                      </span>
+                    </button>
+                  </div>
                   <div className="w-12 h-px bg-[#1C1A17]/20 mx-auto mt-4" />
                 </div>
 
@@ -3801,6 +3821,18 @@ export default function App() {
                       <span className="font-mono text-xs font-bold text-black/40 bg-neutral-100 px-2.5 py-0.5 rounded-full">
                         {sortedSunchaItems.length}
                       </span>
+                      {sunchaFilter !== 'all' && (
+                        <button
+                          onClick={() => {
+                            setSunchaFilter('all');
+                            setReadingSuncha(null);
+                          }}
+                          className="px-3 py-1 bg-[#1C1A17]/10 hover:bg-[#1C1A17] hover:text-white text-[#1C1A17] text-xs font-serif font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ml-1"
+                        >
+                          <RotateCcw size={11} />
+                          {lang === 'KR' ? '전체목록' : lang === 'SC' ? '全部列表' : 'Show All'}
+                        </button>
+                      )}
                     </div>
 
                     {/* Sort controller & write button */}
@@ -4794,7 +4826,7 @@ export default function App() {
                                       const base = prev || {
                                         id: 'global',
                                         logo_url: '',
-                                        hero_bg_url: '/assets/wave00.jpg',
+                                        hero_bg_url: '/assets/waveback.jpg',
                                         tea_detail_url: '/assets/bulhansuncha_v2.jpg'
                                       };
                                       return { ...base, logo_url: url };
@@ -4900,7 +4932,7 @@ export default function App() {
                                       const base = prev || {
                                         id: 'global',
                                         logo_url: '/assets/logo_v2.svg',
-                                        hero_bg_url: '/assets/wave00.jpg',
+                                        hero_bg_url: '/assets/waveback.jpg',
                                         tea_detail_url: ''
                                       };
                                       return { ...base, tea_detail_url: url };

@@ -6,6 +6,40 @@ export interface Content {
     subtitle: string;
     cta: string;
   };
+  homeSections: {
+    coreDomainsTitle: string;
+    coreDomainsDesc: string;
+    cardPhilosophyDesc: string;
+    cardArtDesc: string;
+    cardPoetryDesc: string;
+    cardTeaDesc: string;
+    featureTag: string;
+    featureTitle: string;
+    featureDesc: string;
+    step1Title: string;
+    step1Desc: string;
+    step2Title: string;
+    step2Desc: string;
+    step3Title: string;
+    step3Desc: string;
+    viewPhilosophyBtn: string;
+    bannerTag: string;
+    bannerHeading: string;
+    fourPillarsTitle: string;
+    fourPillarsDesc: string;
+    pillar1Title: string;
+    pillar1Desc: string;
+    pillar2Title: string;
+    pillar2Desc: string;
+    pillar3Title: string;
+    pillar3Desc: string;
+    pillar4Title: string;
+    pillar4Desc: string;
+    journeyTag: string;
+    journeyTitle: string;
+    journeyDesc: string;
+    journeyBtn: string;
+  };
   philosophy: {
     title: string;
     subtitle: string;
@@ -100,6 +134,40 @@ export const translations: Record<Language, Content> = {
       title: "심물지철(心物之哲)\n여영사진(如映寫眞)",
       subtitle: "불한자(弗寒子)는 심물철학을 기반으로 한 사유와 예술의 장입니다.\n마음과 사물은 둘이 아니라 하나의 파동이며,\n그 파동은 글과 그림, 그리고 차로 드러납니다.\n이곳은 철학이 머물고, 예술이 숨 쉬며,\n차가 그것을 완성하는 공간입니다.",
       cta: "물파공간"
+    },
+    homeSections: {
+      coreDomainsTitle: "불한자 사유와 예술의 4대 영역",
+      coreDomainsDesc: "철학, 미술공간, 시작(詩作), 다도가 하나의 파동으로 이루어지는 심물주의 세계",
+      cardPhilosophyDesc: "물질과 정신이 교감하는 우주적 파동과 동시적 존재의 철학",
+      cardArtDesc: "시대의 필치와 예술이 숨 쉬는 서화, 미술, 도록 갤러리",
+      cardPoetryDesc: "천자문시집, 심물시집 등 라석 시원(詩苑)의 깊은 시적 서사",
+      cardTeaDesc: "한 잔의 차에 담긴 비움의 향과 정적의 보이차까오 선차",
+      featureTag: "心物一體 ㆍ ESSENCE OF BULHANZA",
+      featureTitle: "마음과 사물이 하나로 빚어내는 정적의 미학",
+      featureDesc: "물파(水波)의 세계는 억지로 만듦이 없으며, 자연의 이치와 인간 내면의 깊은 울림이 교감하는 지점에서 시작됩니다. 서화의 힘 있는 먹빛 필선은 시문으로 피어나고, 한 잔의 보이차까오 온기로 완성됩니다.",
+      step1Title: "만남의 파동 (心物之波)",
+      step1Desc: "붓질 하나, 찻잎 한 장에 대자연과 영적 우주가 나누는 고요한 호흡",
+      step2Title: "유무쌍즉 (有無雙則)",
+      step2Desc: "비어 있는 화폭과 향기 속에서 피어나는 무수한 가능성과 깊은 여운",
+      step3Title: "심경정적 (心鏡靜寂)",
+      step3Desc: "맑게 닦은 마음의 거울로 밝은 우주의 기운을 온전히 비춰 내는 수행",
+      viewPhilosophyBtn: "심물철학 자세히 보기",
+      bannerTag: "불한선차 & 다기",
+      bannerHeading: "\"비움의 향(香)과 흙에서 얻은 고요한 깊이\"",
+      fourPillarsTitle: "서화와 차가 지어내는 4대 풍류",
+      fourPillarsDesc: "글씨, 그림, 차, 향기가 자아내는 물파 선비의 문방(文房) 풍경",
+      pillar1Title: "書 (서예와 필치)",
+      pillar1Desc: "시대를 사유하고 통찰하는 가람의 묵직한 먹빛 필선",
+      pillar2Title: "畫 (서화와 형상)",
+      pillar2Desc: "여백과 형상이 대등하게 숨 쉬는 순수한 서화 예술",
+      pillar3Title: "茶 (불한선차)",
+      pillar3Desc: "보이차까오 한 알로 몸과 마음의 번뇌를 정화하는 다법",
+      pillar4Title: "香 (비움의 향)",
+      pillar4Desc: "야생 가을 안개처럼 은은하고 깊은 비움의 가을 우디 향",
+      journeyTag: "ARCHIVE & MEDIA JOURNEY",
+      journeyTitle: "역사와 삶이 교차하는 라석의 발자취",
+      journeyDesc: "언론 보도, 아카이브 포토 전시, 시와 차가 어우러졌던 지난 여정의 기록들을 살펴보고 불한자의 살아있는 역사를 확인하세요.",
+      journeyBtn: "아카이브 여정 둘러보기"
     },
     philosophy: {
       title: "심물철학",
@@ -227,6 +295,40 @@ export const translations: Record<Language, Content> = {
       subtitle: "關爲弗寒子\n弗寒子，乃以心物哲學為本之思想與藝術之場。\n心與物，非二而一，其為波動而顯於詩書畫與茶。\n此處，哲思所止，藝術所生,\n而茶，為其完成之境。",
       cta: "探寻物波世界"
     },
+    homeSections: {
+      coreDomainsTitle: "弗寒子哲思与艺术之四大领域",
+      coreDomainsDesc: "哲学、美术空间、诗作、茶道汇聚为一重波动的心物主义世界",
+      cardPhilosophyDesc: "物质与精神感应交融的宇宙波动与同时存在之哲学",
+      cardArtDesc: "蕴含时代笔触与艺术生息的书画、美术、图录展厅",
+      cardPoetryDesc: "千字文诗集、心物诗集等罗石诗苑之深邃诗意叙事",
+      cardTeaDesc: "一盏茶中所含虚空之香与静谧普洱茶膏禅茶",
+      featureTag: "心物一体 ㆍ ESSENCE OF BULHANZA",
+      featureTitle: "心物合一所融铸之静谧美学",
+      featureDesc: "物波之世界不加雕琢，始于自然之理与人类内心情感深深交融之境。书画遒劲之墨色笔触化为诗文，于一盏普洱茶膏之温热中臻于圆满。",
+      step1Title: "邂逅之波 (心物之波)",
+      step1Desc: "一笔一划、一片茶叶中，大自然与精神宇宙静默相通之呼吸",
+      step2Title: "有無雙即 (有無雙則)",
+      step2Desc: "空旷画幅与香气中绽放之无限可能与深沉余韵",
+      step3Title: "心镜静寂 (心鏡靜寂)",
+      step3Desc: "以拭净之心镜完整映照宇宙光明气韵之修行",
+      viewPhilosophyBtn: "深入了解心物哲学",
+      bannerTag: "弗寒禅茶 & 茶具",
+      bannerHeading: "“无形之香与源于泥土之静谧深度”",
+      fourPillarsTitle: "书画与茶共筑之四大风雅",
+      fourPillarsDesc: "文字、绘画、香茗与雅香交织出物波文人之文房意境",
+      pillar1Title: "書 (书法与笔触)",
+      pillar1Desc: "思考与洞察时代之深沉墨色笔触",
+      pillar2Title: "畫 (书画与形象)",
+      pillar2Desc: "留白与形象对等相生之纯粹书画艺术",
+      pillar3Title: "茶 (弗寒禅茶)",
+      pillar3Desc: "以一枚普洱茶膏净化身心烦恼之茶法",
+      pillar4Title: "香 (无形之香)",
+      pillar4Desc: "宛如野生秋雾般深沉雅致之虚空木香",
+      journeyTag: "ARCHIVE & MEDIA JOURNEY",
+      journeyTitle: "历史与生命交织之罗石足迹",
+      journeyDesc: "查阅媒体报道、摄影档案展以及诗茶相融之历程记录，体悟弗寒子之鲜活历史。",
+      journeyBtn: "浏览档案与履历"
+    },
     philosophy: {
       title: "心物哲学",
       subtitle: "心物哲学 — 照映与渗透的冥想",
@@ -353,6 +455,40 @@ export const translations: Record<Language, Content> = {
       subtitle: "About Bulhanza :\nBulhanza is a space of philosophy and art grounded in the philosophy of Mind and Matter.\nMind and matter are not separate—they move as one wave,\nexpressed through writing, art, and tea.\nHere, philosophy dwells, art breathes,\nand tea completes the experience.",
       cta: "Explore the Mulpa Universe"
     },
+    homeSections: {
+      coreDomainsTitle: "Four Core Domains of Bulhanza Thought & Art",
+      coreDomainsDesc: "A Mind-Matter universe where philosophy, art space, poetry, and tea ceremony move as one wave",
+      cardPhilosophyDesc: "Philosophy of cosmic resonance and simultaneous existence connecting mind and matter",
+      cardArtDesc: "Calligraphy, fine art, and exhibition gallery breathing with artistic spirit",
+      cardPoetryDesc: "Deep poetic narratives from Cheonjamun and Mind-Matter poetry collections",
+      cardTeaDesc: "SunCha tea ritual infused with the scent of emptiness and Pu'er tea paste",
+      featureTag: "MIND-MATTER UNITY ㆍ ESSENCE OF BULHANZA",
+      featureTitle: "The Aesthetics of Tranquility Crafted in Mind-Matter Unity",
+      featureDesc: "The world of Mulpa is unforced, beginning where natural law connects with the soul's resonance. Vibrant ink strokes of calligraphy bloom into poetry, completed by the warmth of tea.",
+      step1Title: "Resonant Waves (心物之波)",
+      step1Desc: "A quiet breath shared by nature and cosmic spirit in each brushstroke and tea leaf",
+      step2Title: "Dual Oneness (有無雙則)",
+      step2Desc: "Boundless potential and lasting resonance blooming in blank space and fragrance",
+      step3Title: "Mind Mirror (心鏡靜寂)",
+      step3Desc: "Cultivation of polishing the inner mirror to reflect cosmic harmony",
+      viewPhilosophyBtn: "Explore Mind-Matter Philosophy",
+      bannerTag: "Bulhan SunCha & Tea Vessels",
+      bannerHeading: "\"The Scent of Emptiness & Tranquil Depth Born of Earth\"",
+      fourPillarsTitle: "Four Great Aesthetics of Calligraphy, Art & Tea",
+      fourPillarsDesc: "The scholar's sanctuary where calligraphy, painting, tea, and scent harmonize",
+      pillar1Title: "書 (Calligraphy & Strokes)",
+      pillar1Desc: "Profound ink strokes reflecting and contemplating the spirit of the era",
+      pillar2Title: "畫 (Painting & Imagery)",
+      pillar2Desc: "Pure art where negative space and form breathe in equal harmony",
+      pillar3Title: "茶 (Bulhan SunCha Tea)",
+      pillar3Desc: "Tea ritual purifying mind and body with a piece of Pu'er tea paste",
+      pillar4Title: "香 (Scent of Emptiness)",
+      pillar4Desc: "Deep woody scent reminiscent of wild autumn fog and tranquil emptiness",
+      journeyTag: "ARCHIVE & MEDIA JOURNEY",
+      journeyTitle: "The Footsteps of Lasok Where History and Life Intersect",
+      journeyDesc: "Explore press coverages, photo archives, and the living journey where poetry and tea unite.",
+      journeyBtn: "Explore Archive & Journey"
+    },
     philosophy: {
       title: "Philosophy",
       subtitle: "Mind-Matter Unity — The Space of Reflections",
@@ -404,8 +540,8 @@ export const translations: Record<Language, Content> = {
       mulpaismDeclaration: "While the 20th century witnessed great material success, human morality and spirituality experienced a silent decay. Amidst value distortions, we seek to discover an elevated aesthetic avenue based on the unification of Subject and Object (心物合一).\n\nMulpa represents the real wave of Mind and Matter (心物之波). It is an artistic action that rejects both mechanistic Western compartmentalization and narrow spiritual mysticism. Mind is energy; the strokes on paper, the sound of the string, and the curves of the bowl are divine ripples emerging when original light hits human consciousness.\n\nWe hereby proclaim Mulpaism as an artistic vision toward spiritual transformation and existence recovery for the 21st century.\n\n— Excerpt from Mulpa Space Inaugural Statement, 1997."
     },
     poetryCollection: {
-      title: "Lasok Poetry Collection",
-      subtitle: "Lasok Poetry Collections",
+      title: "Poetry",
+      subtitle: "Poetry Collections",
       listTitle: "Select a Poetry Collection",
       allCollections: ["1. Cheonjamun Verse Collection", "2. Collaborative Poetry", "3. Mind-Matter Philosophy", "4. Complete Poems of Lasok", "5. Mind-Matter Poetry", "6. Other Poetry Collection"],
       emptyNotice: "No archived data is present under this collection. Please run the seed/restoration action at the Admin page.",
@@ -466,7 +602,7 @@ export const translations: Record<Language, Content> = {
       home: "Home",
       philosophy: "Philosophy",
       art: "Mulpa Space",
-      poetryCollection: "Lasok Poetry Collection",
+      poetryCollection: "Poetry",
       tea: "SunCha",
       journey: "News&Media",
       contact: "Contact",
