@@ -4,7 +4,7 @@ import {
   Menu, X, Plus, Trash2, Edit2, ArrowLeft, Newspaper, Image as ImageIcon, Check,
   Upload, ChevronLeft, ChevronRight, BookOpen, Settings, ChevronDown, Database,
   Activity, Key, RefreshCw, Sparkles, MessageSquare, Compass, Send, Calendar, Monitor,
-  ArrowUpDown, List, PenTool, LogIn, LogOut, Layers, RotateCcw
+  ArrowUpDown, List, PenTool, LogIn, LogOut, Layers, RotateCcw, MoreHorizontal, Copy, Share2
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -288,6 +288,473 @@ const getTimestampMs = (item: any) => {
   }
 };
 
+const formatFullDateTime = (createdAt: any) => {
+  if (!createdAt) return '—';
+  try {
+    let date: Date;
+    if (typeof createdAt.toDate === 'function') {
+      date = createdAt.toDate();
+    } else if (createdAt.seconds) {
+      date = new Date(createdAt.seconds * 1000);
+    } else {
+      date = new Date(createdAt);
+    }
+
+    if (isNaN(date.getTime())) return '—';
+
+    const yyyy = date.getFullYear();
+    const mm = (date.getMonth() + 1).toString().padStart(2, '0');
+    const dd = date.getDate().toString().padStart(2, '0');
+    const hh = date.getHours().toString().padStart(2, '0');
+    const min = date.getMinutes().toString().padStart(2, '0');
+    const ss = date.getSeconds().toString().padStart(2, '0');
+
+    if (hh === '00' && min === '00' && ss === '00') {
+      return `${yyyy}.${mm}.${dd}`;
+    }
+    return `${yyyy}.${mm}.${dd} ${hh}:${min}:${ss}`;
+  } catch (e) {
+    return '—';
+  }
+};
+
+const buildShareUrl = (pageName?: Page | string, itemId?: string | null, extraParams?: { book?: string | null; pTab?: string | null }) => {
+  if (typeof window === 'undefined') return '';
+  const url = new URL(window.location.origin + window.location.pathname);
+  if (pageName && pageName !== 'home') {
+    url.searchParams.set('page', pageName);
+  }
+  if (extraParams?.pTab) {
+    url.searchParams.set('pTab', extraParams.pTab);
+  }
+  if (extraParams?.book) {
+    url.searchParams.set('book', extraParams.book);
+  }
+  if (itemId) {
+    url.searchParams.set('id', itemId);
+  }
+  return url.toString();
+};
+
+interface SnsShareBarProps {
+  title?: string;
+  description?: string;
+  imageUrl?: string;
+  url?: string;
+  isAuthAdmin?: boolean;
+  className?: string;
+}
+
+const SnsShareBar: React.FC<SnsShareBarProps> = ({ title, description, imageUrl, url, isAuthAdmin, className = "" }) => {
+  const [copiedToast, setCopiedToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState('URL 링크가 복사되었습니다');
+  const [showKakaoGuideModal, setShowKakaoGuideModal] = useState(false);
+  const [showLinkModal, setShowLinkModal] = useState(false);
+  const [modalCopied, setModalCopied] = useState(false);
+  const [copiedDomainToast, setCopiedDomainToast] = useState(false);
+
+  useEffect(() => {
+    // Initialize Kakao SDK with Kakao JavaScript key
+    const kakaoKey = import.meta.env.VITE_KAKAO_JAVASCRIPT_KEY || 'bc49b07822c761b831e2c3242a085e3d';
+    if (typeof window !== 'undefined' && (window as any).Kakao && kakaoKey) {
+      if (!(window as any).Kakao.isInitialized()) {
+        try {
+          (window as any).Kakao.init(kakaoKey);
+        } catch (e) {
+          console.warn('Kakao SDK Init warning:', e);
+        }
+      }
+    }
+  }, []);
+
+  const getShareUrl = () => {
+    if (url) return url;
+    if (typeof window !== 'undefined') return window.location.href;
+    return '';
+  };
+
+  const currentDomain = typeof window !== 'undefined' ? window.location.origin : '';
+
+  const shareTitle = title || '불한자 - 심물철학 & 물파예술';
+
+  const handleFacebookShare = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const shareUrl = getShareUrl();
+    const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
+    window.open(fbUrl, '_blank', 'width=600,height=500,noopener,noreferrer');
+  };
+
+  const handleXShare = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const shareUrl = getShareUrl();
+    const text = `[${shareTitle}] ${shareUrl}`;
+    const xUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+    window.open(xUrl, '_blank', 'width=600,height=500,noopener,noreferrer');
+  };
+
+  const handleKakaoShare = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const shareUrl = getShareUrl();
+    const shareDesc = description ? description.replace(/<[^>]*>?/gm, '').slice(0, 100) : shareTitle;
+    let shareImg = imageUrl;
+    if (!shareImg && typeof window !== 'undefined') {
+      shareImg = `${window.location.origin}/assets/chacao00.jpg`;
+    }
+
+    const kakaoKey = import.meta.env.VITE_KAKAO_JAVASCRIPT_KEY || 'bc49b07822c761b831e2c3242a085e3d';
+    const Kakao = typeof window !== 'undefined' ? (window as any).Kakao : null;
+
+    if (Kakao) {
+      if (!Kakao.isInitialized() && kakaoKey) {
+        try {
+          Kakao.init(kakaoKey);
+        } catch (err) {
+          console.warn('Kakao init error:', err);
+        }
+      }
+
+      if (Kakao.isInitialized && Kakao.isInitialized()) {
+        try {
+          Kakao.Share.sendDefault({
+            objectType: 'feed',
+            content: {
+              title: shareTitle,
+              description: shareDesc,
+              imageUrl: shareImg,
+              link: {
+                mobileWebUrl: shareUrl,
+                webUrl: shareUrl,
+              },
+            },
+            buttons: [
+              {
+                title: '글 보러 가기',
+                link: {
+                  mobileWebUrl: shareUrl,
+                  webUrl: shareUrl,
+                },
+              },
+            ],
+          });
+          return;
+        } catch (err) {
+          console.error('Kakao Share API error:', err);
+        }
+      }
+    }
+
+    // Fallback if Kakao SDK is not initialized or fails
+    const kakaoPickerUrl = `https://sharer.kakao.com/talk/friends/picker/link?url=${encodeURIComponent(shareUrl)}`;
+    if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+      if (navigator.share) {
+        navigator.share({
+          title: shareTitle,
+          text: `${shareTitle}\n${shareDesc}`,
+          url: shareUrl,
+        }).catch(() => {});
+      } else {
+        window.open(`https://story.kakao.com/share?url=${encodeURIComponent(shareUrl)}`, '_blank');
+      }
+    } else {
+      window.open(kakaoPickerUrl, '_blank', 'width=600,height=500,noopener,noreferrer');
+    }
+  };
+
+  const handleOpenLinkModal = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowLinkModal(true);
+    setModalCopied(false);
+  };
+
+  const copyModalUrl = async () => {
+    const shareUrl = getShareUrl();
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setModalCopied(true);
+      setToastMsg('URL 링크가 복사되었습니다');
+      setCopiedToast(true);
+      setTimeout(() => {
+        setModalCopied(false);
+        setCopiedToast(false);
+      }, 2000);
+    } catch (err) {
+      alert(`링크 주소: ${shareUrl}`);
+    }
+  };
+
+  const handleNativeShare = async () => {
+    const shareUrl = getShareUrl();
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: shareTitle,
+          text: description ? description.replace(/<[^>]*>?/gm, '').slice(0, 100) : shareTitle,
+          url: shareUrl,
+        });
+      } catch (err) {
+        // User cancelled share
+      }
+    }
+  };
+
+  const copyCurrentDomain = async () => {
+    try {
+      await navigator.clipboard.writeText(currentDomain);
+      setCopiedDomainToast(true);
+      setTimeout(() => setCopiedDomainToast(false), 2000);
+    } catch (err) {
+      alert(`도메인 주소: ${currentDomain}`);
+    }
+  };
+
+  return (
+    <div className={`relative flex items-center gap-2 select-none ${className}`}>
+      <AnimatePresence>
+        {copiedToast && (
+          <motion.div
+            initial={{ opacity: 0, y: 8, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 4, scale: 0.95 }}
+            className="absolute -top-10 right-0 z-50 bg-black/85 text-white text-[11px] font-sans font-medium px-3 py-1.5 rounded-full shadow-lg whitespace-nowrap pointer-events-none flex items-center gap-1.5"
+          >
+            <Check size={12} className="text-emerald-400" />
+            <span>{toastMsg}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Facebook Button */}
+      <button
+        type="button"
+        onClick={handleFacebookShare}
+        title="페이스북으로 공유"
+        className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#1877F2] text-white flex items-center justify-center hover:opacity-90 active:scale-95 transition-all shadow-sm focus:outline-none"
+      >
+        <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+          <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+        </svg>
+      </button>
+
+      {/* X / Twitter Button */}
+      <button
+        type="button"
+        onClick={handleXShare}
+        title="X(트위터)로 공유"
+        className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black text-white flex items-center justify-center hover:bg-neutral-800 active:scale-95 transition-all shadow-sm focus:outline-none"
+      >
+        <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+          <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+        </svg>
+      </button>
+
+      {/* KakaoTalk Button */}
+      <div className="relative flex items-center">
+        <button
+          type="button"
+          onClick={handleKakaoShare}
+          title="카카오톡으로 공유"
+          className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#FEE500] text-[#3C1E1E] flex items-center justify-center hover:brightness-95 active:scale-95 transition-all shadow-sm focus:outline-none"
+        >
+          <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+            <path d="M12 3c-4.97 0-9 3.185-9 7.115 0 2.557 1.707 4.8 4.27 6.054-.188.702-.682 2.545-.78 2.94-.122.49.18.483.378.352.157-.103 2.5-1.7 3.513-2.392.532.078 1.077.118 1.619.118 4.97 0 9-3.185 9-7.115S16.97 3 12 3z"/>
+          </svg>
+        </button>
+        {/* Domain setup help trigger button - ADMIN ONLY */}
+        {Boolean(isAuthAdmin) && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setShowKakaoGuideModal(true);
+            }}
+            title="카카오 도메인 4019 설정 안내 (관리자 전용)"
+            className="ml-1 w-4 h-4 rounded-full bg-neutral-200 hover:bg-neutral-300 text-neutral-700 flex items-center justify-center text-[10px] font-bold shadow-xs cursor-pointer transition active:scale-95"
+          >
+            ?
+          </button>
+        )}
+      </div>
+
+      {/* More / URL Copy Button */}
+      <button
+        type="button"
+        onClick={handleOpenLinkModal}
+        title="링크 복사 및 기타 공유"
+        className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#D1D5DB] hover:bg-[#9CA3AF] text-white flex items-center justify-center active:scale-95 transition-all shadow-sm focus:outline-none"
+      >
+        <MoreHorizontal size={20} className="stroke-[2.5]" />
+      </button>
+
+      {/* URL Link View & Copy Modal */}
+      <AnimatePresence>
+        {showLinkModal && (
+          <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onClick={() => setShowLinkModal(false)}>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl p-6 sm:p-7 max-w-lg w-full shadow-2xl text-left border border-neutral-200 relative text-neutral-800 font-sans"
+            >
+              <button
+                type="button"
+                onClick={() => setShowLinkModal(false)}
+                className="absolute top-4 right-4 text-neutral-400 hover:text-neutral-700 p-1"
+              >
+                <X size={20} />
+              </button>
+
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded-full bg-neutral-900 text-white flex items-center justify-center font-bold text-xs">
+                  <Share2 size={16} />
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-bold text-neutral-900">페이지 URL 링크 공유</h3>
+                  <p className="text-xs text-neutral-500">현재 콘텐츠로 연결되는 상세 주소입니다</p>
+                </div>
+              </div>
+
+              {/* Title summary */}
+              {title && (
+                <div className="bg-neutral-50 p-3 rounded-xl border border-neutral-200 my-3 text-xs font-medium text-neutral-800 line-clamp-2">
+                  📌 {title}
+                </div>
+              )}
+
+              {/* URL Box & Copy Button */}
+              <div className="space-y-2 my-4">
+                <label className="text-xs font-semibold text-neutral-700 block">전체 링크 주소 (URL)</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={getShareUrl()}
+                    onClick={(e) => (e.target as HTMLInputElement).select()}
+                    className="flex-1 bg-neutral-50 text-neutral-900 font-mono text-xs p-3 rounded-xl border border-neutral-300 select-all outline-none focus:ring-2 focus:ring-neutral-400"
+                  />
+                  <button
+                    type="button"
+                    onClick={copyModalUrl}
+                    className={`px-4 py-3 rounded-xl font-medium text-xs shadow transition flex items-center gap-1.5 whitespace-nowrap ${
+                      modalCopied ? 'bg-emerald-600 text-white' : 'bg-neutral-900 hover:bg-neutral-800 text-white'
+                    }`}
+                  >
+                    {modalCopied ? <Check size={14} className="text-emerald-300" /> : <Copy size={14} />}
+                    <span>{modalCopied ? '복사됨!' : '복사하기'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Native Mobile Share option if available */}
+              {typeof navigator !== 'undefined' && !!navigator.share && (
+                <div className="pt-2.5 border-t border-neutral-100 mt-3 flex justify-between items-center">
+                  <span className="text-xs text-neutral-500">스마트폰 앱으로 직접 보내기</span>
+                  <button
+                    type="button"
+                    onClick={handleNativeShare}
+                    className="px-3.5 py-1.5 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-medium text-xs transition flex items-center gap-1.5"
+                  >
+                    <Share2 size={13} />
+                    <span>앱 공유 창 열기</span>
+                  </button>
+                </div>
+              )}
+
+              <div className="flex justify-end pt-3 border-t border-neutral-100 mt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowLinkModal(false)}
+                  className="px-4 py-2 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-medium text-xs transition"
+                >
+                  닫기
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Kakao Domain Setup Modal */}
+      <AnimatePresence>
+        {showKakaoGuideModal && (
+          <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onClick={() => setShowKakaoGuideModal(false)}>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl p-6 sm:p-7 max-w-lg w-full shadow-2xl text-left border border-neutral-200 relative text-neutral-800 font-sans"
+            >
+              <button
+                type="button"
+                onClick={() => setShowKakaoGuideModal(false)}
+                className="absolute top-4 right-4 text-neutral-400 hover:text-neutral-700 p-1"
+              >
+                <X size={20} />
+              </button>
+
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-7 h-7 rounded-full bg-[#FEE500] text-[#3C1E1E] flex items-center justify-center font-bold text-xs">
+                  톡
+                </div>
+                <h3 className="text-lg font-bold text-neutral-900">카카오톡 공유 도메인 등록 안내 (Error 4019)</h3>
+              </div>
+
+              <p className="text-xs text-neutral-600 mb-4 leading-relaxed">
+                카카오 SDK 인증(Error Code 4019)은 <strong>카카오 디벨로퍼스</strong> 관리자 페이지의 [Web 플랫폼 도메인] 목록에 현재 접속 중인 웹사이트 주소가 등록되어 있지 않을 때 발생합니다.
+              </p>
+
+              <div className="bg-neutral-50 rounded-xl p-3.5 border border-neutral-200 mb-4 space-y-2 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-neutral-700">등록할 웹사이트 도메인 (Web Domain):</span>
+                  <button
+                    type="button"
+                    onClick={copyCurrentDomain}
+                    className="text-[11px] bg-neutral-900 text-white px-2.5 py-1 rounded hover:bg-neutral-800 transition flex items-center gap-1 font-medium"
+                  >
+                    {copiedDomainToast ? <Check size={12} className="text-emerald-400" /> : null}
+                    {copiedDomainToast ? '복사됨!' : '주소 복사'}
+                  </button>
+                </div>
+                <div className="font-mono text-[11px] bg-white p-2 rounded border border-neutral-200 text-neutral-900 select-all break-all">
+                  {currentDomain}
+                </div>
+              </div>
+
+              <div className="space-y-2 text-xs text-neutral-700 mb-5">
+                <div className="font-semibold text-neutral-900 mb-1">💡 카카오 디벨로퍼스 설정 3단계 (10초 완료):</div>
+                <ol className="list-decimal list-inside space-y-1.5 leading-relaxed text-neutral-600 pl-1">
+                  <li><a href="https://developers.kakao.com" target="_blank" rel="noreferrer" className="text-amber-600 underline font-medium">developers.kakao.com</a> 접속 후 로그인</li>
+                  <li>[내 애플리케이션] &gt; [앱 설정] &gt; <strong>[플랫폼]</strong> 이동</li>
+                  <li>[Web] 플랫폼에서 <strong>사이트 도메인</strong>에 위 복사한 주소를 추가하고 <strong>[저장]</strong></li>
+                </ol>
+              </div>
+
+              <div className="flex gap-2 justify-end pt-2 border-t border-neutral-100">
+                <button
+                  type="button"
+                  onClick={() => window.open('https://developers.kakao.com', '_blank')}
+                  className="px-4 py-2 rounded-xl bg-[#FEE500] hover:bg-[#fcd700] text-[#3C1E1E] font-medium text-xs transition"
+                >
+                  카카오 디벨로퍼스 바로가기 ↗
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowKakaoGuideModal(false)}
+                  className="px-4 py-2 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-medium text-xs transition"
+                >
+                  닫기
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
 interface PaginationProps {
   currentPage: number;
   totalPages: number;
@@ -389,15 +856,76 @@ export default function App() {
   const [artistsPage, setArtistsPage] = useState(1);
   const [journeyPage, setJourneyPage] = useState(1);
 
+  const isInitialUrlParsedRef = useRef(false);
+  const prevPageRef = useRef(page);
+
+  // Initial Deep-Link URL parsing effect when archiveItems finish loading
+  useEffect(() => {
+    if (loading || isInitialUrlParsedRef.current) return;
+
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const urlPage = params.get('page') as Page | null;
+      const urlId = params.get('id');
+      const urlBook = params.get('book');
+      const urlPTab = params.get('pTab') as 'chapters' | 'essays' | null;
+
+      if (urlPage) {
+        setPage(urlPage);
+        prevPageRef.current = urlPage;
+      }
+      if (urlPTab) {
+        setPhilosophyTab(urlPTab);
+      }
+      if (urlBook) {
+        setSelectedBook(urlBook);
+      }
+
+      if (urlId && archiveItems.length > 0) {
+        const found = archiveItems.find(item => item.id === urlId);
+        if (found) {
+          if (urlPage === 'philosophy' || (!urlPage && (found.category === 'philosophy_static' || found.category === 'philosophy_essay' || found.category === 'philosophy_lecture'))) {
+            setPage('philosophy');
+            prevPageRef.current = 'philosophy';
+            setReadingPhilosophy(found);
+          } else if (urlPage === 'mulpa' || (!urlPage && (found.category === 'mulpa_essay' || found.category === 'mulpa_intro'))) {
+            setPage('mulpa');
+            prevPageRef.current = 'mulpa';
+            setReadingMulpa(found);
+          } else if (urlPage === 'poetry' || (!urlPage && found.category === 'poem')) {
+            setPage('poetry');
+            prevPageRef.current = 'poetry';
+            if (found.book) setSelectedBook(found.book);
+            setReadingPoem(found);
+          } else if (urlPage === 'suncha' || (!urlPage && found.category?.startsWith('suncha_'))) {
+            setPage('suncha');
+            prevPageRef.current = 'suncha';
+            setReadingSuncha(found);
+          } else if (urlPage === 'journey' || (!urlPage && (found.category === 'journey' || found.category === 'journey_media'))) {
+            setPage('journey');
+            prevPageRef.current = 'journey';
+            setSelectedJourneyItem(found);
+          }
+        }
+      }
+
+      isInitialUrlParsedRef.current = true;
+    }
+  }, [loading, archiveItems]);
+
   // Reset all reading/detail states when the page or sub tab changes
   useEffect(() => {
-    setReadingPoem(null);
-    setReadingMulpa(null);
-    setReadingSuncha(null);
-    setReadingPhilosophy(null);
-    setSelectedJourneyItem(null);
-    setSunchaFilter('all');
-    setPhilosophyTab('chapters');
+    if (!isInitialUrlParsedRef.current) return;
+    if (prevPageRef.current !== page) {
+      setReadingPoem(null);
+      setReadingMulpa(null);
+      setReadingSuncha(null);
+      setReadingPhilosophy(null);
+      setSelectedJourneyItem(null);
+      setSunchaFilter('all');
+      setPhilosophyTab('chapters');
+      prevPageRef.current = page;
+    }
   }, [page, artSubTab]);
 
   // User direct writing states (8888 passcode)
@@ -481,9 +1009,7 @@ export default function App() {
   const handleVerifyPasscode = () => {
     if (userPasscode === '8888') {
       localStorage.setItem('authorized_write', 'true');
-      localStorage.setItem('BULHANZA_ADMIN_SESSION', 'active');
       setIsUserAuthorized(true);
-      setIsAuthAdmin(true);
       setIsAuthModalOpen(false);
       setUserPasscode('');
       if (onSuccessAuth) {
@@ -769,16 +1295,23 @@ export default function App() {
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
       if (user && user.email === 'roykang007@gmail.com') {
-        localStorage.setItem('BULHANZA_ADMIN_SESSION', 'active');
+        sessionStorage.setItem('BULHANZA_ADMIN_AUTH', 'active');
         localStorage.setItem('authorized_write', 'true');
         setIsAuthAdmin(true);
         setIsUserAuthorized(true);
       } else {
-        // Also check if local storage has a valid passcode session
-        const sess = localStorage.getItem('BULHANZA_ADMIN_SESSION');
-        if (sess === 'active') {
+        const adminSess = sessionStorage.getItem('BULHANZA_ADMIN_AUTH');
+        if (adminSess === 'active') {
           setIsAuthAdmin(true);
+        } else {
+          setIsAuthAdmin(false);
+        }
+
+        const writeSess = localStorage.getItem('authorized_write');
+        if (writeSess === 'true') {
           setIsUserAuthorized(true);
+        } else {
+          setIsUserAuthorized(false);
         }
       }
     });
@@ -996,13 +1529,13 @@ export default function App() {
   const handlePasscodeLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (passcode === '8888' || passcode === 'secret24' || passcode === 'bulhanza') {
-      localStorage.setItem('BULHANZA_ADMIN_SESSION', 'active');
+      sessionStorage.setItem('BULHANZA_ADMIN_AUTH', 'active');
       localStorage.setItem('authorized_write', 'true');
       setIsAuthAdmin(true);
       setIsUserAuthorized(true);
       setPasscodeError('');
     } else {
-      setPasscodeError('인증번호번호가 올바르지 않습니다.');
+      setPasscodeError('인증번호가 올바르지 않습니다.');
     }
   };
 
@@ -1012,7 +1545,7 @@ export default function App() {
       const provider = new GoogleAuthProvider();
       const res = await signInWithPopup(auth, provider);
       if (res.user?.email === 'roykang007@gmail.com') {
-        localStorage.setItem('BULHANZA_ADMIN_SESSION', 'active');
+        sessionStorage.setItem('BULHANZA_ADMIN_AUTH', 'active');
         localStorage.setItem('authorized_write', 'true');
         setIsAuthAdmin(true);
         setIsUserAuthorized(true);
@@ -1027,6 +1560,7 @@ export default function App() {
 
   const handleSignOut = async () => {
     await fbSignOut(auth);
+    sessionStorage.removeItem('BULHANZA_ADMIN_AUTH');
     localStorage.removeItem('BULHANZA_ADMIN_SESSION');
     localStorage.removeItem('authorized_write');
     setIsAuthAdmin(false);
@@ -1079,9 +1613,9 @@ export default function App() {
 
   useEffect(() => {
     const handlePopState = (event: PopStateEvent) => {
+      isPopStateRef.current = true;
+      
       if (event.state && typeof event.state === 'object') {
-        isPopStateRef.current = true;
-        
         const { 
           page, 
           selectedBook, 
@@ -1099,25 +1633,18 @@ export default function App() {
         if (readingSuncha !== undefined) setReadingSuncha(readingSuncha);
         if (readingPhilosophy !== undefined) setReadingPhilosophy(readingPhilosophy);
         if (selectedJourneyItem !== undefined) setSelectedJourneyItem(selectedJourneyItem);
-        
-        setTimeout(() => {
-          isPopStateRef.current = false;
-        }, 50);
+      } else {
+        const params = new URLSearchParams(window.location.search);
+        const urlPage = (params.get('page') as Page) || 'home';
+        setPage(urlPage);
       }
+      
+      setTimeout(() => {
+        isPopStateRef.current = false;
+      }, 50);
     };
 
     window.addEventListener('popstate', handlePopState);
-
-    // 최초 로드 시 현재 상태를 replaceState로 기록해 둠
-    window.history.replaceState({
-      page: 'home',
-      selectedBook: null,
-      readingPoem: null,
-      readingMulpa: null,
-      readingSuncha: null,
-      readingPhilosophy: null,
-      selectedJourneyItem: null,
-    }, '', '');
 
     return () => {
       window.removeEventListener('popstate', handlePopState);
@@ -1125,7 +1652,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (isPopStateRef.current) return;
+    if (isPopStateRef.current || !isInitialUrlParsedRef.current) return;
 
     const currentState = {
       page,
@@ -1136,6 +1663,12 @@ export default function App() {
       readingPhilosophy,
       selectedJourneyItem,
     };
+
+    const targetUrl = buildShareUrl(
+      page,
+      readingPhilosophy?.id || readingMulpa?.id || readingPoem?.id || readingSuncha?.id || selectedJourneyItem?.id || null,
+      { book: selectedBook, pTab: philosophyTab }
+    );
 
     const historyState = window.history.state;
     const isDifferent = !historyState || 
@@ -1148,7 +1681,9 @@ export default function App() {
       (historyState.selectedJourneyItem?.id || null) !== (currentState.selectedJourneyItem?.id || null);
 
     if (isDifferent) {
-      window.history.pushState(currentState, '', '');
+      window.history.pushState(currentState, '', targetUrl || window.location.pathname);
+    } else {
+      window.history.replaceState(currentState, '', targetUrl || window.location.pathname);
     }
   }, [
     page, 
@@ -1157,7 +1692,8 @@ export default function App() {
     readingMulpa, 
     readingSuncha, 
     readingPhilosophy, 
-    selectedJourneyItem
+    selectedJourneyItem,
+    philosophyTab
   ]);
 
   // Reset pagination when filter/sort/language changes
@@ -2410,18 +2946,27 @@ export default function App() {
                     exit={{ opacity: 0, y: -10 }}
                     className="bg-white border border-[#1C1A17]/10 p-4 sm:p-8 md:p-10 rounded-2xl shadow-lg space-y-8 text-left max-w-5xl mx-auto"
                   >
-                    <div className="border-b border-[#1C1A17]/10 pb-6">
-                      <span className="font-mono text-[8px] tracking-[0.2em] uppercase text-black/40 block mb-1">
-                        {readingPhilosophy.category === 'philosophy_static' || readingPhilosophy.category === 'philosophy_lecture'
-                          ? (lang === 'KR' ? '심물철학 강론' : 'Mind-Matter Philosophy Chapters')
-                          : (lang === 'KR' ? '심물철학 학술 단상' : 'Mind-Matter Essays & Reflections')}
-                      </span>
-                      <h3 className="font-serif text-2xl sm:text-3xl font-bold text-black">{readingPhilosophy.title}</h3>
-                      <div className="flex items-center gap-2 mt-2">
-                        <span className="font-mono text-[10px] text-[#1C1A17]/60">
-                          {formatFullDate(readingPhilosophy.created_at)}
+                    <div className="border-b border-[#1C1A17]/10 pb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                      <div>
+                        <span className="font-mono text-[8px] tracking-[0.2em] uppercase text-black/40 block mb-1">
+                          {readingPhilosophy.category === 'philosophy_static' || readingPhilosophy.category === 'philosophy_lecture'
+                            ? (lang === 'KR' ? '심물철학 강론' : 'Mind-Matter Philosophy Chapters')
+                            : (lang === 'KR' ? '심물철학 학술 단상' : 'Mind-Matter Essays & Reflections')}
                         </span>
+                        <h3 className="font-serif text-2xl sm:text-3xl font-bold text-black">{readingPhilosophy.title}</h3>
+                        <div className="flex items-center gap-2 mt-2">
+                          <span className="font-mono text-[11px] text-[#1C1A17]/70 font-medium">
+                            등록 · {formatFullDateTime(readingPhilosophy.created_at)}
+                          </span>
+                        </div>
                       </div>
+                      <SnsShareBar
+                        title={readingPhilosophy.title}
+                        description={readingPhilosophy.summary}
+                        imageUrl={readingPhilosophy.image_url}
+                        url={buildShareUrl('philosophy', readingPhilosophy.id, { pTab: philosophyTab })}
+                        isAuthAdmin={isAuthAdmin}
+                      />
                     </div>
 
                     {readingPhilosophy.summary && (
@@ -2839,12 +3384,21 @@ export default function App() {
                           animate={{ opacity: 1, y: 0 }}
                           className="bg-white border border-[#1C1A17]/10 p-4 sm:p-8 md:p-10 rounded-2xl shadow-lg space-y-8 text-left max-w-5xl mx-auto"
                         >
-                          <div className="border-b border-[#1C1A17]/10 pb-6">
-                            <span className="font-mono text-[8px] tracking-[0.2em] uppercase text-black/40 block mb-1">ARTICLE & CONSCIOUSNESS</span>
-                            <h3 className="font-serif text-2xl sm:text-3xl font-bold text-black">{readingMulpa.title}</h3>
-                            <span className="font-mono text-[10px] text-[#1C1A17]/60 block mt-2">
-                              {formatFullDate(readingMulpa.created_at)}
-                            </span>
+                          <div className="border-b border-[#1C1A17]/10 pb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                            <div>
+                              <span className="font-mono text-[8px] tracking-[0.2em] uppercase text-black/40 block mb-1">ARTICLE & CONSCIOUSNESS</span>
+                              <h3 className="font-serif text-2xl sm:text-3xl font-bold text-black">{readingMulpa.title}</h3>
+                              <span className="font-mono text-[11px] text-[#1C1A17]/70 font-medium block mt-2">
+                                등록 · {formatFullDateTime(readingMulpa.created_at)}
+                              </span>
+                            </div>
+                            <SnsShareBar
+                              title={readingMulpa.title}
+                              description={readingMulpa.summary}
+                              imageUrl={readingMulpa.image_url}
+                              url={buildShareUrl('mulpa', readingMulpa.id)}
+                              isAuthAdmin={isAuthAdmin}
+                            />
                           </div>
 
                           {readingMulpa.summary && (
@@ -3453,17 +4007,21 @@ export default function App() {
                           )}
 
                           <div className="space-y-6">
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#1C1A17]/10 pb-6">
+                            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-[#1C1A17]/10 pb-6">
                               <div>
-                                <span className="font-mono text-xs tracking-widest text-neutral-400 font-bold uppercase block mb-1">
-                                  {selectedBook} ㆍ {formatFullDate(readingPoem.created_at)}
+                                <h3 className="font-serif text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-neutral-900 truncate mb-2">
+                                  {readingPoem.title}
+                                </h3>
+                                <span className="font-mono text-xs tracking-widest text-neutral-500 font-medium uppercase block">
+                                  {selectedBook} ㆍ 등록 · {formatFullDateTime(readingPoem.created_at)}
                                 </span>
-                                <div className="flex items-center gap-3 flex-wrap">
-                                  <h3 className="font-serif text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-neutral-900 truncate">
-                                    {readingPoem.title}
-                                  </h3>
-                                </div>
                               </div>
+                              <SnsShareBar
+                                title={readingPoem.title}
+                                imageUrl={readingPoem.image_url || readingPoem.image_mid_url}
+                                url={buildShareUrl('poetry', readingPoem.id, { book: selectedBook })}
+                                isAuthAdmin={isAuthAdmin}
+                              />
                             </div>
 
                             {/* Core poem content rendered beautifully */}
@@ -3963,24 +4521,33 @@ export default function App() {
                   animate={{ opacity: 1, y: 0 }}
                   className="bg-white border border-[#1C1A17]/10 p-4 sm:p-8 md:p-10 rounded-2xl shadow-lg space-y-8 text-left max-w-5xl mx-auto mt-6"
                 >
-                  <div className="border-b border-[#1C1A17]/10 pb-6">
-                    <span className="font-mono text-[8px] tracking-[0.2em] uppercase text-black/40 block mb-1">
-                      {readingSuncha.category === 'suncha_seo' ? '서(書) Calligraphy' :
-                       readingSuncha.category === 'suncha_hwa' ? '화(畵) Painting' :
-                       readingSuncha.category === 'suncha_cha' || readingSuncha.category === 'suncha_intro' || readingSuncha.category === 'suncha_review' ? '차(茶) Tea' :
-                       readingSuncha.category === 'suncha_hyang' ? '향(香) Incense' : ''}
-                    </span>
-                    <h3 className="font-serif text-2xl sm:text-3xl font-bold text-black">{readingSuncha.title}</h3>
-                    <div className="flex items-center gap-2 mt-2">
-                      <span className="font-mono text-[10px] text-[#1C1A17]/60">
-                        {formatFullDate(readingSuncha.created_at)}
+                  <div className="border-b border-[#1C1A17]/10 pb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                    <div>
+                      <span className="font-mono text-[8px] tracking-[0.2em] uppercase text-black/40 block mb-1">
+                        {readingSuncha.category === 'suncha_seo' ? '서(書) Calligraphy' :
+                         readingSuncha.category === 'suncha_hwa' ? '화(畵) Painting' :
+                         readingSuncha.category === 'suncha_cha' || readingSuncha.category === 'suncha_intro' || readingSuncha.category === 'suncha_review' ? '차(茶) Tea' :
+                         readingSuncha.category === 'suncha_hyang' ? '향(香) Incense' : ''}
                       </span>
-                      {readingSuncha.category_tag && (
-                        <span className="font-mono text-[9px] tracking-widest text-[#1C1A17]/50 bg-neutral-100 border border-black/5 px-2 py-0.5 rounded uppercase">
-                          {readingSuncha.category_tag}
+                      <h3 className="font-serif text-2xl sm:text-3xl font-bold text-black">{readingSuncha.title}</h3>
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className="font-mono text-[11px] text-[#1C1A17]/70 font-medium">
+                          등록 · {formatFullDateTime(readingSuncha.created_at)}
                         </span>
-                      )}
+                        {readingSuncha.category_tag && (
+                          <span className="font-mono text-[9px] tracking-widest text-[#1C1A17]/50 bg-neutral-100 border border-black/5 px-2 py-0.5 rounded uppercase">
+                            {readingSuncha.category_tag}
+                          </span>
+                        )}
+                      </div>
                     </div>
+                    <SnsShareBar
+                      title={readingSuncha.title}
+                      description={readingSuncha.summary}
+                      imageUrl={readingSuncha.image_url}
+                      url={buildShareUrl('suncha', readingSuncha.id)}
+                      isAuthAdmin={isAuthAdmin}
+                    />
                   </div>
 
                   {readingSuncha.summary && (
@@ -4298,21 +4865,30 @@ export default function App() {
                   animate={{ opacity: 1, y: 0 }}
                   className="bg-white border border-[#1C1A17]/10 p-4 sm:p-8 md:p-10 rounded-2xl shadow-lg space-y-8 text-left max-w-5xl mx-auto"
                 >
-                  <div className="border-b border-[#1C1A17]/10 pb-6">
-                    <span className="font-mono text-[8px] tracking-[0.2em] uppercase text-black/40 block mb-1">
-                      {lang === 'KR' ? '라석여정 기록 아카이브' : lang === 'SC' ? '罗石之路档案' : 'News & Media Archive'}
-                    </span>
-                    <h3 className="font-serif text-2xl sm:text-3xl font-bold text-black">{selectedJourneyItem.title}</h3>
-                    <div className="flex items-center gap-2 mt-2">
-                      <span className="font-mono text-[10px] text-[#1C1A17]/60">
-                        {formatFullDate(selectedJourneyItem.created_at)}
+                  <div className="border-b border-[#1C1A17]/10 pb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                    <div>
+                      <span className="font-mono text-[8px] tracking-[0.2em] uppercase text-black/40 block mb-1">
+                        {lang === 'KR' ? '라석여정 기록 아카이브' : lang === 'SC' ? '罗石之路档案' : 'News & Media Archive'}
                       </span>
-                      {selectedJourneyItem.category_tag && (
-                        <span className="font-mono text-[9px] tracking-widest text-[#1C1A17]/50 bg-neutral-100 border border-black/5 px-2 py-0.5 rounded uppercase">
-                          {selectedJourneyItem.category_tag}
+                      <h3 className="font-serif text-2xl sm:text-3xl font-bold text-black">{selectedJourneyItem.title}</h3>
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className="font-mono text-[11px] text-[#1C1A17]/70 font-medium">
+                          등록 · {formatFullDateTime(selectedJourneyItem.created_at)}
                         </span>
-                      )}
+                        {selectedJourneyItem.category_tag && (
+                          <span className="font-mono text-[9px] tracking-widest text-[#1C1A17]/50 bg-neutral-100 border border-black/5 px-2 py-0.5 rounded uppercase">
+                            {selectedJourneyItem.category_tag}
+                          </span>
+                        )}
+                      </div>
                     </div>
+                    <SnsShareBar
+                      title={selectedJourneyItem.title}
+                      description={selectedJourneyItem.summary}
+                      imageUrl={selectedJourneyItem.image_url}
+                      url={buildShareUrl('journey', selectedJourneyItem.id)}
+                      isAuthAdmin={isAuthAdmin}
+                    />
                   </div>
 
                   {selectedJourneyItem.summary && (
